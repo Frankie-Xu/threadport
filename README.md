@@ -23,7 +23,18 @@ npm test
 npm run build
 ```
 
-The current release is protocol-first. Agent session adapters and the handoff CLI are the next layer; the core remains local-only, deterministic, and read-only.
+The current release is protocol-first. The first session adapter is available as a library call; the handoff CLI is the next layer. The core remains local-only, deterministic, and read-only.
+
+```ts
+import { createClaudeAdapter } from "threadport";
+
+const capsule = await createClaudeAdapter().extract({
+  sessionPath: "./tests/fixtures/claude/session-basic.jsonl",
+  project: { name: "my-app", root: process.cwd() }
+});
+```
+
+Pass a local session file or already-read text. The adapter maps observable traces onto Capsule v1; it does not execute `next_action`, and it does not treat the session file as a published vendor schema.
 
 ## Safety boundary
 
