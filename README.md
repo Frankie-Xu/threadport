@@ -36,6 +36,18 @@ const capsule = await createClaudeAdapter().extract({
 
 Pass a local session file or already-read text. The adapter maps observable traces onto Capsule v1; it does not execute `next_action`, and it does not treat the session file as a published vendor schema.
 
+## Handoff CLI
+
+Read-only local commands. After `npm run build`, `threadport` writes Capsules under `.threadport/` (gitignored):
+
+```bash
+npx threadport extract --from claude --session ./session.jsonl --project .
+npx threadport validate .threadport/<id>.json
+npx threadport render .threadport/<id>.json
+```
+
+The CLI validates before writing and does not run `next_action`. Only `--from claude` is available in this layer.
+
 ## Safety boundary
 
 ThreadPort does not transfer hidden chain-of-thought, does not upload session data, and does not automatically run the next action. Consumers must validate the Capsule and ask for user confirmation before modifying a repository.
