@@ -26,15 +26,15 @@ npm run build
 The current release is protocol-first. The first session adapter is available as a library call; the handoff CLI is the next layer. The core remains local-only, deterministic, and read-only.
 
 ```ts
-import { createClaudeAdapter } from "threadport";
+import { createClaudeAdapter, createCodexAdapter, createCursorAdapter } from "threadport";
 
-const capsule = await createClaudeAdapter().extract({
-  sessionPath: "./tests/fixtures/claude/session-basic.jsonl",
+const capsule = await createCursorAdapter().extract({
+  sessionPath: "./tests/fixtures/cursor/session-basic.jsonl",
   project: { name: "my-app", root: process.cwd() }
 });
 ```
 
-Pass a local session file or already-read text. The adapter maps observable traces onto Capsule v1; it does not execute `next_action`, and it does not treat the session file as a published vendor schema.
+`createClaudeAdapter` and `createCodexAdapter` take the same input. Pass a local session file or already-read text. Adapters map observable traces onto Capsule v1; they do not execute `next_action`, and they do not treat the session file as a published vendor schema.
 
 ## Handoff CLI
 
@@ -46,7 +46,7 @@ npx threadport validate .threadport/<id>.json
 npx threadport render .threadport/<id>.json
 ```
 
-The CLI validates before writing and does not run `next_action`. `--from claude` and `--from codex` are available; Cursor and Gemini adapters are later.
+The CLI validates before writing and does not run `next_action`. `--from` accepts `claude`, `codex`, and `cursor`.
 
 ## Safety boundary
 
