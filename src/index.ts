@@ -5,3 +5,4 @@ export * from "./redact.js";
 export * from "./markdown.js";
 export type { SessionAdapter, SessionExtractInput, SessionProjectInput } from "./adapters/types.js";
 export { createClaudeAdapter } from "./adapters/claude.js";
+export { createCodexAdapter } from "./adapters/codex.js";

@@ -46,7 +46,7 @@ npx threadport validate .threadport/<id>.json
 npx threadport render .threadport/<id>.json
 ```
 
-The CLI validates before writing and does not run `next_action`. Only `--from claude` is available in this layer.
+The CLI validates before writing and does not run `next_action`. `--from claude` and `--from codex` are available; Cursor and Gemini adapters are later.
 
 ## Safety boundary
 

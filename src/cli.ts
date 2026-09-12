@@ -3,6 +3,8 @@ import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createClaudeAdapter } from "./adapters/claude.js";
+import { createCodexAdapter } from "./adapters/codex.js";
+import type { SessionAdapter } from "./adapters/types.js";
 import { parseCapsule, serializeCapsule, validateCapsule } from "./capsule.js";
 import { renderCapsuleMarkdown } from "./markdown.js";
 
@@ -52,7 +54,7 @@ function defaultIo(): CliIo {
 
 function usage(): string {
   return [
-    "threadport extract --from claude --session <path> --project <root> [--out <file>] [--force]",
+    "threadport extract --from claude|codex --session <path> --project <root> [--out <file>] [--force]",
     "threadport validate <capsule.json>",
     "threadport render <capsule.json>"
   ].join("\n");
@@ -60,15 +62,13 @@ function usage(): string {
 
 async function extractCommand(argv: string[], io: CliIo): Promise<number> {
   const flags = parseExtractFlags(argv);
-  if (flags.from !== "claude") {
-    throw new Error("Only --from claude is supported in this layer.");
-  }
+  const adapter = adapterFor(flags.from);
   if (!flags.session || !flags.project) {
     throw new Error("extract requires --session and --project.");
   }
 
   const projectRoot = resolve(io.cwd(), flags.project);
-  const capsule = await createClaudeAdapter().extract({
+  const capsule = await adapter.extract({
     sessionPath: resolve(io.cwd(), flags.session),
     project: {
       name: basename(projectRoot) || "project",
@@ -108,6 +108,16 @@ async function renderCommand(argv: string[], io: CliIo): Promise<number> {
   const capsule = parseCapsule(await readFile(resolvePath(io.cwd(), file), "utf8"));
   io.stdout.write(`${renderCapsuleMarkdown(capsule)}\n`);
   return 0;
+}
+
+function adapterFor(from: string | undefined): SessionAdapter {
+  if (from === "claude") {
+    return createClaudeAdapter();
+  }
+  if (from === "codex") {
+    return createCodexAdapter();
+  }
+  throw new Error("Unsupported --from value. Supported: claude, codex.");
 }
 
 function parseExtractFlags(argv: string[]): {
