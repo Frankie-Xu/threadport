@@ -1,0 +1,144 @@
+{
+  "sessionId": "sess-gemini-fixture-basic-001",
+  "messages": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Add a sliding-window login rate limiter.\n\nAcceptance:\n- More than 10 requests per minute return 429.\n- Existing valid logins still succeed.\n\nDo not commit the API key sk-testsecretvalue1234567890abcd."
+        }
+      ]
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "thought": true,
+          "text": "HIDDEN_REASONING_MARKER_DO_NOT_COPY inspect auth first."
+        },
+        {
+          "text": "I'll use a sliding window rather than a fixed window so bursty traffic is fairer."
+        },
+        {
+          "functionCall": {
+            "name": "write_file",
+            "args": {
+              "file_path": "src/rate-limit.ts"
+            }
+          }
+        },
+        {
+          "functionCall": {
+            "name": "replace",
+            "args": {
+              "file_path": "src/login.ts"
+            }
+          }
+        },
+        {
+          "functionCall": {
+            "name": "run_shell_command",
+            "args": {
+              "command": "npm test"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "name": "run_shell_command",
+            "response": {
+              "output": "FAIL tests/login.test.ts\nExpected 429 after the 11th request.\nexit_code: 1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "text": "The first test run failed on the new limiter. I'll fix the window calculation and rerun."
+        },
+        {
+          "functionCall": {
+            "name": "replace",
+            "args": {
+              "file_path": "src/rate-limit.ts"
+            }
+          }
+        },
+        {
+          "functionCall": {
+            "name": "run_shell_command",
+            "args": {
+              "command": "npm test"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "name": "run_shell_command",
+            "response": {
+              "output": "9 passed\nexit_code: 0"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Also add a unit test for the limiter."
+        }
+      ]
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "text": "I'll add tests/rate-limit.test.ts and run that file."
+        },
+        {
+          "functionCall": {
+            "name": "write_file",
+            "args": {
+              "file_path": "tests/rate-limit.test.ts"
+            }
+          }
+        },
+        {
+          "functionCall": {
+            "name": "run_shell_command",
+            "args": {
+              "command": "npx vitest run tests/rate-limit.test.ts"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "name": "run_shell_command",
+            "response": {
+              "output": "1 passed\nexit_code: 0"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

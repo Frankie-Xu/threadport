@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { createClaudeAdapter } from "./adapters/claude.js";
 import { createCodexAdapter } from "./adapters/codex.js";
 import { createCursorAdapter } from "./adapters/cursor.js";
+import { createGeminiAdapter } from "./adapters/gemini.js";
 import type { SessionAdapter } from "./adapters/types.js";
 import { parseCapsule, serializeCapsule, validateCapsule } from "./capsule.js";
 import { renderCapsuleMarkdown } from "./markdown.js";
@@ -55,7 +56,7 @@ function defaultIo(): CliIo {
 
 function usage(): string {
   return [
-    "threadport extract --from claude|codex|cursor --session <path> --project <root> [--out <file>] [--force]",
+    "threadport extract --from claude|codex|cursor|gemini --session <path> --project <root> [--out <file>] [--force]",
     "threadport validate <capsule.json>",
     "threadport render <capsule.json>"
   ].join("\n");
@@ -121,7 +122,10 @@ function adapterFor(from: string | undefined): SessionAdapter {
   if (from === "cursor") {
     return createCursorAdapter();
   }
-  throw new Error("Unsupported --from value. Supported: claude, codex, cursor.");
+  if (from === "gemini") {
+    return createGeminiAdapter();
+  }
+  throw new Error("Unsupported --from value. Supported: claude, codex, cursor, gemini.");
 }
 
 function parseExtractFlags(argv: string[]): {

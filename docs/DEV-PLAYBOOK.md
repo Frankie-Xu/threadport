@@ -312,6 +312,6 @@ Session 文件位置由调用方传入。Adapter 可以**提示**常见目录（
 | 2 Handoff CLI | done | ~0.5h | local `b856a770ff9e15fafd1a52d11264f2af64a09536` | Frankie-Xu：`threadport extract|validate|render`；默认写 `.threadport/`；非法 Capsule 非零退出；不执行 `next_action`。 |
 | 3a Codex adapter | done | ~0.6h | `feat/Frankie-Xu/codex-session-adapter` | Frankie-Xu：`createCodexAdapter` + `--from codex`；合成 fixture；脱敏与无 hidden reasoning。未开 3b/3c。 |
 | 3b Cursor adapter | done | ~0.6h | `feat/Frankie-Xu/cursor-session-adapter` | Frankie-Xu：`createCursorAdapter` + `--from cursor`；合成 fixture；脱敏与无 hidden reasoning。未开 3c。 |
-| 3c Gemini adapter | pending |  |  | 第二批 |
+| 3c Gemini adapter | done | ~0.4h | `feat/Frankie-Xu/gemini-session-adapter` | Frankie-Xu：`createGeminiAdapter` + `--from gemini`；合成 fixture；脱敏与无 hidden reasoning。阶段 3 全部完成。 |
 
 状态只准用：`pending` | `in_progress` | `done` | `blocked`。
