@@ -21,6 +21,10 @@ const cursorFixturePath = join(
   dirname(fileURLToPath(import.meta.url)),
   "fixtures/cursor/session-basic.jsonl"
 );
+const geminiFixturePath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "fixtures/gemini/session-basic.json"
+);
 
 async function isolatedProjectRoot(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "threadport-cli-project-"));
@@ -142,6 +146,22 @@ describe("Handoff CLI", () => {
     expect(capsule.source_agent).toBe("cursor");
   });
 
+  it("extracts a Gemini fixture through --from gemini", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-gemini-"));
+    const project = await isolatedProjectRoot();
+    const result = await captureCli([
+      "extract",
+      "--from", "gemini",
+      "--session", geminiFixturePath,
+      "--project", project
+    ], cwd);
+    expect(result.code).toBe(0);
+    const capsule = parseCapsule(
+      await readFile(join(cwd, ".threadport", "sess-gemini-fixture-basic-001.json"), "utf8")
+    );
+    expect(capsule.source_agent).toBe("gemini");
+  });
+
   it("extracts a Codex fixture through --from codex", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-codex-"));
     const project = await isolatedProjectRoot();
@@ -165,11 +185,11 @@ describe("Handoff CLI", () => {
     const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-from-"));
     const other = await captureCli([
       "extract",
-      "--from", "gemini",
+      "--from", "unknown",
       "--session", fixturePath,
       "--project", cwd
     ], cwd);
     expect(other.code).not.toBe(0);
-    expect(other.stderr).toMatch(/cursor/i);
+    expect(other.stderr).toMatch(/gemini/i);
   });
 });
