@@ -308,7 +308,7 @@ Session 文件位置由调用方传入。Adapter 可以**提示**常见目录（
 | 阶段 | 状态 | 实际耗时 | 结束提交 | 备注 |
 | --- | --- | --- | --- | --- |
 | 0 开工检查 | done | ~0.3h | （本轮按用户要求未提交） | HEAD 仍为 `0868ec5875923ab4341be8d165f32bd3d0204c83`；`npm test` 9/9、`npm run check` 绿；无阶段 1 半成品。工作树另有既有未跟踪 `package-lock.json`，未纳入本阶段。 |
-| 1 Claude adapter | done | ~1.0h | `d12f5d9b25f1790492ab914698c1f1287ebc447c` | `SessionAdapter` + `createClaudeAdapter`；合成 fixture 抽出合法 Capsule；脱敏与无 hidden reasoning 有断言；公开 API 不经 CLI；README 已补调用说明。未 push（本机 github.com:443 常不通）。 |
+| 1 Claude adapter | done | ~1.0h | local `d12f5d9` / origin `52891a77c994c46c398208a8c5d88142f60aa3eb` | `SessionAdapter` + `createClaudeAdapter`。github.com:443 不通，已用 api.github.com 把同等内容推到 `feat/Frankie-Xu/claude-session-adapter`（未 force、未直推 main）。未纳入既有 `package-lock.json`。 |
 | 2 Handoff CLI | pending |  |  | 与 adapter 同属下一层 |
 | 3a Codex adapter | pending |  |  | 第二批 |
 | 3b Cursor adapter | pending |  |  | 第二批 |
