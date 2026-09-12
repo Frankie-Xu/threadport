@@ -2,8 +2,12 @@
   "name": "threadport",
   "version": "0.1.0",
   "description": "Portable, verifiable work state for coding agents.",
+  "author": "Frankie-Xu",
   "type": "module",
   "license": "Apache-2.0",
+  "bin": {
+    "threadport": "./dist/src/cli.js"
+  },
   "engines": {
     "node": ">=20"
   },
