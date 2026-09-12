@@ -17,6 +17,10 @@ const codexFixturePath = join(
   dirname(fileURLToPath(import.meta.url)),
   "fixtures/codex/session-basic.jsonl"
 );
+const cursorFixturePath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "fixtures/cursor/session-basic.jsonl"
+);
 
 async function isolatedProjectRoot(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "threadport-cli-project-"));
@@ -122,6 +126,22 @@ describe("Handoff CLI", () => {
     expect(forced.code).toBe(0);
   });
 
+  it("extracts a Cursor fixture through --from cursor", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-cursor-"));
+    const project = await isolatedProjectRoot();
+    const result = await captureCli([
+      "extract",
+      "--from", "cursor",
+      "--session", cursorFixturePath,
+      "--project", project
+    ], cwd);
+    expect(result.code).toBe(0);
+    const capsule = parseCapsule(
+      await readFile(join(cwd, ".threadport", "sess-cursor-fixture-basic-001.json"), "utf8")
+    );
+    expect(capsule.source_agent).toBe("cursor");
+  });
+
   it("extracts a Codex fixture through --from codex", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-codex-"));
     const project = await isolatedProjectRoot();
@@ -150,6 +170,6 @@ describe("Handoff CLI", () => {
       "--project", cwd
     ], cwd);
     expect(other.code).not.toBe(0);
-    expect(other.stderr).toMatch(/codex/i);
+    expect(other.stderr).toMatch(/cursor/i);
   });
 });
