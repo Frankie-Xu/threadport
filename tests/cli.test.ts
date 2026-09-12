@@ -13,6 +13,10 @@ const fixturePath = join(
   dirname(fileURLToPath(import.meta.url)),
   "fixtures/claude/session-basic.jsonl"
 );
+const codexFixturePath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "fixtures/codex/session-basic.jsonl"
+);
 
 async function isolatedProjectRoot(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "threadport-cli-project-"));
@@ -118,6 +122,22 @@ describe("Handoff CLI", () => {
     expect(forced.code).toBe(0);
   });
 
+  it("extracts a Codex fixture through --from codex", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-codex-"));
+    const project = await isolatedProjectRoot();
+    const result = await captureCli([
+      "extract",
+      "--from", "codex",
+      "--session", codexFixturePath,
+      "--project", project
+    ], cwd);
+    expect(result.code).toBe(0);
+    const capsule = parseCapsule(
+      await readFile(join(cwd, ".threadport", "sess-codex-fixture-basic-001.json"), "utf8")
+    );
+    expect(capsule.source_agent).toBe("codex");
+  });
+
   it("keeps .threadport ignored and rejects other --from agents", async () => {
     const gitignore = await readFile(join(dirname(fileURLToPath(import.meta.url)), "../.gitignore"), "utf8");
     expect(gitignore).toMatch(/^\.threadport\/$/m);
@@ -125,11 +145,11 @@ describe("Handoff CLI", () => {
     const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-from-"));
     const other = await captureCli([
       "extract",
-      "--from", "codex",
+      "--from", "gemini",
       "--session", fixturePath,
       "--project", cwd
     ], cwd);
     expect(other.code).not.toBe(0);
-    expect(other.stderr).toMatch(/claude/i);
+    expect(other.stderr).toMatch(/codex/i);
   });
 });
