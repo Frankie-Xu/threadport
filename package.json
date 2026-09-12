@@ -4,22 +4,32 @@
   "description": "Portable, verifiable work state for coding agents.",
   "type": "module",
   "license": "Apache-2.0",
-  "engines": {"node": ">=20"},
+  "engines": {
+    "node": ">=20"
+  },
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
       "import": "./dist/src/index.js"
     }
   },
-  "files": ["dist", "schema", "examples"],
+  "files": [
+    "dist",
+    "schema",
+    "examples"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
     "check": "npm run build && npm test"
   },
-  "dependencies": {"zod": "^3.25.76"},
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "typescript": "^5.9.0",
     "vitest": "^3.2.4"
   }
