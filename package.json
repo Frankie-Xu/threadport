@@ -1,0 +1,26 @@
+{
+  "name": "threadport",
+  "version": "0.1.0",
+  "description": "Portable, verifiable work state for coding agents.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "engines": {"node": ">=20"},
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "files": ["dist", "schema", "examples"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "check": "npm run build && npm test"
+  },
+  "dependencies": {"zod": "^3.25.76"},
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.4"
+  }
+}

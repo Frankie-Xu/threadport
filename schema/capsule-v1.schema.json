@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://threadport.dev/schema/capsule-v1.schema.json",
+  "title": "ThreadPort Context Capsule v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "created_at", "source_agent", "project", "objective", "acceptance_criteria", "status", "completed", "decisions", "constraints", "files", "commands", "tests", "failures", "next_action", "evidence", "git"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$", "maxLength": 128},
+    "created_at": {"type": "string", "format": "date-time"},
+    "source_agent": {"enum": ["claude", "codex", "cursor", "gemini", "unknown"]},
+    "source_session_id": {"type": "string", "minLength": 1},
+    "project": {"type": "object", "additionalProperties": false, "required": ["name", "root"], "properties": {"name": {"type": "string", "minLength": 1}, "root": {"type": "string", "minLength": 1}, "repository": {"type": "string", "format": "uri"}}},
+    "objective": {"type": "string", "minLength": 1},
+    "acceptance_criteria": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "status": {"enum": ["active", "blocked", "completed", "paused"]},
+    "completed": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "decisions": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["decision"], "properties": {"decision": {"type": "string", "minLength": 1}, "rationale": {"type": "string"}, "evidence": {"type": "array", "items": {"type": "string", "minLength": 1}}}}},
+    "constraints": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "files": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "action"], "properties": {"path": {"type": "string", "minLength": 1}, "action": {"enum": ["added", "modified", "deleted", "renamed", "unknown"]}, "summary": {"type": "string"}}}},
+    "commands": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["command"], "properties": {"command": {"type": "string", "minLength": 1}, "exit_code": {"type": "integer"}, "summary": {"type": "string"}}}},
+    "tests": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["command", "status"], "properties": {"command": {"type": "string", "minLength": 1}, "status": {"enum": ["passed", "failed", "skipped", "unknown"]}, "summary": {"type": "string"}}}},
+    "failures": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["summary"], "properties": {"summary": {"type": "string", "minLength": 1}, "resolution": {"type": "string"}}}},
+    "next_action": {"type": "string", "minLength": 1},
+    "evidence": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["kind", "title"], "properties": {"kind": {"enum": ["file", "command", "test", "url", "session", "other"]}, "title": {"type": "string", "minLength": 1}, "locator": {"type": "string"}, "digest": {"type": "string"}}}},
+    "git": {"type": "object", "additionalProperties": false, "required": ["root", "branch", "head", "dirty", "dirty_diff_hash", "changed_files"], "properties": {"root": {"type": "string", "minLength": 1}, "branch": {"type": "string", "minLength": 1}, "head": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "dirty": {"type": "boolean"}, "dirty_diff_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "changed_files": {"type": "array", "items": {"type": "string", "minLength": 1}}}},
+    "redaction": {"type": "object", "additionalProperties": false, "required": ["applied", "count"], "properties": {"applied": {"type": "boolean"}, "count": {"type": "integer", "minimum": 0}}}
+  }
+}

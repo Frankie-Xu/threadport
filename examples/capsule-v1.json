@@ -1,0 +1,48 @@
+{
+  "schema_version": "1.0",
+  "id": "threadport-mvp-001",
+  "created_at": "2026-09-12T08:00:00Z",
+  "source_agent": "claude",
+  "source_session_id": "session-example-001",
+  "project": {
+    "name": "threadport",
+    "root": "/workspace/threadport"
+  },
+  "objective": "Define and validate the first Context Capsule schema.",
+  "acceptance_criteria": [
+    "Capsule JSON validates against schema v1.",
+    "The state can be rendered as readable Markdown."
+  ],
+  "status": "active",
+  "completed": ["Drafted the normalized work-state fields."],
+  "decisions": [
+    {
+      "decision": "Keep the capsule local-first and deterministic.",
+      "rationale": "Cross-agent handoff must work without an account or an API key."
+    }
+  ],
+  "constraints": ["Do not transfer hidden chain-of-thought.", "Do not auto-execute the next action."],
+  "files": [
+    {"path": "schema/capsule-v1.schema.json", "action": "added", "summary": "JSON Schema for the wire format."}
+  ],
+  "commands": [
+    {"command": "npm test", "exit_code": 0, "summary": "Schema and renderer tests passed."}
+  ],
+  "tests": [
+    {"command": "npm test", "status": "passed", "summary": "All tests passed."}
+  ],
+  "failures": [],
+  "next_action": "Implement the first Claude Code session adapter.",
+  "evidence": [
+    {"kind": "file", "title": "Capsule v1 schema", "locator": "schema/capsule-v1.schema.json"}
+  ],
+  "git": {
+    "root": "/workspace/threadport",
+    "branch": "main",
+    "head": "0123456789abcdef0123456789abcdef01234567",
+    "dirty": false,
+    "dirty_diff_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "changed_files": []
+  },
+  "redaction": {"applied": false, "count": 0}
+}

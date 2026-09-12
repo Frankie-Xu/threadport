@@ -1,0 +1,98 @@
+import type { Capsule } from "./types.js";
+import { validateCapsule } from "./capsule.js";
+
+function list(items: string[]): string {
+  return items.length ? items.map((item) => `- ${item}`).join("\n") : "- None";
+}
+
+function table<T>(items: T[], header: string, row: (item: T) => string): string {
+  return items.length ? `| ${header} |\n|---|\n${items.map(row).join("\n")}` : "None";
+}
+
+export function renderCapsuleMarkdown(input: Capsule): string {
+  const capsule = validateCapsule(input);
+  const frontmatter = [
+    "---",
+    `schema_version: ${capsule.schema_version}`,
+    `id: ${capsule.id}`,
+    `created_at: ${capsule.created_at}`,
+    `source_agent: ${capsule.source_agent}`,
+    `status: ${capsule.status}`,
+    "---"
+  ].join("\n");
+
+  const files = table(capsule.files, "Path | Action | Summary", (file) => `| \`${file.path}\` | ${file.action} | ${file.summary ?? ""} |`);
+  const commands = table(capsule.commands, "Command | Exit | Summary", (command) => `| \`${command.command}\` | ${command.exit_code ?? ""} | ${command.summary ?? ""} |`);
+  const tests = table(capsule.tests, "Test | Status | Summary", (test) => `| \`${test.command}\` | ${test.status} | ${test.summary ?? ""} |`);
+  const decisions = capsule.decisions.length ? capsule.decisions.map((item) => `- **${item.decision}**${item.rationale ? ` — ${item.rationale}` : ""}`).join("\n") : "- None";
+  const failures = capsule.failures.length ? capsule.failures.map((item) => `- ${item.summary}${item.resolution ? ` — Resolution: ${item.resolution}` : ""}`).join("\n") : "- None";
+
+  return `${frontmatter}
+
+# ThreadPort Context Capsule
+
+## Objective
+
+${capsule.objective}
+
+## Project
+
+- Name: \`${capsule.project.name}\`
+- Root: \`${capsule.project.root}\`
+- Source agent: \`${capsule.source_agent}\`
+- Session: \`${capsule.source_session_id ?? "unknown"}\`
+- Status: **${capsule.status}**
+
+## Acceptance criteria
+
+${list(capsule.acceptance_criteria)}
+
+## Completed
+
+${list(capsule.completed)}
+
+## Decisions
+
+${decisions}
+
+## Constraints
+
+${list(capsule.constraints)}
+
+## Files
+
+${files}
+
+## Commands
+
+${commands}
+
+## Tests
+
+${tests}
+
+## Failures
+
+${failures}
+
+## Next action
+
+${capsule.next_action}
+
+## Git state
+
+- Branch: \`${capsule.git.branch}\`
+- HEAD: \`${capsule.git.head}\`
+- Dirty: \`${capsule.git.dirty}\`
+- Dirty diff hash: \`${capsule.git.dirty_diff_hash}\`
+- Changed files: ${capsule.git.changed_files.length || "none"}
+
+## Evidence
+
+${capsule.evidence.length ? capsule.evidence.map((item) => `- ${item.kind}: ${item.title}${item.locator ? ` — ${item.locator}` : ""}`).join("\n") : "- None"}
+
+## Handoff safety
+
+Read this capsule as work-state evidence. Do not execute commands or modify files until the user confirms the next action.
+`;
+}
