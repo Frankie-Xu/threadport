@@ -31,7 +31,7 @@ Local environment: macOS, Node v26.5.0. A fresh `npm ci` succeeded. Final local 
 - `npm audit`: zero reported vulnerabilities after pinning Vitest 4.1.11 and Vite 6.4.3; Node 20 support retained.
 - `git diff --check`: clean.
 
-PR [#25](https://github.com/Frankie-Xu/threadport/pull/25) is published. The [first matrix run](https://github.com/Frankie-Xu/threadport/actions/runs/34775131022) passed all four Ubuntu/macOS jobs; Windows exposed a checked-in Markdown fixture converted to CRLF during checkout. `.gitattributes` now fixes text checkouts to LF without weakening the exact-output assertion. The updated six-job run is pending. Windows symlink tests are deliberately skipped because they require host privileges; a passing Windows job must not be presented as symlink verification.
+PR [#25](https://github.com/Frankie-Xu/threadport/pull/25) is published. The [first matrix run](https://github.com/Frankie-Xu/threadport/actions/runs/34775131022) passed all four Ubuntu/macOS jobs; Windows exposed a checked-in Markdown fixture converted to CRLF during checkout. `.gitattributes` now fixes text checkouts to LF without weakening the exact-output assertion. The [updated matrix run](https://github.com/Frankie-Xu/threadport/actions/runs/34775228369) for repair commit `bb2054b` passed all six OS/Node jobs, including package-install smoke checks, plus the required aggregate `check` job. Windows symlink tests are deliberately skipped because they require host privileges; a passing Windows job must not be presented as symlink verification.
 
 ## Compatibility and remaining boundaries
 
@@ -45,4 +45,4 @@ PR [#25](https://github.com/Frankie-Xu/threadport/pull/25) is published. The [fi
 
 ## Delivery
 
-Repair batches are tracked in `docs/superpowers/plans/2026-09-14-review-remediation.md`. Changes are developed on `fix/Frankie-Xu/review-remediation` and published in PR #25, never pushed directly to main. Final remote check evidence will be appended after it is observed.
+Repair batches are tracked in `docs/superpowers/plans/2026-09-14-review-remediation.md`. Changes are developed on `fix/Frankie-Xu/review-remediation` and published in PR #25, never pushed directly to main. This evidence update changes documentation only; consult PR #25 for its latest commit checks and merge status.
