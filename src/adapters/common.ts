@@ -30,7 +30,7 @@ export type SessionRecord = Record<string, unknown>;
 export type TraceEvent =
   | { type: "user"; text: string }
   | { type: "assistant"; text: string }
-  | { type: "file"; path: string; action: FileAction }
+  | { type: "file"; path: string; action: FileAction; outcome?: 'succeeded' | 'failed' | 'unknown'; output?: string }
   | { type: "command"; command: string; exitCode?: number; output?: string };
 
 export interface SessionTraces {
@@ -92,6 +92,7 @@ export function parseSessionRecords(text: string, label: string): SessionRecord[
 }
 
 export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
+  if (!events.length) throw new Error('No observable session events found; unsupported or empty transcript.');
   const files = new Map<string, CapsuleFile>();
   const commands: CapsuleCommand[] = [];
   const tests: CapsuleTest[] = [];
@@ -102,6 +103,7 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
   let lastToolIndex = -1;
   let lastSpokenAfterFailure: string | undefined;
   let sawUnresolvedFailure = false;
+  const fileFailures = new Map<string, CapsuleFailure>();
 
   events.forEach((event, index) => {
     if (event.type === "user") {
@@ -120,14 +122,20 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
     }
     if (event.type === "file") {
       lastToolIndex = index;
-      if (!files.has(event.path)) {
-        files.set(event.path, {
-          path: event.path,
-          action: event.action,
-          summary: event.action === "added" ? "Created in session." : "Edited in session."
-        });
+      if (event.outcome === 'succeeded') {
+        const previous = files.get(event.path);
+        const action = previous?.action === 'added' && event.action === 'modified' && previous.summary === 'Created in session.' ? 'added' : event.action;
+        files.set(event.path, { path: event.path, action, summary: action === 'added' ? 'Created in session.' : 'Confirmed in session.' });
+        completed.push(fileCompletion(event.action, event.path));
+        const failure = fileFailures.get(event.path);
+        if (failure) failure.resolution = `A later file operation on ${event.path} succeeded.`;
+      } else {
+        if (!files.has(event.path)) files.set(event.path, { path: event.path, action: event.action, summary: `Attempted ${event.action}; outcome ${event.outcome ?? 'unknown'}.` });
+        if (event.outcome === 'failed') {
+          fileFailures.set(event.path, { summary: event.output ? summarize(event.output) : `File operation failed: ${event.path}` });
+          sawUnresolvedFailure = true;
+        }
       }
-      completed.push(fileCompletion(event.action, event.path));
       return;
     }
 
@@ -156,7 +164,7 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
   const objective = firstLine(userTexts[0] ?? "Resume the recorded session.");
   const acceptanceCriteria = extractAcceptance(userTexts[0] ?? "");
   const constraints = extractConstraints(userTexts);
-  const failures = collapseFailures(commands);
+  const failures = [...collapseFailures(commands), ...fileFailures.values()];
   const lastUserText = userTexts.at(-1) ?? "";
   const userDeclaredDone = USER_DONE.test(lastUserText);
   const unresolvedFailures = failures.some((item) => !item.resolution);
@@ -177,7 +185,7 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
     nextAction: openUserInstruction
       ?? (unresolvedFailures ? lastSpokenAfterFailure : undefined)
       ?? DEFAULT_NEXT_ACTION,
-    status: userDeclaredDone ? "completed" : unresolvedFailures ? "blocked" : "active"
+    status: unresolvedFailures ? "blocked" : userDeclaredDone ? "completed" : "active"
   };
 }
 
@@ -288,13 +296,14 @@ export function resolveCreatedAt(now: Date | undefined, records: SessionRecord[]
   if (now) {
     return now.toISOString();
   }
+  let earliest = Infinity;
   for (const record of records) {
     const timestamp = asString(record.timestamp) ?? asString(record.created_at);
     if (timestamp && !Number.isNaN(Date.parse(timestamp))) {
-      return new Date(timestamp).toISOString();
+      earliest = Math.min(earliest, Date.parse(timestamp));
     }
   }
-  return new Date().toISOString();
+  return new Date(Number.isFinite(earliest) ? earliest : Date.now()).toISOString();
 }
 
 export function parseExitCode(text: string | undefined): number | undefined {
@@ -309,7 +318,20 @@ export function parseExitCode(text: string | undefined): number | undefined {
   if (labeled?.[1]) {
     return Number(labeled[1]);
   }
+  const processExit = text.match(/Process exited with code\s+(-?\d+)/i);
+  if (processExit) return Number(processExit[1]);
   return undefined;
+}
+
+export interface ToolResult { text: string; exitCode?: number; outcome: 'succeeded' | 'failed' | 'unknown'; }
+export function toolResult(value: unknown, isError = false): ToolResult {
+  const text = typeof value === 'string' ? value : isRecord(value)
+    ? asString(value.output) ?? asString(value.content) ?? asString(value.text) ?? JSON.stringify(value) : contentText(value);
+  const numeric = isRecord(value) ? value.exit_code ?? value.exitCode : undefined;
+  const exitCode = isError ? 1 : typeof numeric === 'number' && Number.isSafeInteger(numeric) ? numeric : parseExitCode(text);
+  const failed = isError || (exitCode !== undefined && exitCode !== 0) || /^\s*(?:error|failed|failure)\b/i.test(text);
+  const succeeded = exitCode === 0 || /^\s*(?:success|wrote|edited|created|deleted|updated)\b/i.test(text);
+  return { text, exitCode, outcome: failed ? 'failed' : succeeded ? 'succeeded' : 'unknown' };
 }
 
 export function contentText(content: unknown): string {
@@ -389,19 +411,17 @@ function extractConstraints(userTexts: string[]): string[] {
 
 function collapseFailures(commands: CapsuleCommand[]): CapsuleFailure[] {
   const failures: CapsuleFailure[] = [];
-  const seen = new Set<string>();
-  for (const [index, command] of commands.entries()) {
-    if (command.exit_code === undefined || command.exit_code === 0 || seen.has(command.command)) {
-      continue;
+  const open = new Map<string, CapsuleFailure>();
+  for (const command of commands) {
+    if (command.exit_code === undefined) continue;
+    if (command.exit_code === 0) {
+      const failure = open.get(command.command);
+      if (failure) failure.resolution = `Retried \`${command.command}\` and it passed.`;
+      open.delete(command.command);
+    } else if (!open.has(command.command)) {
+      const failure = { summary: command.summary ?? `Command failed: ${command.command}` };
+      failures.push(failure); open.set(command.command, failure);
     }
-    seen.add(command.command);
-    const laterPass = commands.slice(index + 1).some((item) => {
-      return item.command === command.command && item.exit_code === 0;
-    });
-    failures.push({
-      summary: command.summary ?? `Command failed: ${command.command}`,
-      ...(laterPass ? { resolution: `Retried \`${command.command}\` and it passed.` } : {})
-    });
   }
   return failures;
 }

@@ -6,7 +6,8 @@ import {
   asString,
   isRecord,
   loadSessionText,
-  parseExitCode,
+  toolResult,
+  resolveCreatedAt,
   parseSessionRecords,
   sessionIdFrom,
   tracesFromEvents,
@@ -44,7 +45,7 @@ async function extractGeminiSession(input: SessionExtractInput): Promise<import(
     redactionCount: count,
     sessionId: sessionIdFrom(records, input.sessionPath, "gemini-session"),
     traces: tracesFromEvents(events),
-    input,
+    input: { ...input, now: new Date(resolveCreatedAt(input.now, records)) },
     evidenceTitle: "Gemini session"
   });
 }
@@ -81,19 +82,18 @@ function eventsFromGemini(records: SessionRecord[]): TraceEvent[] {
       const args = isRecord(call.args) ? call.args : isRecord(call.arguments) ? call.arguments : {};
       const path = asString(args.file_path) ?? asString(args.path);
       const action = FILE_TOOLS[name];
+      const result = outputs.get(call);
       if (path && action) {
-        events.push({ type: "file", path, action });
+        events.push({ type: "file", path, action, outcome: result?.outcome ?? 'unknown', output: result?.text });
       }
       if (SHELL_TOOLS.has(name)) {
         const command = asString(args.command)?.trim();
         if (command) {
-          const queued = outputs.get(name) ?? [];
-          const output = queued.shift();
           events.push({
             type: "command",
             command,
-            exitCode: parseExitCode(output),
-            output
+            exitCode: result?.exitCode,
+            output: result?.text
           });
         }
       }
@@ -102,11 +102,22 @@ function eventsFromGemini(records: SessionRecord[]): TraceEvent[] {
   return events;
 }
 
-function indexFunctionResponses(records: SessionRecord[]): Map<string, string[]> {
-  const outputs = new Map<string, string[]>();
+function indexFunctionResponses(records: SessionRecord[]): Map<SessionRecord, ReturnType<typeof toolResult>> {
+  const outputs = new Map<SessionRecord, ReturnType<typeof toolResult>>();
+  const pending = new Set<SessionRecord>();
+  const ids = new Map<string, SessionRecord>();
   for (const record of records) {
     const parts = Array.isArray(record.parts) ? record.parts.filter(isRecord) : [];
     for (const part of parts) {
+      if (part.thought === true || typeof part.thought === 'string') continue;
+      const call = isRecord(part.functionCall) ? part.functionCall : isRecord(part.function_call) ? part.function_call : undefined;
+      if (call) {
+        pending.add(call);
+        if (typeof call.id === 'string') {
+          if (ids.has(call.id)) throw new Error('Duplicate Gemini call ID.');
+          ids.set(call.id, call);
+        }
+      }
       const response = isRecord(part.functionResponse)
         ? part.functionResponse
         : isRecord(part.function_response) ? part.function_response : undefined;
@@ -115,10 +126,16 @@ function indexFunctionResponses(records: SessionRecord[]): Map<string, string[]>
       }
       const name = asString(response.name) ?? "unknown";
       const body = isRecord(response.response) ? response.response : response;
-      const text = asString(body.output) ?? asString(body.content) ?? JSON.stringify(body);
-      const list = outputs.get(name) ?? [];
-      list.push(text);
-      outputs.set(name, list);
+      const candidates = [...pending].filter(item => item.name === name && item.id === undefined);
+      const matched = typeof response.id === 'string' ? ids.get(response.id) : candidates.length === 1 ? candidates[0] : undefined;
+      if (!matched) {
+        // Never pair concurrent ID-less results by arrival order.
+        for (const candidate of candidates) pending.delete(candidate);
+        continue;
+      }
+      if (!pending.has(matched) || outputs.has(matched)) throw new Error('Duplicate or out-of-order Gemini result.');
+      outputs.set(matched, toolResult(body, body.is_error === true || body.error !== undefined));
+      pending.delete(matched);
     }
   }
   return outputs;
