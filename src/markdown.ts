@@ -12,7 +12,7 @@ function table<T>(items: T[], header: string, row: (item: T) => string): string 
 
 function escapeText(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/([\\`*_[\]#|])/g, '\\$1').replace(/\r?\n/g, '<br>');
+    .replace(/([\\`*_[\]#|])/g, '\\$1').replace(/\r\n|[\r\n]/g, '<br>');
 }
 function displayStrings(value: unknown): unknown {
   if (typeof value === 'string') return escapeText(value);
