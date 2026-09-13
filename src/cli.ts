@@ -35,6 +35,9 @@ export async function runCli(argv: string[], io: CliIo = defaultIo()): Promise<n
     if (command === "render") {
       return await renderCommand(argv.slice(1), io);
     }
+    if (command === "handoff") {
+      return await handoffCommand(argv.slice(1), io);
+    }
     if (command === "--help" || command === "-h" || command === undefined) {
       io.stdout.write(`${usage()}\n`);
       return command ? 0 : 1;
@@ -59,7 +62,8 @@ function usage(): string {
   return [
     "threadport extract --from claude|codex|cursor|gemini --session <path> --project <root> [--out <file>] [--force]",
     "threadport validate <capsule.json>",
-    "threadport render <capsule.json>"
+    "threadport render <capsule.json>",
+    "threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--out <file>] [--force]"
   ].join("\n");
 }
 
@@ -137,6 +141,27 @@ async function renderCommand(argv: string[], io: CliIo): Promise<number> {
   }
   const capsule = parseCapsule(await readFile(resolvePath(io.cwd(), file), "utf8"));
   io.stdout.write(`${renderCapsuleMarkdown(capsule)}\n`);
+  return 0;
+}
+
+async function handoffCommand(argv: string[], io: CliIo): Promise<number> {
+  const toIndex = argv.indexOf("--to");
+  const target = toIndex >= 0 ? argv[toIndex + 1] : undefined;
+  const force = argv.includes("--force");
+  const outIndex = argv.indexOf("--out");
+  const input = argv.find((item, index) => !item.startsWith("--") && index !== toIndex + 1 && index !== outIndex + 1);
+  if (!target || !["claude", "codex", "cursor", "gemini"].includes(target) || !input) {
+    throw new Error("handoff requires --to claude|codex|cursor|gemini and a Capsule JSON path.");
+  }
+  const capsule = parseCapsule(await readFile(resolvePath(io.cwd(), input), "utf8"));
+  const output = outIndex >= 0 && argv[outIndex + 1]
+    ? resolvePath(io.cwd(), argv[outIndex + 1])
+    : join(io.cwd(), ".threadport", `${capsule.id}.${target}.md`);
+  await assertWritable(output, force);
+  await mkdir(dirname(output), { recursive: true });
+  const prompt = `You are taking over a coding task from ThreadPort.\n\n${renderCapsuleMarkdown(capsule)}\n\nTarget agent: ${target}\nReview the evidence above, confirm the next action with the user, and do not execute commands until confirmed.`;
+  await atomicWrite(output, prompt);
+  io.stdout.write(`${output}\n`);
   return 0;
 }
 
