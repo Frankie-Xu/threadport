@@ -26,6 +26,7 @@ export function messageAdapter(agent: 'claude' | 'cursor'): SessionAdapter {
         }
       }
     }
+    const sessionId = sessionIdFrom(records, input.sessionPath, `${agent}-session`);
     const events: TraceEvent[] = [];
     for (const [recordIndex, record] of records.entries()) {
       const message = isRecord(record.message) ? record.message : record;
@@ -50,10 +51,11 @@ export function messageAdapter(agent: 'claude' | 'cursor'): SessionAdapter {
         const result = outputs.get(asString(block.id) ?? '');
         const path = asString(args.file_path) ?? asString(args.path) ?? asString(args.target_file) ?? asString(args.filePath);
         if (path && FILE_TOOLS[name]) events.push({ type: 'file', path, action: FILE_TOOLS[name], outcome: result?.outcome ?? 'unknown', output: result?.text, order: result?.order ?? order });
-        const command = asString(args.command)?.trim();
-        if (command && shells.has(name)) events.push({ type: 'command', command, exitCode: result?.exitCode, output: result?.text, order: result?.order ?? order });
+        const command = asString(args.command);
+        const cwd = 'workdir' in args ? asString(args.workdir) ?? null : 'cwd' in args ? asString(args.cwd) ?? null : asString(record.cwd) ?? null;
+        if (command?.trim() && shells.has(name)) events.push({ type: 'command', command, cwd, exitCode: result?.exitCode, output: result?.text, order: result?.order ?? order });
       }
     }
-    return assembleCapsule({ agent, sessionId: sessionIdFrom(records, input.sessionPath, `${agent}-session`), traces: tracesFromEvents(events), input: { ...input, now: new Date(resolveCreatedAt(input.now, records)) }, evidenceTitle: `${agent} session`, redactionCount: count });
+    return assembleCapsule({ agent, sessionId, traces: tracesFromEvents(events, sessionId), input: { ...input, now: new Date(resolveCreatedAt(input.now, records)) }, evidenceTitle: `${agent} session`, redactionCount: count });
   } };
 }

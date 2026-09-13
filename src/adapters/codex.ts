@@ -12,8 +12,14 @@ export function createCodexAdapter(): SessionAdapter {
       if (outputs.has(item.call_id)) throw new Error('Duplicate tool result ID in session.');
       outputs.set(item.call_id, { ...toolResult(item.output, item.is_error === true), order });
     }
+    const sessionId = sessionIdFrom(records, input.sessionPath, 'codex-session');
     const events: TraceEvent[] = [];
+    let contextCwd: string | null = null;
     for (const [order, item] of items.entries()) {
+      if (['session_meta', 'turn_context'].includes(String(records[order].type))) {
+        contextCwd = asString(item.cwd) ?? null;
+        continue;
+      }
       if (isHiddenType(asString(item.type))) continue;
       if (item.type === 'message' && (item.role === 'user' || item.role === 'assistant')) {
         const text = contentText(item.content);
@@ -36,9 +42,10 @@ export function createCodexAdapter(): SessionAdapter {
         }
       } else if (['shell', 'exec_command', 'local_shell', 'bash'].includes(name)) {
         const command = asString(args.command) ?? asString(args.cmd);
-        if (command) events.push({ type: 'command', command, exitCode: result?.exitCode, output: result?.text, order: result?.order ?? order });
+        const cwd = 'workdir' in args ? asString(args.workdir) ?? null : 'cwd' in args ? asString(args.cwd) ?? null : contextCwd;
+        if (command?.trim()) events.push({ type: 'command', command, cwd, exitCode: result?.exitCode, output: result?.text, order: result?.order ?? order });
       }
     }
-    return assembleCapsule({ agent: 'codex', sessionId: sessionIdFrom(records, input.sessionPath, 'codex-session'), traces: tracesFromEvents(events), input: { ...input, now: new Date(resolveCreatedAt(input.now, records)) }, evidenceTitle: 'Codex session', redactionCount: count });
+    return assembleCapsule({ agent: 'codex', sessionId, traces: tracesFromEvents(events, sessionId), input: { ...input, now: new Date(resolveCreatedAt(input.now, records)) }, evidenceTitle: 'Codex session', redactionCount: count });
   } };
 }

@@ -1,3 +1,5 @@
+import { commandGroupKey, latestCommandRuns } from '../domain/command-state.js';
+import type { CommandRun } from '../domain/models.js';
 import { readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { sourcePlatformForRoot } from "../workspace/paths.js";
@@ -22,7 +24,8 @@ import type { SessionExtractInput } from "./types.js";
 export const DEFAULT_NEXT_ACTION = "Review the capsule and confirm the next edit.";
 export const DERIVED_ACCEPTANCE_NOTE =
   "acceptance_criteria is derived from the objective; the session did not state explicit acceptance criteria.";
-export const TEST_COMMAND = /(?:^|[\s/])(?:npm(?:\s+run)?\s+test|npx\s+vitest|vitest|pytest|go\s+test|cargo\s+test|mvn\s+test|gradle(?:w)?\s+test|jest|bun\s+test)\b/i;
+// Recognize a direct invocation only; shell compositions have a different exit-status meaning.
+export const TEST_COMMAND = /^(?![\s\S]*[;&|<>`$\r\n])\s*(?:(?:npm|pnpm|yarn)(?:\s+run)?\s+test(?::[\w:-]+)?|(?:npx|pnpm\s+exec|yarn)\s+(?:vitest|jest)|vitest|pytest|go\s+test|cargo\s+test|mvn\s+test|(?:\.\/)?gradle(?:w)?\s+test|jest|bun\s+test)(?=\s|$)/;
 export const SPOKEN_DECISION = /^(?:I(?:'ll| will)|Let's|I am going to)\b/i;
 export const USER_DONE = /^\s*(?:done|completed|that'?s all|finished|lgtm)[.!]?\s*$/i;
 
@@ -32,7 +35,7 @@ export type TraceEvent = (
   | { type: "user"; text: string }
   | { type: "assistant"; text: string }
   | { type: "file"; path: string; action: FileAction; outcome?: 'succeeded' | 'failed' | 'unknown'; output?: string }
-  | { type: "command"; command: string; exitCode?: number; output?: string }
+  | { type: "command"; command: string; exitCode?: number | null; cwd?: string | null; sessionId?: string; output?: string }
 ) & { /** Observed result position, or call position when no result exists. Not serialized. */ order?: number };
 
 export interface SessionTraces {
@@ -41,6 +44,7 @@ export interface SessionTraces {
   constraints: string[];
   files: Map<string, CapsuleFile>;
   commands: CapsuleCommand[];
+  commandRuns: CommandRun[];
   tests: CapsuleTest[];
   failures: CapsuleFailure[];
   decisions: CapsuleDecision[];
@@ -93,12 +97,14 @@ export function parseSessionRecords(text: string, label: string): SessionRecord[
   return records;
 }
 
-export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
+export function tracesFromEvents(events: TraceEvent[], sessionId = 'inline-session'): SessionTraces {
   if (!events.length) throw new Error('No observable session events found; unsupported or empty transcript.');
   events = events.map((event, index) => ({ event, order: event.order ?? index }))
     .sort((a, b) => a.order - b.order).map(item => item.event);
   const files = new Map<string, CapsuleFile>();
   const commands: CapsuleCommand[] = [];
+  const commandRuns: CommandRun[] = [];
+  const openCommandGroups = new Set<string>();
   const tests: CapsuleTest[] = [];
   const decisions: CapsuleDecision[] = [];
   const completed: string[] = [];
@@ -145,9 +151,15 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
 
     lastToolIndex = index;
     const summary = event.output ? summarize(event.output) : undefined;
+    const run: CommandRun = {
+      id: `${event.sessionId ?? sessionId}:command:${index}`, sessionId: event.sessionId ?? sessionId,
+      ordinal: index, command: event.command, cwd: event.cwd ?? null, exitCode: event.exitCode ?? null,
+      startedAt: null, completedAt: null, eventId: `${event.sessionId ?? sessionId}:event:${index}`, snapshotId: null,
+    };
+    commandRuns.push(run);
     commands.push({
       command: event.command,
-      ...(event.exitCode === undefined ? {} : { exit_code: event.exitCode }),
+      ...(event.exitCode == null ? {} : { exit_code: event.exitCode }),
       ...(summary ? { summary } : {})
     });
     if (TEST_COMMAND.test(event.command)) {
@@ -159,16 +171,17 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
     }
     if (event.exitCode === 0) {
       completed.push(`Ran \`${event.command}\` (exit 0).`);
-      sawUnresolvedFailure = false;
-    } else if (event.exitCode !== undefined) {
-      sawUnresolvedFailure = true;
+      if (hasCompleteCommandIdentity(run)) openCommandGroups.delete(commandGroupKey(run));
+    } else if (event.exitCode != null) {
+      openCommandGroups.add(commandGroupKey(run));
     }
+    sawUnresolvedFailure = openCommandGroups.size > 0 || [...fileFailures.values()].some(failure => !failure.resolution);
   });
 
   const objective = firstLine(userTexts[0] ?? "Resume the recorded session.");
   const acceptanceCriteria = extractAcceptance(userTexts[0] ?? "");
   const constraints = extractConstraints(userTexts);
-  const failures = [...collapseFailures(commands), ...fileFailures.values()];
+  const failures = [...collapseFailures(commandRuns, commands), ...fileFailures.values()];
   const lastUserText = userTexts.at(-1) ?? "";
   const userDeclaredDone = USER_DONE.test(lastUserText);
   const unresolvedFailures = failures.some((item) => !item.resolution);
@@ -182,6 +195,7 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
     constraints,
     files,
     commands,
+    commandRuns,
     tests,
     failures,
     decisions,
@@ -276,19 +290,19 @@ export async function assembleCapsule(options: {
 }
 
 export function sessionIdFrom(records: SessionRecord[], sessionPath: string | undefined, fallback: string): string {
+  const ids = new Set<string>();
   for (const record of records) {
     const sessionId = asString(record.sessionId) ?? asString(record.session_id);
-    if (sessionId?.trim()) {
-      return sessionId.trim();
-    }
+    if (sessionId?.trim()) ids.add(sessionId.trim());
     if (asString(record.type) === "session_meta") {
       const nested = isRecord(record.payload) ? asString(record.payload.id) : undefined;
       const id = nested ?? asString(record.id);
-      if (id?.trim()) {
-        return id.trim();
-      }
+      if (id?.trim()) ids.add(id.trim());
     }
   }
+  // A legacy Capsule represents one session; refuse concatenated sessions rather than merging retries.
+  if (ids.size > 1) throw new Error('Multiple session IDs in one transcript; extract each session separately.');
+  if (ids.size) return [...ids][0];
   if (sessionPath) {
     const fromName = basename(sessionPath).replace(/\.[^.]+$/, "");
     if (fromName && fromName !== "session-basic") {
@@ -333,8 +347,9 @@ export interface ToolResult { text: string; exitCode?: number; outcome: 'succeed
 export function toolResult(value: unknown, isError = false): ToolResult {
   const text = typeof value === 'string' ? value : isRecord(value)
     ? asString(value.output) ?? asString(value.content) ?? asString(value.text) ?? JSON.stringify(value) : contentText(value);
-  const numeric = isRecord(value) ? value.exit_code ?? value.exitCode : undefined;
-  const exitCode = isError ? 1 : typeof numeric === 'number' && Number.isSafeInteger(numeric) ? numeric : parseExitCode(text);
+  const explicit = isRecord(value) && ('exit_code' in value || 'exitCode' in value);
+  const numeric = isRecord(value) ? ('exit_code' in value ? value.exit_code : value.exitCode) : undefined;
+  const exitCode = numeric === null ? undefined : isError ? 1 : typeof numeric === 'number' && Number.isSafeInteger(numeric) ? numeric : explicit ? undefined : parseExitCode(text);
   const failed = isError || (exitCode !== undefined && exitCode !== 0) || /^\s*(?:error|failed|failure)\b/i.test(text);
   const succeeded = exitCode === 0 || /^\s*(?:success|wrote|edited|created|deleted|updated)\b/i.test(text);
   return { text, exitCode, outcome: failed ? 'failed' : succeeded ? 'succeeded' : 'unknown' };
@@ -415,21 +430,32 @@ function extractConstraints(userTexts: string[]): string[] {
   return unique(constraints);
 }
 
-function collapseFailures(commands: CapsuleCommand[]): CapsuleFailure[] {
-  const failures: CapsuleFailure[] = [];
-  const open = new Map<string, CapsuleFailure>();
-  for (const command of commands) {
-    if (command.exit_code === undefined) continue;
-    if (command.exit_code === 0) {
-      const failure = open.get(command.command);
-      if (failure) failure.resolution = `Retried \`${command.command}\` and it passed.`;
-      open.delete(command.command);
-    } else if (!open.has(command.command)) {
-      const failure = { summary: command.summary ?? `Command failed: ${command.command}` };
-      failures.push(failure); open.set(command.command, failure);
+// Redaction may make different source commands/cwds indistinguishable. Never infer a retry from that.
+function hasCompleteCommandIdentity(run: CommandRun): boolean {
+  return !/\[REDACTED(?::|\])/.test(run.command + (run.cwd ?? ''));
+}
+
+function collapseFailures(runs: readonly CommandRun[], commands: readonly CapsuleCommand[]): CapsuleFailure[] {
+  const groups = new Map<string, { run: CommandRun; summary?: string }[]>();
+  runs.forEach((run, index) => {
+    const key = commandGroupKey(run);
+    const group = groups.get(key) ?? [];
+    group.push({ run, summary: commands[index].summary });
+    groups.set(key, group);
+  });
+  const failures: { ordinal: number; failure: CapsuleFailure }[] = [];
+  for (const latest of latestCommandRuns(runs)) {
+    let resolution: string | undefined;
+    // Walking backwards associates each failure only with a later success in its own group.
+    for (const { run, summary } of groups.get(commandGroupKey(latest))!.slice().reverse()) {
+      if (run.exitCode === 0 && hasCompleteCommandIdentity(run)) resolution = `Retried \`${run.command}\` and it passed.`;
+      else if (run.exitCode !== null && run.exitCode !== 0) failures.push({ ordinal: run.ordinal, failure: {
+        summary: summary ?? `Command failed: ${run.command}`,
+        ...(resolution ? { resolution } : {}),
+      } });
     }
   }
-  return failures;
+  return failures.sort((a, b) => a.ordinal - b.ordinal).map(item => item.failure);
 }
 
 function buildEvidence(
@@ -452,11 +478,11 @@ function buildEvidence(
   return evidence;
 }
 
-function testStatus(exitCode: number | undefined): CapsuleTest["status"] {
+function testStatus(exitCode: number | null | undefined): CapsuleTest["status"] {
   if (exitCode === 0) {
     return "passed";
   }
-  if (exitCode === undefined) {
+  if (exitCode == null) {
     return "unknown";
   }
   return "failed";

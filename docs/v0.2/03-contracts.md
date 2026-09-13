@@ -78,6 +78,13 @@ Task.projectId 指向本地用户绑定的项目身份。Project 有 id/name 与
 
 `deriveTask(events: readonly NormalizedEvent[]): DerivedTaskState` 返回目标候选、来源引用、按会话/cwd/完整命令分组的最后命令结果及 attention；不修改 Task。DerivedTaskState 的字段为 `objective: Claim | null`、`constraints: Claim[]`、`latestRuns: CommandRun[]`、`attention: string[]`。聚合顺序先 session，后 ordinal；跨会话没有证据关联时不抵消失败。
 
+T03 的 `latestCommandRuns(runs: readonly CommandRun[]): CommandRun[]` 按 sessionId/cwd/完整 command 字符串精确分组，选最大 ordinal；输出按 sessionId、ordinal 排序，不修改输入。源契约要求每个 session 的 ordinal 唯一。`null` cwd 只与同一 session 的 `null` cwd 归入同组，不填入本地项目 root，也不证明两次未知目录实际相同。
+
+旧适配器的 `SessionTraces.commandRuns` 保留每次运行，内部序号采用现有结果观察顺序；缺失的 startedAt/completedAt/snapshotId 均为 null，不投影到 Capsule v1。Claude/Cursor 从调用参数或记录 cwd 取值；Codex 从 workdir/cwd 参数或 session_meta/turn_context 取值；Gemini 从调用/记录 cwd 取值。没有任何字段时保留 null；不执行或解释 shell 的 cd 来猜 cwd。旧 Capsule 每次提取只容纳一个明确 session ID，拼接多个 ID 的输入报错，要求分别提取。
+
+失败投影逐次保留失败输出；只有同组后续 exit 0 可添加 resolution。命令或 cwd 含脱敏标记时无法确认完整身份，旧失败投影保守地不添加 resolution；不因替换后文本相同而推断原命令相同。新一次未知结果不抹掉此前的未解决失败。测试识别仅覆盖已列出的直接调用形式，复合 shell 命令和未知 runner 保留为一般命令，不以输出文本中的 test 单词推断测试通过。
+
+
 ## 2. SQLite 约束
 
 | 表 | 核心列/约束 | 删除策略 |
