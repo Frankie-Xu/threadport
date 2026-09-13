@@ -109,4 +109,23 @@ describe("Claude Code session adapter", () => {
     const second = await adapter.extract(input);
     expect(second).toEqual(first);
   });
+
+  it("applies portable path policy to project, git, files, and evidence", async () => {
+    const adapter = createClaudeAdapter();
+    const capsule = await adapter.extract({
+      sessionPath: fixturePath,
+      project: { name: "rate-limit-demo", root: await isolatedProjectRoot() },
+      privacy: "portable",
+      now: new Date("2026-09-12T10:07:00.000Z")
+    });
+    expect(capsule.project.root).toBe(".");
+    expect(capsule.git.root).toBe(".");
+    expect(capsule.files.map((file) => file.path)).toEqual([
+      "src/rate-limit.ts",
+      "src/login.ts",
+      "tests/rate-limit.test.ts"
+    ]);
+    expect(capsule.evidence.find((item) => item.kind === "session")?.locator)
+      .toBe("session-basic.jsonl");
+  });
 });

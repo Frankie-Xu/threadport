@@ -15,6 +15,7 @@ import type {
   FileAction
 } from "../types.js";
 import type { SessionAdapter, SessionExtractInput } from "./types.js";
+import { assembleCapsule } from "./common.js";
 
 const DEFAULT_NEXT_ACTION = "Review the capsule and confirm the next edit.";
 const DERIVED_ACCEPTANCE_NOTE =
@@ -60,83 +61,12 @@ async function extractClaudeSession(input: SessionExtractInput): Promise<Capsule
   const records = parseSessionRecords(sessionText);
   const traces = collectTraces(records);
   const sessionId = resolveSessionId(records, input.sessionPath);
-  const createdAt = resolveCreatedAt(input.now, records);
-  const tally = { count: 0 };
-
-  const objective = redactField(traces.objective, tally);
-  const acceptance = traces.acceptanceCriteria.length > 0
-    ? traces.acceptanceCriteria.map((item) => redactField(item, tally))
-    : [redactField(`The objective is satisfied: ${traces.objective}`, tally)];
-
-  const constraints = traces.constraints.map((item) => redactField(item, tally));
-  if (traces.acceptanceCriteria.length === 0) {
-    constraints.push(DERIVED_ACCEPTANCE_NOTE);
-  }
-
-  const files = [...traces.files.values()].map((file) => ({
-    path: redactField(file.path, tally),
-    action: file.action,
-    ...(file.summary ? { summary: redactField(file.summary, tally) } : {})
-  }));
-
-  const commands = traces.commands.map((command) => ({
-    command: redactField(command.command, tally),
-    ...(command.exit_code === undefined ? {} : { exit_code: command.exit_code }),
-    ...(command.summary ? { summary: redactField(command.summary, tally) } : {})
-  }));
-
-  const tests = traces.tests.map((item) => ({
-    command: redactField(item.command, tally),
-    status: item.status,
-    ...(item.summary ? { summary: redactField(item.summary, tally) } : {})
-  }));
-
-  const failures = traces.failures.map((item) => ({
-    summary: redactField(item.summary, tally),
-    ...(item.resolution ? { resolution: redactField(item.resolution, tally) } : {})
-  }));
-
-  const decisions = traces.decisions.map((item) => ({
-    decision: redactField(item.decision, tally),
-    ...(item.rationale ? { rationale: redactField(item.rationale, tally) } : {})
-  }));
-
-  const completed = traces.completed.map((item) => redactField(item, tally));
-  const nextAction = redactField(traces.nextAction, tally);
-  const evidence = buildEvidence(input.sessionPath, files, commands).map((item) => ({
-    kind: item.kind,
-    title: redactField(item.title, tally),
-    ...(item.locator ? { locator: redactField(item.locator, tally) } : {})
-  }));
-
-  return validateCapsule({
-    schema_version: "1.0",
-    id: sanitizeCapsuleId(sessionId),
-    created_at: createdAt,
-    source_agent: "claude",
-    source_session_id: sessionId,
-    project: {
-      name: input.project.name,
-      root: input.project.root,
-      ...(input.project.repository ? { repository: input.project.repository } : {})
-    },
-    objective,
-    acceptance_criteria: acceptance,
-    status: traces.status,
-    completed,
-    decisions,
-    constraints,
-    files,
-    commands,
-    tests,
-    failures,
-    next_action: nextAction,
-    evidence,
-    git: await readGitState(input.project.root),
-    redaction: {
-      applied: tally.count > 0,
-      count: tally.count
-    }
+  return assembleCapsule({
+    agent: "claude",
+    sessionId,
+    traces,
+    input,
+    evidenceTitle: "Claude session"
   });
 }
 
