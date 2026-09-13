@@ -40,11 +40,12 @@ export function createGeminiAdapter(): SessionAdapter {
 async function extractGeminiSession(input: SessionExtractInput): Promise<import("../types.js").Capsule> {
   const { records, count } = redactRecords(parseSessionRecords(await loadSessionText(input), "Gemini"));
   const events = eventsFromGemini(records);
+  const sessionId = sessionIdFrom(records, input.sessionPath, "gemini-session");
   return assembleCapsule({
     agent: "gemini",
     redactionCount: count,
-    sessionId: sessionIdFrom(records, input.sessionPath, "gemini-session"),
-    traces: tracesFromEvents(events),
+    sessionId,
+    traces: tracesFromEvents(events, sessionId),
     input: { ...input, now: new Date(resolveCreatedAt(input.now, records)) },
     evidenceTitle: "Gemini session"
   });
@@ -88,11 +89,12 @@ function eventsFromGemini(records: SessionRecord[]): TraceEvent[] {
         events.push({ type: "file", path, action, outcome: result?.outcome ?? 'unknown', output: result?.text, order: result?.order ?? order });
       }
       if (SHELL_TOOLS.has(name)) {
-        const command = asString(args.command)?.trim();
-        if (command) {
+        const command = asString(args.command);
+        if (command?.trim()) {
           events.push({
             type: "command",
             command,
+            cwd: 'cwd' in args ? asString(args.cwd) ?? null : asString(record.cwd) ?? null,
             order: result?.order ?? order,
             exitCode: result?.exitCode,
             output: result?.text
