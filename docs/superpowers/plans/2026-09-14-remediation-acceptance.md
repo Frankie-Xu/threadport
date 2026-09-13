@@ -59,16 +59,16 @@ Files: create `tests/cli-publication-faults.test.ts`; update `tests/git-regressi
 expect(result.code).toBe(0);
 expect(result.stdout.trim()).toBe(jsonPath);
 expect(result.stderr).toContain('Capsule JSON saved; Markdown cache failed');
-expect(await readdir(outputDirectory)).not.toContain(temporaryFileName);
+expect((await readdir(outputDirectory)).some(name => name.endsWith('.tmp'))).toBe(false);
 ```
 
-- [ ] Remove the Windows skip from the real symlink regression. Use `symlink(target, linkPath, 'file')` and verify `lstat(linkPath).isSymbolicLink()`. Test external target changes, link replacement and broken targets on all six OS/Node jobs. A Windows privilege failure must fail CI explicitly; do not replace it with a junction or a skipped test.
-- [ ] Run `npm run check`, `npm run check:pack`, `npm audit`, and `git diff --check`; commit and publish the PR. Inspect every platform result before claiming completion.
+- [x] Remove the Windows skip from the real symlink regression. Use `symlink(target, linkPath, 'file')` and verify `lstat(linkPath).isSymbolicLink()`. Test external target changes, link replacement and broken targets on all six OS/Node jobs. A Windows privilege failure must fail CI explicitly; do not replace it with a junction or a skipped test.
+- [x] Run `npm run check`, `npm run check:pack`, `npm audit`, and `git diff --check`; commit and publish the PR. Inspect every platform result before claiming completion.
 
 ### Task 4 — Evidence and live-format gate
 
 Files: `docs/review-remediation-2026-09-14.md`, `README.md`; add a compatibility evidence document if actual versioned samples are available.
 
-- [ ] Record each implemented change, test and remote CI evidence. Correct the earlier all-complete claim while preserving historical verification runs.
+- [x] Record each implemented change, test and remote CI evidence. Correct the earlier all-complete claim while preserving historical verification runs.
 - [ ] Request vendor versions and permitted sanitized samples from the user. Verify only supplied scope; do not launch installed agents, read historical sessions or fabricate provenance. If samples remain unavailable, leave live-format certification explicitly blocked and report the missing input separately from completed code fixes.
 - [ ] Fetch remote main, ensure no unrelated changes are lost, merge only through green PR checks and verify the resulting main commit/CI. Do not mark the sample-dependent gate complete without evidence.
