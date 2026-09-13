@@ -55,6 +55,7 @@ export const capsuleSchema = z.object({
   git: z.object({
     root: z.string().min(1),
     branch: z.string().min(1),
+    detached: z.boolean().optional(),
     head: shaSchema,
     dirty: z.boolean(),
     dirty_diff_hash: z.string().regex(/^[0-9a-f]{64}$/i),

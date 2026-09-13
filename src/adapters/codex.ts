@@ -21,7 +21,7 @@ const DERIVED_ACCEPTANCE_NOTE =
   "acceptance_criteria is derived from the objective; the session did not state explicit acceptance criteria.";
 const TEST_COMMAND = /(?:^|[\s/])(?:npm(?:\s+run)?\s+test|npx\s+vitest|vitest|pytest|go\s+test|cargo\s+test|mvn\s+test|gradle(?:w)?\s+test|jest|bun\s+test)\b/i;
 const SPOKEN_DECISION = /^(?:I(?:'ll| will)|Let's|I am going to)\b/i;
-const USER_DONE = /\b(?:done|completed|that'?s all|finished|lgtm)\b/i;
+const USER_DONE = /^\s*(?:done|completed|that'?s all|finished|lgtm)[.!]?\s*$/i;
 const PATCH_FILE = /\*\*\*\s+(Add|Update|Delete)\s+File:\s+(\S+)/g;
 const SHELL_TOOLS = new Set(["shell", "exec_command", "local_shell", "bash"]);
 
