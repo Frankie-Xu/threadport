@@ -182,6 +182,11 @@ interface VerificationReport {
 
 portable path 使用声明的 source root 与 source platform 规范化，POSIX 用 path.posix，Windows 用 path.win32；不能在 macOS 上用宿主 resolve 去解释 Windows 盘符。仓库外路径使用 opaque ID，只在私有映射保存原位置；拒绝 `..` 越界和不同 drive 混算。
 
+T02 内部接口为 `portablePath(value: string, sourceRoot: string, sourcePlatform: 'posix' | 'win32'): string`，位于 `src/workspace/paths.ts`。调用方提供绝对 sourceRoot；普通相对路径按该 root 解释，未知/相对 root 不读取宿主 cwd 来补全。Windows `C:foo`、无盘符的根相对路径及设备命名空间均输出 opaque locator。外部相对路径的标识加入源平台与 root 上下文，避免不同来源的 `../private.ts` 共用同一身份；已有绝对外部路径保持原 hash 算法。
+
+旧 adapter API 保持不变：本地 Git 读取边界将调用方项目 root 解析为绝对位置，然后显式传入从本地 Git root 确定的平台。此行为不提供导入日志到异机仓库的自动重绑定。路径函数只判定词法包含关系，不证明 symlink 指向、文件存在或 workspace 匹配。
+
+
 ## 5. 接续包与执行契约
 
 新格式与旧 `threadport.handoff.v1` 分开：

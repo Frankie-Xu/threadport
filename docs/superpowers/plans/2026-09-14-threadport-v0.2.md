@@ -67,7 +67,7 @@ npm run check
 **预期结果：** 构建和当前全部测试通过；如当前 HEAD 已增加测试，以实际数量为准。
 
 - [x] **步骤 5 — 审查与收口：** 执行质量文档 review 顺序，检查 diff、数据去向、兼容与失败恢复；补用户文档。修复 P0/P1，再运行受影响检查，最后运行 `npm run check`。
-- [ ] **步骤 6 — 提交与交接：** 按本任务边界提交，PR关联 Issue/AC/证据；更新进度表的真实等级、commit与下一步。建议标题：`chore: align contributor guidance with the workspace release`。
+- [x] **步骤 6 — 提交与交接：** 按本任务边界提交，PR关联 Issue/AC/证据；更新进度表的真实等级、commit与下一步。建议标题：`chore: align contributor guidance with the workspace release`。
 
 **完成门：** 产出接口与调用方实际接通、必审案例通过、没有未解决 P0/P1、文档对应实际行为。阶段涉及发布/实机时，还必须通过该阶段人工 gate，才可标 L3。
 
@@ -86,10 +86,10 @@ npm run check
 
 **必审案例：** Q01/Q02：同名文件保留 src/a 与 src/b；POSIX/Windows/UNC/中文/空格/跨盘/仓库外路径；输出中不存在用户家目录。
 
-- [ ] **步骤 1 — 核对输入：** 阅读上述接口、相关源文件和既有测试，在 Issue 写下本任务的 AC 与当前失败行为；记录 HEAD，确认依赖任务已完成。
-- [ ] **步骤 2 — 建立可失败证据：** 将上述必审案例逐个放入指定测试文件，先运行目标测试，确认失败是待实现行为导致；纯文档任务用链接/模板/基线检查替代新增测试。
-- [ ] **步骤 3 — 实现一个可观测增量：** 在指定生产模块实现一个案例所需逻辑；遵循输入/输出和错误契约，接好调用方。重复步骤 2/3 直到该任务全部案例覆盖，不增加边界外功能。
-- [ ] **步骤 4 — 验证交付：** 运行下方命令并保存结果；涉及实机/人工门槛时同时补齐证据，不以自动测试代替。
+- [x] **步骤 1 — 核对输入：** 阅读上述接口、相关源文件和既有测试，在 Issue 写下本任务的 AC 与当前失败行为；记录 HEAD，确认依赖任务已完成。
+- [x] **步骤 2 — 建立可失败证据：** 将上述必审案例逐个放入指定测试文件，先运行目标测试，确认失败是待实现行为导致；纯文档任务用链接/模板/基线检查替代新增测试。
+- [x] **步骤 3 — 实现一个可观测增量：** 在指定生产模块实现一个案例所需逻辑；遵循输入/输出和错误契约，接好调用方。重复步骤 2/3 直到该任务全部案例覆盖，不增加边界外功能。
+- [x] **步骤 4 — 验证交付：** 运行下方命令并保存结果；涉及实机/人工门槛时同时补齐证据，不以自动测试代替。
 
 ```bash
 npm test -- tests/workspace/paths.test.ts tests/adapters/claude.test.ts tests/adapters/codex.test.ts
@@ -97,8 +97,8 @@ npm test -- tests/workspace/paths.test.ts tests/adapters/claude.test.ts tests/ad
 
 **预期结果：** 全部通过，既有合法 Capsule fixture 继续可解析。
 
-- [ ] **步骤 5 — 审查与收口：** 执行质量文档 review 顺序，检查 diff、数据去向、兼容与失败恢复；补用户文档。修复 P0/P1，再运行受影响检查，最后运行 `npm run check`。
-- [ ] **步骤 6 — 提交与交接：** 按本任务边界提交，PR关联 Issue/AC/证据；更新进度表的真实等级、commit与下一步。建议标题：`fix: preserve portable file identity across source platforms`。
+- [x] **步骤 5 — 审查与收口：** 执行质量文档 review 顺序，检查 diff、数据去向、兼容与失败恢复；补用户文档。修复 P0/P1，再运行受影响检查，最后运行 `npm run check`。
+- [x] **步骤 6 — 提交与交接：** 按本任务边界提交，PR关联 Issue/AC/证据；更新进度表的真实等级、commit与下一步。建议标题：`fix: preserve portable file identity across source platforms`。
 
 **完成门：** 产出接口与调用方实际接通、必审案例通过、没有未解决 P0/P1、文档对应实际行为。阶段涉及发布/实机时，还必须通过该阶段人工 gate，才可标 L3。
 
@@ -715,12 +715,12 @@ npm run test:package
 
 ## 4. 进度表
 
-以下按实际证据更新；未实施任务仍保持 L0。T01 的本地实施/验证完成，待维护者 review 与提交，不代表产品功能或发布认证完成。
+以下按实际证据更新；未实施任务仍保持 L0。T01 已合并；T02 已实现并本地验证，待 PR 合并，不代表整体产品或真实接续认证完成。
 
 | 任务 | 状态 | 完成等级 | 实际工时 | PR / SHA / 证据 |
 | --- | --- | --- | --- | --- |
-| T01 | review | L1（开发门槛） | 本次约 0.3h（含阅读/验证） | 已提交任务分支，待 PR/CI；[基线与验收](../../verification/t01-baseline.md)；同步 main 后 Node24：95 测试通过 |
-| T02 | pending | L0 | 尚未实施 | 尚未实施 |
+| T01 | done | L1（开发门槛） | 本次约 0.3h（含阅读/验证） | PR #27 / `02c20e7`；[基线与验收](../../verification/t01-baseline.md)；六组 CI 全通过 |
+| T02 | review | L2（合成集成） | 本次约 0.2h，至本地验证 | [验收与回归](../../verification/t02-portable-paths.md)；129 测试通过；待 PR 合并 |
 | T03 | pending | L0 | 尚未实施 | 尚未实施 |
 | T04 | pending | L0 | 尚未实施 | 尚未实施 |
 | T05 | pending | L0 | 尚未实施 | 尚未实施 |

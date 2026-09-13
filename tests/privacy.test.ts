@@ -48,6 +48,16 @@ describe('privacy boundary', () => {
     expect(portablePath('/outside/a.ts', '/project')).not.toBe(portablePath('/other/a.ts', '/project'));
     expect(portablePath('C:\\private\\a.ts', '/project')).toMatch(/^external\//);
   });
+  it.each([
+    ['C:\\repo', 'C:private.ts', 'win32'],
+    ['C:\\repo', '\\repo\\private.ts', 'win32'],
+    ['//server/share/repo', '//server/share/repo/src/a.ts', 'win32'],
+    ['//server/share/repo', '//server/other/private/a.ts', 'win32'],
+  ] as const)('maps prose paths consistently with file locators: %s, %s', (root, value, platform) => {
+    const capsule = validateCapsule({ ...example, objective: `Read ${value}`, files: [], evidence: [] });
+    const output = protectCapsule(capsule, 'portable', [root], 0, platform);
+    expect(output.objective).toBe(`Read ${portablePath(value, root, platform)}`);
+  });
   for (const [agent, factory] of Object.entries(factories)) {
     it(`${agent}: preserves nested paths and hides paths throughout the capsule`, async () => {
       const root = await project();

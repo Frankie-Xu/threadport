@@ -1,23 +1,15 @@
 import { createHash } from 'node:crypto';
-import { posix, win32, resolve } from 'node:path';
+import { posix, resolve } from 'node:path';
+import { portablePath as sourcePortablePath, relativeInside, sourcePlatformForRoot, type SourcePlatform } from './workspace/paths.js';
 import type { Capsule } from './types.js';
 import { redactSecrets } from './redact.js';
 
 const digest = (text: string) => createHash('sha256').update(text).digest('hex').slice(0, 24);
 const windows = (path: string) => /^[A-Za-z]:[\\/]|^\\\\/.test(path);
 
-/** Relative files retain their directories; external paths never collapse to a basename. */
-export function portablePath(value: string, root: string): string {
-  return relativeInside(value, root) ?? `external/${digest(value)}`;
-}
-
-function relativeInside(value: string, root: string): string | undefined {
-  const api = windows(root) ? win32 : posix;
-  if (windows(value) && !windows(root)) return undefined;
-  const canonicalRoot = api.resolve(root);
-  const rel = api.relative(canonicalRoot, api.resolve(canonicalRoot, value));
-  if (rel === '..' || rel.startsWith(`..${api.sep}`) || api.isAbsolute(rel)) return undefined;
-  return rel.split(api.sep).join('/') || '.';
+/** Compatibility wrapper; source-aware callers can declare the platform explicitly. */
+export function portablePath(value: string, root: string, sourcePlatform = sourcePlatformForRoot(root)): string {
+  return sourcePortablePath(value, root, sourcePlatform);
 }
 
 function mapStrings(value: unknown, transform: (text: string, key: string) => string, key = ''): unknown {
@@ -44,7 +36,7 @@ export function safeSessionId(value: string): string {
 }
 
 /** Match complete paths, never a repository-name prefix inside a sibling path. */
-function portableText(text: string, paths: Map<string, string>, roots: string[]): string {
+function portableText(text: string, paths: Map<string, string>, roots: string[], sourcePlatform: SourcePlatform): string {
   // Relative external locators also need mapping. Absolute paths are handled below
   // as whole tokens, including traversal and quoted whitespace, in a single pass.
   const relativePaths = [...paths.keys()].filter(value => !windows(value) && !posix.isAbsolute(value) && value !== paths.get(value));
@@ -57,19 +49,21 @@ function portableText(text: string, paths: Map<string, string>, roots: string[])
     const known = paths.get(value);
     if (known !== undefined) return known;
     for (const root of roots) {
-      const mapped = relativeInside(value, root);
+      const mapped = relativeInside(value, root, sourcePlatform);
       if (mapped !== undefined) return mapped;
     }
-    return `external/${digest(value)}`;
+    return portablePath(value, roots[0], sourcePlatform);
   };
-  return text.replace(/(^|[\s(=:"'`])(?:(["'`])((?:[A-Za-z]:[\\/]|\\\\|\/(?!\/))(?:(?!\2)[^\r\n])+)\2|((?:[A-Za-z]:[\\/]|\\\\|\/(?!\/))[^\s"'`<>),;]+))/g,
-    (_, prefix: string, quote: string | undefined, quoted: string | undefined, bare: string | undefined) => {
+  return text.replace(/(^|[\s(=:"'`])(?:(["'`])((?:[A-Za-z]:|\\|\/)(?:(?!\2)[^\r\n])+)\2|((?:[A-Za-z]:|\\|\/)[^\s"'`<>),;]+))/g,
+    (match, prefix: string, quote: string | undefined, quoted: string | undefined, bare: string | undefined) => {
+      // A double slash following a scheme colon belongs to a URL, not a UNC path.
+      if (prefix === ":" && bare?.startsWith("//")) return match;
       if (quoted !== undefined) return `${prefix}${quote}${mapPath(quoted)}${quote}`;
       return prefix + mapPath(bare!);
     });
 }
 
-export function protectCapsule(input: Capsule, privacy: 'local' | 'portable', roots: string[], priorCount = 0): Capsule {
+export function protectCapsule(input: Capsule, privacy: 'local' | 'portable', roots: string[], priorCount = 0, sourcePlatform = sourcePlatformForRoot(roots[0] ?? resolve('.'))): Capsule {
   let count = priorCount;
   const capsule = structuredClone(input);
   const rawId = capsule.source_session_id ?? capsule.id;
@@ -85,12 +79,12 @@ export function protectCapsule(input: Capsule, privacy: 'local' | 'portable', ro
   const paths = new Map<string, string>();
   if (privacy === 'portable') {
     for (const file of capsule.files) {
-      paths.set(file.path, portablePath(file.path, root));
-      file.path = portablePath(file.path, root);
+      paths.set(file.path, portablePath(file.path, root, sourcePlatform));
+      file.path = portablePath(file.path, root, sourcePlatform);
     }
     for (const evidence of capsule.evidence) {
       if (evidence.locator && (evidence.kind === 'session' || evidence.kind === 'file')) {
-        const mapped = portablePath(evidence.locator, root);
+        const mapped = portablePath(evidence.locator, root, sourcePlatform);
         paths.set(evidence.locator, mapped);
         evidence.locator = mapped;
       }
@@ -102,7 +96,7 @@ export function protectCapsule(input: Capsule, privacy: 'local' | 'portable', ro
     if (['id', 'source_session_id', 'head', 'dirty_diff_hash', 'created_at', 'schema_version'].includes(key)) return text;
     let value = text;
     if (privacy === 'portable' && key !== 'repository') {
-      value = portableText(value, paths, roots.length ? roots : [root]);
+      value = portableText(value, paths, roots.length ? roots : [root], sourcePlatform);
     }
     const redacted = redactSecrets(value); count += redacted.count; return redacted.text;
   }) as Capsule;

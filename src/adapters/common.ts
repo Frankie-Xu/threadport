@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { basename, resolve } from "node:path";
+import { sourcePlatformForRoot } from "../workspace/paths.js";
 import { protectCapsule } from "../privacy.js";
 import { validateCapsule } from "../capsule.js";
 import { readGitState } from "../git.js";
@@ -234,7 +235,9 @@ export async function assembleCapsule(options: {
   }));
   const completed = traces.completed.map((item) => redactField(item, tally));
   const nextAction = redactField(traces.nextAction, tally);
-  const evidence = buildEvidence(options.evidenceTitle, input.sessionPath, files, commands).map((item) => ({
+  // Session files are read relative to the process cwd, not the project's root.
+  const sessionLocator = input.sessionPath && input.privacy !== 'local' ? resolve(input.sessionPath) : input.sessionPath;
+  const evidence = buildEvidence(options.evidenceTitle, sessionLocator, files, commands).map((item) => ({
     kind: item.kind,
     title: redactField(item.title, tally),
     ...(item.locator ? { locator: redactField(item.locator, tally) } : {})
@@ -269,7 +272,7 @@ export async function assembleCapsule(options: {
       applied: tally.count > 0,
       count: tally.count
     }
-  }, input.privacy ?? 'portable', [input.project.root, git.root], tally.count + (options.redactionCount ?? 0)));
+  }, input.privacy ?? 'portable', [resolve(input.project.root), git.root], tally.count + (options.redactionCount ?? 0), sourcePlatformForRoot(git.root)));
 }
 
 export function sessionIdFrom(records: SessionRecord[], sessionPath: string | undefined, fallback: string): string {
