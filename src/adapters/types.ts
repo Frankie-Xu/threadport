@@ -29,6 +29,8 @@ export interface SessionExtractInput {
    * earliest timestamp in the session, then `new Date()`.
    */
   now?: Date;
+  /** Output path policy. Portable capsules avoid machine-specific paths. */
+  privacy?: "portable" | "local";
 }
 
 /**
