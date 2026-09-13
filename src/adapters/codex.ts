@@ -16,6 +16,7 @@ import type {
 } from "../types.js";
 import type { SessionAdapter, SessionExtractInput } from "./types.js";
 import { assembleCapsule } from "./common.js";
+import { redactRecords } from '../privacy.js';
 
 const DEFAULT_NEXT_ACTION = "Review the capsule and confirm the next edit.";
 const DERIVED_ACCEPTANCE_NOTE =
@@ -41,12 +42,13 @@ export function createCodexAdapter(): SessionAdapter {
 
 async function extractCodexSession(input: SessionExtractInput): Promise<Capsule> {
   const sessionText = await loadSessionText(input);
-  const records = parseSessionRecords(sessionText);
+  const { records, count } = redactRecords(parseSessionRecords(sessionText));
   const traces = collectTraces(records);
   const sessionId = resolveSessionId(records, input.sessionPath);
   return assembleCapsule({
     agent: "codex",
     sessionId,
+    redactionCount: count,
     traces,
     input,
     evidenceTitle: "Codex session"

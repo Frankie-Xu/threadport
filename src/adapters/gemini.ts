@@ -1,4 +1,5 @@
 import type { FileAction } from "../types.js";
+import { redactRecords } from '../privacy.js';
 import type { SessionAdapter, SessionExtractInput } from "./types.js";
 import {
   assembleCapsule,
@@ -36,10 +37,11 @@ export function createGeminiAdapter(): SessionAdapter {
 }
 
 async function extractGeminiSession(input: SessionExtractInput): Promise<import("../types.js").Capsule> {
-  const records = parseSessionRecords(await loadSessionText(input), "Gemini");
+  const { records, count } = redactRecords(parseSessionRecords(await loadSessionText(input), "Gemini"));
   const events = eventsFromGemini(records);
   return assembleCapsule({
     agent: "gemini",
+    redactionCount: count,
     sessionId: sessionIdFrom(records, input.sessionPath, "gemini-session"),
     traces: tracesFromEvents(events),
     input,

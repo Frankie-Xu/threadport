@@ -1,4 +1,5 @@
 import type { FileAction } from "../types.js";
+import { redactRecords } from '../privacy.js';
 import type { SessionAdapter, SessionExtractInput } from "./types.js";
 import {
   assembleCapsule,
@@ -39,10 +40,11 @@ export function createCursorAdapter(): SessionAdapter {
 }
 
 async function extractCursorSession(input: SessionExtractInput): Promise<import("../types.js").Capsule> {
-  const records = parseSessionRecords(await loadSessionText(input), "Cursor");
+  const { records, count } = redactRecords(parseSessionRecords(await loadSessionText(input), "Cursor"));
   const events = eventsFromCursor(records);
   return assembleCapsule({
     agent: "cursor",
+    redactionCount: count,
     sessionId: sessionIdFrom(records, input.sessionPath, "cursor-session"),
     traces: tracesFromEvents(events),
     input,
