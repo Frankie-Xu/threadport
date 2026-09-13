@@ -22,20 +22,20 @@ Files: `src/privacy.ts`, `tests/privacy.test.ts`.
 
 Interface remains `protectCapsule(input, privacy, roots, priorCount)`. Replace only complete path tokens or real directory prefixes; prevent sibling names sharing a root prefix from becoming relative paths. Preserve known quoted paths containing spaces and Windows/UNC paths.
 
-- [ ] Add a regression using root `/project` and objective `Read /project-sibling/private/file.ts`; assert the output contains `external/` and neither the original path nor `.-sibling`. Add Windows/UNC sibling prefixes, quoted spaces and all-adapter same-basename cases.
+- [x] Add a regression using root `/project` and objective `Read /project-sibling/private/file.ts`; assert the output contains `external/` and neither the original path nor `.-sibling`. Add Windows/UNC sibling prefixes, quoted spaces and all-adapter same-basename cases.
 
 ```ts
 expect(protectCapsule(capsule, 'portable', ['/project']).objective)
   .toMatch(/^Read external\/[0-9a-f]{24}$/);
 ```
 
-- [ ] Run `npm test -- tests/privacy.test.ts` and observe the existing failure. Replace blind `.split(from).join(to)` with boundary-aware matching and one-pass substitution; known directory matches must end at a separator or token boundary, never within a sibling name. Run the targeted suite and `npm run check`, then commit.
+- [x] Run `npm test -- tests/privacy.test.ts` and observe the existing failure. Replace blind `.split(from).join(to)` with boundary-aware matching and one-pass substitution; known directory matches must end at a separator or token boundary, never within a sibling name. Run the targeted suite and `npm run check`, then commit.
 
 ### Task 2 — Parsed Markdown structure
 
 Files: `tests/markdown.test.ts`, `package.json`, `package-lock.json`; change `src/markdown.ts` only if new assertions expose a defect.
 
-- [ ] Install Node-20-compatible `marked@15.0.12` as a pinned dev dependency. Parse rendered output with `marked.lexer`, discarding the known frontmatter block before parsing. Assert exactly three tables and three cells per header/body row, and unchanged product heading sequence under malicious source text.
+- [x] Install Node-20-compatible `marked@15.0.12` as a pinned dev dependency. Parse rendered output with `marked.lexer`, discarding the known frontmatter block before parsing. Assert exactly three tables and three cells per header/body row, and unchanged product heading sequence under malicious source text.
 
 ```ts
 const tokens = marked.lexer(markdown.replace(/^---\n[\s\S]*?\n---\n/, ''));
@@ -47,13 +47,13 @@ for (const table of tables) {
 }
 ```
 
-- [ ] Include pipes, backticks, LF/CRLF/CR, fake headings and links in source fields. Inspect parsed headings/HTML tokens; literal source HTML must never become an active tag. Run targeted tests and the full gate; commit tests and any necessary escaping correction.
+- [x] Include pipes, backticks, LF/CRLF/CR, fake headings and links in source fields. Inspect parsed headings/HTML tokens; literal source HTML must never become an active tag. Run targeted tests and the full gate; commit tests and any necessary escaping correction.
 
 ### Task 3 — Post-JSON publication faults and Windows symlinks
 
 Files: create `tests/cli-publication-faults.test.ts`; update `tests/git-regressions.test.ts` and CI only if Windows capability setup is needed.
 
-- [ ] Use Vitest module mocks wrapping the real `node:fs/promises` implementation. Fail `link` for the Markdown destination only, after confirming JSON exists; assert status 0, JSON valid and unchanged, stdout only lists JSON, stderr reports cache failure and `render` regenerates the cache. Also inject a force-mode `rename` failure and assert prior Markdown survives; inject JSON publication failure and assert no Markdown is published. All temporary files must be cleaned.
+- [x] Use Vitest module mocks wrapping the real `node:fs/promises` implementation. Fail `link` for the Markdown destination only, after confirming JSON exists; assert status 0, JSON valid and unchanged, stdout only lists JSON, stderr reports cache failure and `render` regenerates the cache. Also inject a force-mode `rename` failure and assert prior Markdown survives; inject JSON publication failure and assert no Markdown is published. All temporary files must be cleaned.
 
 ```ts
 expect(result.code).toBe(0);
