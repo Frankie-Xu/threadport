@@ -10,6 +10,8 @@ This repository contains the first implementation of the ThreadPort Context Caps
 
 ## Current implementation
 
+The planned task workspace is specified in the [v0.2 development documentation](docs/v0.2/README.md) (Chinese), including phased implementation and acceptance criteria. It describes planned behavior; the implementation below remains the current CLI foundation.
+
 - JSON Schema: `schema/capsule-v1.schema.json`
 - TypeScript validator and serializer: `src/capsule.ts`
 - Readable Markdown renderer: `src/markdown.ts`

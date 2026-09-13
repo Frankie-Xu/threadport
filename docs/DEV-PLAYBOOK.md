@@ -1,5 +1,9 @@
 # ThreadPort 下一层开发手册
 
+> 历史文档：本文记录 v0.1 的适配器与 CLI 开发过程。新的任务工作台范围、实施顺序和验收标准见 [v0.2 首版开发文档](v0.2/README.md)。下文保留历史记录，不再作为 v0.2 的执行入口。
+
+> T01 衔接：下文旧分支命名、固定作者、机器路径、测试数量和执行提示均为历史上下文。当前贡献者使用自己的身份及 `codex/<task-id>-<short-description>` 分支；以 [贡献指南](../CONTRIBUTING.md) 和 [T01 基线记录](verification/t01-baseline.md) 为准。
+
 **读者：** 同一个 workspace（`D:\Cursor开发\ThreadPort`）里、下一个 Cursor 会话的开发 Agent  
 **仓库：** 第一方产品 `Frankie-Xu/threadport`（不是给上游提 PR）  
 **GitHub 用户：** `Frankie-Xu`  
