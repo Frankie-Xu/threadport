@@ -49,7 +49,7 @@ async function captureCli(argv: string[], cwd: string) {
 }
 
 describe("Handoff CLI", () => {
-  it("extracts a valid Capsule into .threadport without running session commands", async () => {
+  it("extracts a valid Capsule outside the project without running session commands", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-cwd-"));
     const project = await isolatedProjectRoot();
     const result = await captureCli([
@@ -60,8 +60,7 @@ describe("Handoff CLI", () => {
     ], cwd);
 
     expect(result.code).toBe(0);
-    const jsonPath = join(cwd, ".threadport", "sess-claude-fixture-basic-001.json");
-    const mdPath = join(cwd, ".threadport", "sess-claude-fixture-basic-001.md");
+    const [jsonPath, mdPath] = result.stdout.trim().split('\n');
     const capsule = parseCapsule(await readFile(jsonPath, "utf8"));
     const markdown = await readFile(mdPath, "utf8");
     expect(capsule.source_agent).toBe("claude");
@@ -82,7 +81,7 @@ describe("Handoff CLI", () => {
     ], cwd);
     expect(extracted.code).toBe(0);
 
-    const capsulePath = join(cwd, ".threadport", "sess-claude-fixture-basic-001.json");
+    const capsulePath = extracted.stdout.trim().split('\n')[0];
     const validated = await captureCli(["validate", capsulePath], cwd);
     expect(validated.code).toBe(0);
 
@@ -135,10 +134,10 @@ describe("Handoff CLI", () => {
     const project = await isolatedProjectRoot();
     const extracted = await captureCli(["extract", "--from", "claude", "--session", fixturePath, "--project", project], cwd);
     expect(extracted.code).toBe(0);
-    const capsulePath = join(cwd, ".threadport", "sess-claude-fixture-basic-001.json");
+    const capsulePath = extracted.stdout.trim().split('\n')[0];
     const result = await captureCli(["handoff", "--to", "codex", "--format", "json", capsulePath], cwd);
     expect(result.code).toBe(0);
-    const envelope = JSON.parse(await readFile(join(cwd, ".threadport", "sess-claude-fixture-basic-001.codex.json"), "utf8"));
+    const envelope = JSON.parse(await readFile(result.stdout.trim(), "utf8"));
     expect(envelope.protocol).toBe("threadport.handoff.v1");
     expect(envelope.target_agent).toBe("codex");
     expect(envelope.safety).toEqual({ execute_commands: false, modify_workspace: false });
@@ -156,7 +155,7 @@ describe("Handoff CLI", () => {
     ], cwd);
     expect(result.code).toBe(0);
     const capsule = parseCapsule(
-      await readFile(join(cwd, ".threadport", "sess-cursor-fixture-basic-001.json"), "utf8")
+      await readFile(result.stdout.trim().split('\n')[0], "utf8")
     );
     expect(capsule.source_agent).toBe("cursor");
   });
@@ -172,7 +171,7 @@ describe("Handoff CLI", () => {
     ], cwd);
     expect(result.code).toBe(0);
     const capsule = parseCapsule(
-      await readFile(join(cwd, ".threadport", "sess-gemini-fixture-basic-001.json"), "utf8")
+      await readFile(result.stdout.trim().split('\n')[0], "utf8")
     );
     expect(capsule.source_agent).toBe("gemini");
   });
@@ -188,7 +187,7 @@ describe("Handoff CLI", () => {
     ], cwd);
     expect(result.code).toBe(0);
     const capsule = parseCapsule(
-      await readFile(join(cwd, ".threadport", "sess-codex-fixture-basic-001.json"), "utf8")
+      await readFile(result.stdout.trim().split('\n')[0], "utf8")
     );
     expect(capsule.source_agent).toBe("codex");
   });
