@@ -1,10 +1,11 @@
 import { execFile } from "node:child_process";
 import { mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
+import { project } from "../helpers.js";
 import { createCodexAdapter, validateCapsule } from "../../src/index.js";
 
 const exec = promisify(execFile);
@@ -109,4 +110,33 @@ describe("Codex session adapter", () => {
     const second = await adapter.extract(input);
     expect(second).toEqual(first);
   });
+  it('keeps distinct file evidence for nested, Unicode, and external paths', async () => {
+    const root = await project();
+    const paths = ['src/a/index.ts', 'src/b/index.ts', 'src/目录/a file.ts'].map(path => join(root, path));
+    paths.push(join(root, '..', 'synthetic-private', 'index.ts'));
+    const records = paths.flatMap((path, index) => [
+      { type: 'custom_tool_call', name: 'apply_patch', call_id: `edit-${index}`, input: `*** Begin Patch\n*** Update File: ${path}\n*** End Patch` },
+      { type: 'custom_tool_call_output', call_id: `edit-${index}`, output: 'Updated file' },
+    ]);
+    const capsule = await createCodexAdapter().extract({
+      sessionText: JSON.stringify(records), sessionPath: fixturePath, project: { name: 'path-identity', root },
+      now: new Date('2026-09-14T00:00:00Z'),
+    });
+    const expected = capsule.files.map(file => file.path);
+    expect(expected.slice(0, 3)).toEqual(['src/a/index.ts', 'src/b/index.ts', 'src/目录/a file.ts']);
+    expect(expected[3]).toMatch(/^external\/[a-f0-9]{24}$/);
+    expect(new Set(expected).size).toBe(4);
+    expect(capsule.evidence.filter(item => item.kind === 'file').map(item => item.locator)).toEqual(expected);
+    expect(capsule.evidence.filter(item => item.kind === 'file').map(item => item.title)).toEqual(expected);
+    expect(JSON.stringify(capsule)).not.toContain('synthetic-private');
+    expect(JSON.stringify(capsule)).not.toContain(JSON.stringify(root).slice(1, -1));
+    expect(validateCapsule(capsule)).toEqual(capsule);
+    const relativeRootCapsule = await createCodexAdapter().extract({
+      sessionText: JSON.stringify(records), sessionPath: relative(process.cwd(), fixturePath),
+      project: { name: 'path-identity', root: relative(process.cwd(), root) },
+      now: new Date('2026-09-14T00:00:00Z'),
+    });
+    expect(relativeRootCapsule).toEqual(capsule);
+  });
+
 });

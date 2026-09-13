@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
+import { project } from "../helpers.js";
 import { createClaudeAdapter, validateCapsule } from "../../src/index.js";
 
 const exec = promisify(execFile);
@@ -128,4 +129,27 @@ describe("Claude Code session adapter", () => {
     expect(capsule.evidence.find((item) => item.kind === "session")?.locator)
       .toMatch(/^external\/[a-f0-9]{24}$/);
   });
+  it('keeps distinct file evidence for nested, Unicode, and external paths', async () => {
+    const root = await project();
+    const paths = ['src/a/index.ts', 'src/b/index.ts', 'src/目录/a file.ts'].map(path => join(root, path));
+    paths.push(join(root, '..', 'synthetic-private', 'index.ts'));
+    const records = paths.flatMap((path, index) => [
+      { type: 'assistant', message: { content: [{ type: 'tool_use', id: `edit-${index}`, name: 'Edit', input: { file_path: path } }] } },
+      { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: `edit-${index}`, content: 'Updated file' }] } },
+    ]);
+    const capsule = await createClaudeAdapter().extract({
+      sessionText: JSON.stringify(records), project: { name: 'path-identity', root },
+      now: new Date('2026-09-14T00:00:00Z'),
+    });
+    const expected = capsule.files.map(file => file.path);
+    expect(expected.slice(0, 3)).toEqual(['src/a/index.ts', 'src/b/index.ts', 'src/目录/a file.ts']);
+    expect(expected[3]).toMatch(/^external\/[a-f0-9]{24}$/);
+    expect(new Set(expected).size).toBe(4);
+    expect(capsule.evidence.filter(item => item.kind === 'file').map(item => item.locator)).toEqual(expected);
+    expect(capsule.evidence.filter(item => item.kind === 'file').map(item => item.title)).toEqual(expected);
+    expect(JSON.stringify(capsule)).not.toContain('synthetic-private');
+    expect(JSON.stringify(capsule)).not.toContain(JSON.stringify(root).slice(1, -1));
+    expect(validateCapsule(capsule)).toEqual(capsule);
+  });
+
 });
