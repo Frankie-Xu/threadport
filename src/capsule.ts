@@ -3,7 +3,7 @@ import type { Capsule } from "./types.js";
 
 const agentSchema = z.enum(["claude", "codex", "cursor", "gemini", "unknown"]);
 const statusSchema = z.enum(["active", "blocked", "completed", "paused"]);
-const shaSchema = z.string().regex(/^[0-9a-f]{40}$/i, "must be a 40-character Git SHA");
+const shaSchema = z.string().regex(/^[0-9a-f]{40}$/, "must be a 40-character lowercase Git SHA");
 
 export const capsuleSchema = z.object({
   schema_version: z.literal("1.0"),
@@ -58,7 +58,7 @@ export const capsuleSchema = z.object({
     detached: z.boolean().optional(),
     head: shaSchema,
     dirty: z.boolean(),
-    dirty_diff_hash: z.string().regex(/^[0-9a-f]{64}$/i),
+    dirty_diff_hash: z.string().regex(/^[0-9a-f]{64}$/),
     changed_files: z.array(z.string().min(1))
   }).strict(),
   redaction: z.object({

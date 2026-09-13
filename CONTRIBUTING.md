@@ -19,7 +19,7 @@ npm run check
 
 That runs `tsc` and Vitest. Tests use synthetic fixtures only. Do not commit real agent sessions, API keys, or `.env` files.
 
-CI runs the same gate on Node 20 (the `engines` floor) and Node 24. Vitest is configured in `vitest.config.ts` to run `tests/**/*.test.ts` only, so a compile into `dist/` cannot change which files are tested.
+CI runs the same gate on Ubuntu, macOS and Windows with Node 20 (the `engines` floor) and Node 24, plus `npm run check:pack` to verify an isolated package installation. Vitest is configured in `vitest.config.ts` to run `tests/**/*.test.ts` only. `tsconfig.build.json` excludes tests from the runtime build. Keep Vitest and Vite pins compatible with the declared Node floor.
 
 Dependabot may open patch and minor updates. Major bumps for Vitest, Zod, TypeScript, and `@types/node` stay manual so compatibility is reviewed on purpose.
 

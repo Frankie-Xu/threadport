@@ -24,7 +24,7 @@ npm ci
 npm run check
 ```
 
-Requires Node `>=20`. CI runs that gate on Node 20 and Node 24. Session adapters and the handoff CLI are available. The core remains local-only, deterministic, and read-only. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
+Requires Node `>=20`. CI runs that gate on Node 20 and Node 24. Session adapters and the handoff CLI are available. Processing is local-only: source sessions and project contents are read, while exported artifacts are written to explicit or temporary destinations. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
 
 ```ts
 import { createClaudeAdapter, createCodexAdapter, createCursorAdapter, createGeminiAdapter } from "threadport";
@@ -39,15 +39,47 @@ const capsule = await createGeminiAdapter().extract({
 
 ## Handoff CLI
 
-Read-only local commands. After `npm run build`, `threadport` writes Capsules under `.threadport/` (gitignored):
+Local artifact commands. After `npm run build`, invoke the built CLI directly:
 
 ```bash
-npx threadport extract --from claude --session ./session.jsonl --project .
-npx threadport validate .threadport/<id>.json
-npx threadport render .threadport/<id>.json
+node dist/src/cli.js extract --from claude --session ./session.jsonl --project .
+node dist/src/cli.js validate /path/printed/by/extract.json
+node dist/src/cli.js render /path/printed/by/extract.json
+node dist/src/cli.js handoff --to codex /path/to/capsule.json --format json --out ./handoff.json
+node dist/src/cli.js validate --handoff ./handoff.json
+node dist/src/cli.js targets
 ```
 
-The CLI validates before writing and does not run `next_action`. `--from` accepts `claude`, `codex`, `cursor`, and `gemini`.
+The CLI validates before writing and does not run `next_action`. `--from` accepts `claude`, `codex`, `cursor`, and `gemini`. After installing a built package, `threadport` is the equivalent executable. Do not use `npx threadport` as a substitute for building this checkout: it can resolve a registry package.
+
+### Output and privacy contracts
+
+- Default output is under the operating-system temporary directory, in a user-specific `threadport-*` directory, outside the source project. The namespace includes the canonical local project path hash and source agent; session IDs are scoped to this namespace. It is not a global cross-device repository identifier. Temporary artifacts may be cleaned by the OS; choose `--out` outside the project for durable storage.
+- The CLI prints successful output paths. `--out` selects an explicit destination; no file is replaced without `--force`. JSON is authoritative. Markdown is a rebuildable cache: a cache failure after JSON publication emits a warning and retains the saved JSON. This is not a two-file transaction.
+- Portable mode is the default for every adapter. Nested repository paths stay relative; external filesystem paths receive opaque `external/<hash>` locators. These hashes are identifiers, not encryption. Known project paths are replaced throughout display text. Use `--privacy local` or SDK `privacy: 'local'` only when retaining local paths is intentional.
+- Complete visible record strings are secret-redacted before summaries are truncated. Metadata also passes an output privacy boundary. Secret scanning is heuristic, not a guarantee that arbitrary credentials, encoded secrets, or personal information have been removed. Inspect artifacts before sharing.
+- File tool calls without a recognized successful result remain attempts, not completed work. Unsupported/empty session formats are rejected. The adapters support the observed fixture formats, not every vendor version; result IDs are used where available, and ambiguous ID-less concurrent Gemini results remain unknown.
+
+### Git fingerprints and handoff boundary
+
+Snapshots distinguish HEAD-to-index, index-to-worktree, and untracked contents, including symlinks as links. They use a new domain-separated hash algorithm, so capsules exported by the old incomplete algorithm must be re-extracted before comparing. No Capsule v1 fields were added. Git output is capped at 32 MiB per command with a 30-second timeout; aggregate untracked regular-file content is capped at 64 MiB. Ignore generated data before extraction. Snapshot consistency checks are best-effort; no repository lock or atomic filesystem snapshot is claimed.
+
+`gitStateMatches` compares work state, not repository identity. A portable `root: '.'` does not fail solely because the local path differs. Consumers must independently bind the intended repository before using this result; matching hashes alone do not authorize edits.
+
+`handoff` exports Markdown (`.md`) or a strict `threadport.handoff.v1` envelope. The public `createHandoff`, `parseHandoff`, and `handoffSchema` APIs and `schema/handoff-v1.schema.json` define this envelope. Register `schema/capsule-v1.schema.json` with offline JSON Schema validators to resolve its reference. Consumers must validate both the envelope and capsule. Safety flags declare a no-execution workflow; they are not a sandbox.
+
+`targets` only locates candidates using PATH/PATHEXT. It does not run agents or lookup utilities. Every candidate reports `launch_supported: false`; existence does not establish vendor identity or a compatible CLI version. The old `suggestedLaunch` API now rejects automatic launching rather than returning an unverified shell command. There is no resume/apply/launch command.
+
+### Release verification
+
+```bash
+npm ci
+npm run check
+npm run check:pack
+npm audit
+```
+
+`npm pack` builds through `prepack`; only runtime build files, schemas, examples and package documentation are distributed. `check:pack` installs the tarball into an isolated directory and checks the CLI and public exports. CI runs these gates on Ubuntu, macOS and Windows with Node 20 and 24. Windows symlink tests may require privileges and are not asserted by the simulated PATH tests. Vitest 4.1.11 and Vite 6.4.3 are pinned together to fix the mocker advisory while retaining Node 20 support.
 
 ## Safety boundary
 

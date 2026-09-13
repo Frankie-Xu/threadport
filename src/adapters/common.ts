@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
-import { basename, relative, resolve } from "node:path";
+import { basename } from "node:path";
+import { protectCapsule } from "../privacy.js";
 import { validateCapsule } from "../capsule.js";
 import { readGitState } from "../git.js";
 import { redactSecrets } from "../redact.js";
@@ -26,11 +27,12 @@ export const USER_DONE = /^\s*(?:done|completed|that'?s all|finished|lgtm)[.!]?\
 
 export type SessionRecord = Record<string, unknown>;
 
-export type TraceEvent =
+export type TraceEvent = (
   | { type: "user"; text: string }
   | { type: "assistant"; text: string }
-  | { type: "file"; path: string; action: FileAction }
-  | { type: "command"; command: string; exitCode?: number; output?: string };
+  | { type: "file"; path: string; action: FileAction; outcome?: 'succeeded' | 'failed' | 'unknown'; output?: string }
+  | { type: "command"; command: string; exitCode?: number; output?: string }
+) & { /** Observed result position, or call position when no result exists. Not serialized. */ order?: number };
 
 export interface SessionTraces {
   objective: string;
@@ -91,6 +93,9 @@ export function parseSessionRecords(text: string, label: string): SessionRecord[
 }
 
 export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
+  if (!events.length) throw new Error('No observable session events found; unsupported or empty transcript.');
+  events = events.map((event, index) => ({ event, order: event.order ?? index }))
+    .sort((a, b) => a.order - b.order).map(item => item.event);
   const files = new Map<string, CapsuleFile>();
   const commands: CapsuleCommand[] = [];
   const tests: CapsuleTest[] = [];
@@ -101,6 +106,7 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
   let lastToolIndex = -1;
   let lastSpokenAfterFailure: string | undefined;
   let sawUnresolvedFailure = false;
+  const fileFailures = new Map<string, CapsuleFailure>();
 
   events.forEach((event, index) => {
     if (event.type === "user") {
@@ -119,14 +125,20 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
     }
     if (event.type === "file") {
       lastToolIndex = index;
-      if (!files.has(event.path)) {
-        files.set(event.path, {
-          path: event.path,
-          action: event.action,
-          summary: event.action === "added" ? "Created in session." : "Edited in session."
-        });
+      if (event.outcome === 'succeeded') {
+        const previous = files.get(event.path);
+        const action = previous?.action === 'added' && event.action === 'modified' && previous.summary === 'Created in session.' ? 'added' : event.action;
+        files.set(event.path, { path: event.path, action, summary: action === 'added' ? 'Created in session.' : 'Confirmed in session.' });
+        completed.push(fileCompletion(event.action, event.path));
+        const failure = fileFailures.get(event.path);
+        if (failure) failure.resolution = `A later file operation on ${event.path} succeeded.`;
+      } else {
+        if (!files.has(event.path)) files.set(event.path, { path: event.path, action: event.action, summary: `Attempted ${event.action}; outcome ${event.outcome ?? 'unknown'}.` });
+        if (event.outcome === 'failed') {
+          fileFailures.set(event.path, { summary: event.output ? summarize(event.output) : `File operation failed: ${event.path}` });
+          sawUnresolvedFailure = true;
+        }
       }
-      completed.push(fileCompletion(event.action, event.path));
       return;
     }
 
@@ -155,7 +167,7 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
   const objective = firstLine(userTexts[0] ?? "Resume the recorded session.");
   const acceptanceCriteria = extractAcceptance(userTexts[0] ?? "");
   const constraints = extractConstraints(userTexts);
-  const failures = collapseFailures(commands);
+  const failures = [...collapseFailures(commands), ...fileFailures.values()];
   const lastUserText = userTexts.at(-1) ?? "";
   const userDeclaredDone = USER_DONE.test(lastUserText);
   const unresolvedFailures = failures.some((item) => !item.resolution);
@@ -176,7 +188,7 @@ export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
     nextAction: openUserInstruction
       ?? (unresolvedFailures ? lastSpokenAfterFailure : undefined)
       ?? DEFAULT_NEXT_ACTION,
-    status: userDeclaredDone ? "completed" : unresolvedFailures ? "blocked" : "active"
+    status: unresolvedFailures ? "blocked" : userDeclaredDone ? "completed" : "active"
   };
 }
 
@@ -186,6 +198,7 @@ export async function assembleCapsule(options: {
   traces: SessionTraces;
   input: SessionExtractInput;
   evidenceTitle: string;
+  redactionCount?: number;
 }): Promise<Capsule> {
   const tally = { count: 0 };
   const { traces, input } = options;
@@ -228,16 +241,7 @@ export async function assembleCapsule(options: {
   }));
 
   const git = await readGitState(input.project.root);
-  const portable = input.privacy !== "local";
-  const displayRoot = portable ? "." : input.project.root;
-  const displayGit = portable ? { ...git, root: "." } : git;
-  const portableFiles = files.map((file) => ({ ...file, path: portablePath(file.path, input.project.root, portable) }));
-  const portableEvidence = evidence.map((item) => ({
-    ...item,
-    ...(item.locator ? { locator: portablePath(item.locator, input.project.root, portable) } : {})
-  }));
-
-  return validateCapsule({
+  return validateCapsule(protectCapsule({
     schema_version: "1.0",
     id: sanitizeCapsuleId(options.sessionId, options.agent),
     created_at: resolveCreatedAt(input.now),
@@ -245,7 +249,7 @@ export async function assembleCapsule(options: {
     source_session_id: options.sessionId,
     project: {
       name: input.project.name,
-      root: displayRoot,
+      root: input.project.root,
       ...(input.project.repository ? { repository: input.project.repository } : {})
     },
     objective,
@@ -254,27 +258,18 @@ export async function assembleCapsule(options: {
     completed,
     decisions,
     constraints,
-    files: portableFiles,
+    files,
     commands,
     tests,
     failures,
     next_action: nextAction,
-    evidence: portableEvidence,
-    git: displayGit,
+    evidence,
+    git,
     redaction: {
       applied: tally.count > 0,
       count: tally.count
     }
-  });
-}
-
-function portablePath(value: string, projectRoot: string, portable: boolean): string {
-  if (!portable) return value;
-  const absolute = resolve(value);
-  const root = resolve(projectRoot);
-  const rel = relative(root, absolute);
-  if (rel && !rel.startsWith("..") && !resolve(rel).startsWith("/")) return rel;
-  return value.startsWith("/") ? basename(value) : value;
+  }, input.privacy ?? 'portable', [input.project.root, git.root], tally.count + (options.redactionCount ?? 0)));
 }
 
 export function sessionIdFrom(records: SessionRecord[], sessionPath: string | undefined, fallback: string): string {
@@ -304,13 +299,14 @@ export function resolveCreatedAt(now: Date | undefined, records: SessionRecord[]
   if (now) {
     return now.toISOString();
   }
+  let earliest = Infinity;
   for (const record of records) {
     const timestamp = asString(record.timestamp) ?? asString(record.created_at);
     if (timestamp && !Number.isNaN(Date.parse(timestamp))) {
-      return new Date(timestamp).toISOString();
+      earliest = Math.min(earliest, Date.parse(timestamp));
     }
   }
-  return new Date().toISOString();
+  return new Date(Number.isFinite(earliest) ? earliest : Date.now()).toISOString();
 }
 
 export function parseExitCode(text: string | undefined): number | undefined {
@@ -325,7 +321,20 @@ export function parseExitCode(text: string | undefined): number | undefined {
   if (labeled?.[1]) {
     return Number(labeled[1]);
   }
+  const processExit = text.match(/Process exited with code\s+(-?\d+)/i);
+  if (processExit) return Number(processExit[1]);
   return undefined;
+}
+
+export interface ToolResult { text: string; exitCode?: number; outcome: 'succeeded' | 'failed' | 'unknown'; }
+export function toolResult(value: unknown, isError = false): ToolResult {
+  const text = typeof value === 'string' ? value : isRecord(value)
+    ? asString(value.output) ?? asString(value.content) ?? asString(value.text) ?? JSON.stringify(value) : contentText(value);
+  const numeric = isRecord(value) ? value.exit_code ?? value.exitCode : undefined;
+  const exitCode = isError ? 1 : typeof numeric === 'number' && Number.isSafeInteger(numeric) ? numeric : parseExitCode(text);
+  const failed = isError || (exitCode !== undefined && exitCode !== 0) || /^\s*(?:error|failed|failure)\b/i.test(text);
+  const succeeded = exitCode === 0 || /^\s*(?:success|wrote|edited|created|deleted|updated)\b/i.test(text);
+  return { text, exitCode, outcome: failed ? 'failed' : succeeded ? 'succeeded' : 'unknown' };
 }
 
 export function contentText(content: unknown): string {
@@ -405,19 +414,17 @@ function extractConstraints(userTexts: string[]): string[] {
 
 function collapseFailures(commands: CapsuleCommand[]): CapsuleFailure[] {
   const failures: CapsuleFailure[] = [];
-  const seen = new Set<string>();
-  for (const [index, command] of commands.entries()) {
-    if (command.exit_code === undefined || command.exit_code === 0 || seen.has(command.command)) {
-      continue;
+  const open = new Map<string, CapsuleFailure>();
+  for (const command of commands) {
+    if (command.exit_code === undefined) continue;
+    if (command.exit_code === 0) {
+      const failure = open.get(command.command);
+      if (failure) failure.resolution = `Retried \`${command.command}\` and it passed.`;
+      open.delete(command.command);
+    } else if (!open.has(command.command)) {
+      const failure = { summary: command.summary ?? `Command failed: ${command.command}` };
+      failures.push(failure); open.set(command.command, failure);
     }
-    seen.add(command.command);
-    const laterPass = commands.slice(index + 1).some((item) => {
-      return item.command === command.command && item.exit_code === 0;
-    });
-    failures.push({
-      summary: command.summary ?? `Command failed: ${command.command}`,
-      ...(laterPass ? { resolution: `Retried \`${command.command}\` and it passed.` } : {})
-    });
   }
   return failures;
 }

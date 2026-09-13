@@ -126,6 +126,6 @@ describe("Claude Code session adapter", () => {
       "tests/rate-limit.test.ts"
     ]);
     expect(capsule.evidence.find((item) => item.kind === "session")?.locator)
-      .toBe("session-basic.jsonl");
+      .toMatch(/^external\/[a-f0-9]{24}$/);
   });
 });

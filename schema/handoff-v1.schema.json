@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://threadport.dev/schema/handoff-v1.schema.json",
+  "title": "ThreadPort Handoff Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "target_agent", "capsule", "safety"],
+  "properties": {
+    "protocol": {"const": "threadport.handoff.v1"},
+    "target_agent": {"enum": ["claude", "codex", "cursor", "gemini"]},
+    "capsule": {"$ref": "https://threadport.dev/schema/capsule-v1.schema.json"},
+    "safety": {
+      "type": "object", "additionalProperties": false,
+      "required": ["execute_commands", "modify_workspace"],
+      "properties": {"execute_commands": {"const": false}, "modify_workspace": {"const": false}}
+    }
+  }
+}
