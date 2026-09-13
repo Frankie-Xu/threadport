@@ -24,7 +24,7 @@ npm ci
 npm run check
 ```
 
-Session adapters and the handoff CLI are available. The core remains local-only, deterministic, and read-only. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
+Requires Node `>=20`. CI runs that gate on Node 20 and Node 24. Session adapters and the handoff CLI are available. The core remains local-only, deterministic, and read-only. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
 
 ```ts
 import { createClaudeAdapter, createCodexAdapter, createCursorAdapter, createGeminiAdapter } from "threadport";
