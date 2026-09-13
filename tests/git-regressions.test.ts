@@ -1,4 +1,4 @@
-import { writeFile, symlink } from 'node:fs/promises';
+import { writeFile, symlink, lstat, readlink, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { readGitState, gitStateMatches } from '../src/git.js';
@@ -30,13 +30,22 @@ describe('Git snapshot edge cases', () => {
     git(root, 'config', 'diff.interHunkContext', '99');
     expect((await readGitState(root)).dirty_diff_hash).toBe(before.dirty_diff_hash);
   });
-  it.skipIf(process.platform === 'win32')('hashes links, not their targets, and permits broken links', async () => {
+  it('hashes real file symlinks, not their targets, on every supported platform', async () => {
     const root = await project(); const outside = join(await temporary(), 'outside');
-    await writeFile(outside, 'one'); await symlink(outside, join(root, 'link'));
+    await writeFile(outside, 'one'); await symlink(outside, join(root, 'link'), 'file');
+    expect((await lstat(join(root, 'link'))).isSymbolicLink()).toBe(true);
+    const originalTarget = await readlink(join(root, 'link'));
     const a = await readGitState(root); await writeFile(outside, 'two'); const b = await readGitState(root);
     expect(a.dirty_diff_hash).toBe(b.dirty_diff_hash);
-    await symlink(`${outside}-missing`, join(root, 'broken'));
+    await symlink(`${outside}-missing`, join(root, 'broken'), 'file');
+    expect((await lstat(join(root, 'broken'))).isSymbolicLink()).toBe(true);
     await expect(readGitState(root)).resolves.toMatchObject({ dirty: true });
+    await unlink(join(root, 'broken'));
+    expect((await readGitState(root)).dirty_diff_hash).toBe(b.dirty_diff_hash);
+    await unlink(join(root, 'link'));
+    await symlink(`${outside}-missing`, join(root, 'link'), 'file');
+    expect(await readlink(join(root, 'link'))).not.toBe(originalTarget);
+    expect((await readGitState(root)).dirty_diff_hash).not.toBe(b.dirty_diff_hash);
   });
   it('supports detached HEAD, untracked content, and portable state comparison', async () => {
     const root = await project(); git(root, 'checkout', '--detach', 'HEAD');

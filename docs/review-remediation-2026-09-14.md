@@ -2,6 +2,17 @@
 
 Baseline: `31ae677` on `Frankie-Xu/threadport`. This record addresses F01–F15 from the September 14 review; it does not replace that review with an unconditional safety guarantee.
 
+## Acceptance follow-up after PR #25
+
+The initial repairs were merged as `455a153`, but a follow-up check found that F01 and parts of the acceptance criteria were not fully closed. The earlier all-complete wording was too broad. This follow-up makes these corrections:
+
+- Path privacy now maps complete absolute path tokens through repository containment checks instead of replacing root substrings. Regressions cover POSIX/Windows/UNC siblings, traversal, quoted spaces, longer filenames, truncated quotes and a real project directory named `external`. All four adapter fixtures now test two different nested files sharing the same basename.
+- Markdown is checked with the marked parser: exactly three three-column tables, one row per input record, unchanged product headings and no active source HTML or links in the adversarial sample. This exposed a bare-CR line ending defect, now fixed alongside LF/CRLF handling.
+- Filesystem fault injection covers Markdown `link` and force-mode `rename` failures after JSON publication, preservation of old cache bytes, truthful stdout/stderr, temporary-file cleanup and regeneration through `render`. A JSON publication failure must not publish Markdown or report success paths.
+- The real symlink test is no longer skipped on Windows. It asserts that real file symlinks were created, that external target content does not affect the fingerprint, that changing the link does, and that broken links are accepted. [PR #26](https://github.com/Frankie-Xu/threadport/pull/26), [run 34777383751](https://github.com/Frankie-Xu/threadport/actions/runs/34777383751) at `0d55562`: all six OS/Node jobs passed 95 tests with no skipped tests, including the two Windows jobs. The aggregate `check` gate and all six package-install smoke checks also passed.
+
+Local follow-up gate: 95 tests across 19 files pass; isolated installation passes with 43 package files; `npm audit` reports zero vulnerabilities. Live agent-version certification is still input-blocked; see [compatibility evidence](compatibility-evidence.md). Do not treat these code/test fixes as live transcript certification. The verification section below records the historical PR #25 gate and its then-skipped Windows case. Later documentation-only commits and merge status can be checked on PR #26.
+
 ## Changes and regression evidence
 
 | Finding | Implemented change | Regression coverage |

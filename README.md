@@ -56,9 +56,9 @@ The CLI validates before writing and does not run `next_action`. `--from` accept
 
 - Default output is under the operating-system temporary directory, in a user-specific `threadport-*` directory, outside the source project. The namespace includes the canonical local project path hash and source agent; session IDs are scoped to this namespace. It is not a global cross-device repository identifier. Temporary artifacts may be cleaned by the OS; choose `--out` outside the project for durable storage.
 - The CLI prints successful output paths. `--out` selects an explicit destination; no file is replaced without `--force`. JSON is authoritative. Markdown is a rebuildable cache: a cache failure after JSON publication emits a warning and retains the saved JSON. This is not a two-file transaction.
-- Portable mode is the default for every adapter. Nested repository paths stay relative; external filesystem paths receive opaque `external/<hash>` locators. These hashes are identifiers, not encryption. Known project paths are replaced throughout display text. Use `--privacy local` or SDK `privacy: 'local'` only when retaining local paths is intentional.
+- Portable mode is the default for every adapter. Nested repository paths stay relative; external filesystem paths receive opaque `external/<hash>` locators. These hashes are identifiers, not encryption. Recognizable complete paths in display text use the same containment checks, including sibling-name prefixes, traversal and quoted paths containing spaces. Path extraction from arbitrary prose remains heuristic. Use `--privacy local` or SDK `privacy: 'local'` only when retaining local paths is intentional.
 - Complete visible record strings are secret-redacted before summaries are truncated. Metadata also passes an output privacy boundary. Secret scanning is heuristic, not a guarantee that arbitrary credentials, encoded secrets, or personal information have been removed. Inspect artifacts before sharing.
-- File tool calls without a recognized successful result remain attempts, not completed work. Unsupported/empty session formats are rejected. The adapters support the observed fixture formats, not every vendor version; result IDs are used where available, and ambiguous ID-less concurrent Gemini results remain unknown.
+- File tool calls without a recognized successful result remain attempts, not completed work. Unsupported/empty session formats are rejected. The adapters support the observed fixture formats, not every vendor version; result IDs are used where available, and ambiguous ID-less concurrent Gemini results remain unknown. See [compatibility evidence](docs/compatibility-evidence.md): no live vendor version is currently certified.
 
 ### Git fingerprints and handoff boundary
 
@@ -79,7 +79,7 @@ npm run check:pack
 npm audit
 ```
 
-`npm pack` builds through `prepack`; only runtime build files, schemas, examples and package documentation are distributed. `check:pack` installs the tarball into an isolated directory and checks the CLI and public exports. CI runs these gates on Ubuntu, macOS and Windows with Node 20 and 24. Windows symlink tests may require privileges and are not asserted by the simulated PATH tests. Vitest 4.1.11 and Vite 6.4.3 are pinned together to fix the mocker advisory while retaining Node 20 support.
+`npm pack` builds through `prepack`; only runtime build files, schemas, examples and package documentation are distributed. `check:pack` installs the tarball into an isolated directory and checks the CLI and public exports. CI runs these gates on Ubuntu, macOS and Windows with Node 20 and 24. The Git regression suite requires real file symlinks on every platform, including Windows; missing privileges fail the test instead of skipping it. Parsed Markdown assertions cover LF/CRLF/CR, and publication tests inject filesystem errors after preflight. Vitest 4.1.11 and Vite 6.4.3 are pinned together to fix the mocker advisory while retaining Node 20 support.
 
 ## Safety boundary
 
