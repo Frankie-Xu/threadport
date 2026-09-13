@@ -1,5 +1,7 @@
 # ThreadPort
 
+[![CI](https://github.com/Frankie-Xu/threadport/actions/workflows/ci.yml/badge.svg)](https://github.com/Frankie-Xu/threadport/actions/workflows/ci.yml)
+
 Portable, verifiable work state for coding agents.
 
 > Move the work, not the conversation.
@@ -18,12 +20,11 @@ This repository contains the first implementation of the ThreadPort Context Caps
 ## Run
 
 ```bash
-npm install
-npm test
-npm run build
+npm ci
+npm run check
 ```
 
-The current release is protocol-first. The first session adapter is available as a library call; the handoff CLI is the next layer. The core remains local-only, deterministic, and read-only.
+Session adapters and the handoff CLI are available. The core remains local-only, deterministic, and read-only. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
 
 ```ts
 import { createClaudeAdapter, createCodexAdapter, createCursorAdapter, createGeminiAdapter } from "threadport";
