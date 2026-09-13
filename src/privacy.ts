@@ -8,11 +8,15 @@ const windows = (path: string) => /^[A-Za-z]:[\\/]|^\\\\/.test(path);
 
 /** Relative files retain their directories; external paths never collapse to a basename. */
 export function portablePath(value: string, root: string): string {
+  return relativeInside(value, root) ?? `external/${digest(value)}`;
+}
+
+function relativeInside(value: string, root: string): string | undefined {
   const api = windows(root) ? win32 : posix;
-  if (windows(value) && !windows(root)) return `external/${digest(value)}`;
+  if (windows(value) && !windows(root)) return undefined;
   const canonicalRoot = api.resolve(root);
   const rel = api.relative(canonicalRoot, api.resolve(canonicalRoot, value));
-  if (rel === '..' || rel.startsWith(`..${api.sep}`) || api.isAbsolute(rel)) return `external/${digest(value)}`;
+  if (rel === '..' || rel.startsWith(`..${api.sep}`) || api.isAbsolute(rel)) return undefined;
   return rel.split(api.sep).join('/') || '.';
 }
 
@@ -37,6 +41,32 @@ export function redactRecords<T>(records: T): { records: T; count: number } {
 export function safeSessionId(value: string): string {
   if (redactSecrets(value).count || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value)) return `session-${digest(value)}`;
   return value;
+}
+
+/** Match complete paths, never a repository-name prefix inside a sibling path. */
+function portableText(text: string, paths: Map<string, string>, roots: string[]): string {
+  // Relative external locators also need mapping. Absolute paths are handled below
+  // as whole tokens, including traversal and quoted whitespace, in a single pass.
+  const relativePaths = [...paths.keys()].filter(value => !windows(value) && !posix.isAbsolute(value) && value !== paths.get(value));
+  if (relativePaths.length) {
+    const escaped = relativePaths.sort((a, b) => b.length - a.length).map(value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const exact = new RegExp(`(^|[\\s"'\x60(=:])(${escaped.join('|')})(?=$|[\\s"'\x60<>),;])`, 'g');
+    text = text.replace(exact, (_, prefix: string, value: string) => prefix + paths.get(value));
+  }
+  const mapPath = (value: string): string => {
+    const known = paths.get(value);
+    if (known !== undefined) return known;
+    for (const root of roots) {
+      const mapped = relativeInside(value, root);
+      if (mapped !== undefined) return mapped;
+    }
+    return `external/${digest(value)}`;
+  };
+  return text.replace(/(^|[\s(=:"'`])(?:(["'`])((?:[A-Za-z]:[\\/]|\\\\|\/(?!\/))(?:(?!\2)[^\r\n])+)\2|((?:[A-Za-z]:[\\/]|\\\\|\/(?!\/))[^\s"'`<>),;]+))/g,
+    (_, prefix: string, quote: string | undefined, quoted: string | undefined, bare: string | undefined) => {
+      if (quoted !== undefined) return `${prefix}${quote}${mapPath(quoted)}${quote}`;
+      return prefix + mapPath(bare!);
+    });
 }
 
 export function protectCapsule(input: Capsule, privacy: 'local' | 'portable', roots: string[], priorCount = 0): Capsule {
@@ -65,19 +95,14 @@ export function protectCapsule(input: Capsule, privacy: 'local' | 'portable', ro
         evidence.locator = mapped;
       }
     }
-    for (const value of roots) if (value !== '.') paths.set(value, '.');
     capsule.project.root = '.'; capsule.git.root = '.';
   }
-  const replacements = [...paths].filter(([from, to]) => from !== to).sort((a, b) => b[0].length - a[0].length);
   const result = mapStrings(capsule, (text, key) => {
     // Never replace paths inside integrity fields or opaque identifiers.
     if (['id', 'source_session_id', 'head', 'dirty_diff_hash', 'created_at', 'schema_version'].includes(key)) return text;
     let value = text;
     if (privacy === 'portable' && key !== 'repository') {
-      for (const [from, to] of replacements) value = value.split(from).join(to);
-      // Unknown absolute filesystem paths in prose are opaque, not reconstructed as commands.
-      value = value.replace(/(^|[\s"'`(=])((?:[A-Za-z]:[\\/]|\\\\)[^\s"'`<>]+|\/(?!\/)[^\s"'`<>]+)/g,
-        (_, prefix: string, path: string) => `${prefix}external/${digest(path)}`);
+      value = portableText(value, paths, roots.length ? roots : [root]);
     }
     const redacted = redactSecrets(value); count += redacted.count; return redacted.text;
   }) as Capsule;

@@ -3,10 +3,43 @@ import { join, resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { createClaudeAdapter, createCodexAdapter, createCursorAdapter, createGeminiAdapter } from '../src/index.js';
 import { project } from './helpers.js';
-import { portablePath } from '../src/privacy.js';
+import { portablePath, protectCapsule } from '../src/privacy.js';
+import { validateCapsule } from '../src/capsule.js';
+import example from '../examples/capsule-v1.json' with { type: 'json' };
 
 const factories = { claude: createClaudeAdapter, codex: createCodexAdapter, cursor: createCursorAdapter, gemini: createGeminiAdapter };
 describe('privacy boundary', () => {
+  for (const [root, outside] of [
+    ['/project', '/project-sibling/private/file.ts'],
+    ['/project', '/project/../private/file.ts'],
+    ['C:\\project', 'C:\\project-sibling\\private\\file.ts'],
+    ['\\\\server\\share', '\\\\server\\share-other\\private\\file.ts']
+  ]) {
+    it(`does not treat a sibling or traversal as inside ${root}`, () => {
+      const capsule = validateCapsule({ ...example, objective: `Read ${outside}`, project: { name: 'test', root }, git: { ...example.git, root }, files: [], evidence: [] });
+      const protectedCapsule = protectCapsule(capsule, 'portable', [root]);
+      expect(protectedCapsule.objective).toBe(`Read ${portablePath(outside, root)}`);
+      expect(protectedCapsule.objective).toMatch(/^Read external\/[0-9a-f]{24}$/);
+      expect(protectCapsule(capsule, 'local', [root]).objective).toBe(capsule.objective);
+    });
+  }
+  it('handles complete quoted paths with spaces and leaves URLs intact', () => {
+    const capsule = validateCapsule({ ...example, objective: 'Read "/work/my project/src/a file.ts" and "/work/my project-other/private file.ts"; https://example.test/work/my%20project', files: [], evidence: [] });
+    const protectedCapsule = protectCapsule(capsule, 'portable', ['/work/my project']);
+    expect(protectedCapsule.objective).toBe(`Read "src/a file.ts" and "${portablePath('/work/my project-other/private file.ts', '/work/my project')}"; https://example.test/work/my%20project`);
+  });
+  it('does not replace a known external filename inside a longer filename', () => {
+    const capsule = validateCapsule({ ...example, objective: 'Read /outside/a.ts.backup', files: [{ path: '/outside/a.ts', action: 'modified' }], evidence: [] });
+    expect(protectCapsule(capsule, 'portable', ['/project']).objective).toBe(`Read ${portablePath('/outside/a.ts.backup', '/project')}`);
+  });
+  it('keeps an in-project directory literally named external relative', () => {
+    const capsule = validateCapsule({ ...example, objective: 'Read /project/external/a.ts', files: [], evidence: [] });
+    expect(protectCapsule(capsule, 'portable', ['/project']).objective).toBe('Read external/a.ts');
+  });
+  it('redacts an absolute path following an unmatched quote in a truncated summary', () => {
+    const capsule = validateCapsule({ ...example, objective: 'Read `/project-sibling/private.ts', files: [], evidence: [] });
+    expect(protectCapsule(capsule, 'portable', ['/project']).objective).toBe(`Read \`${portablePath('/project-sibling/private.ts', '/project')}`);
+  });
   it('preserves nested identity on POSIX, Windows and UNC paths', () => {
     expect(portablePath('/project/src/a.ts', '/project')).toBe('src/a.ts');
     expect(portablePath('/project/other/a.ts', '/project')).toBe('other/a.ts');
@@ -23,7 +56,8 @@ describe('privacy boundary', () => {
       function replace(value: unknown): unknown {
         if (typeof value === 'string') {
           if (value.startsWith('{')) { try { return JSON.stringify(replace(JSON.parse(value))); } catch { /* ordinary prose */ } }
-          return value.replaceAll('src/rate-limit.ts', join(root, 'src/rate-limit.ts'));
+          return value.replaceAll('src/rate-limit.ts', join(root, 'src/rate-limit.ts'))
+            .replaceAll('tests/rate-limit.test.ts', join(root, 'other/rate-limit.ts'));
         }
         if (Array.isArray(value)) return value.map(replace);
         if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, v]) => [key, replace(v)]));
@@ -33,6 +67,7 @@ describe('privacy boundary', () => {
       const text = agent === 'gemini' ? JSON.stringify(replace(JSON.parse(original))) : original.trim().split('\n').map(line => JSON.stringify(replace(JSON.parse(line)))).join('\n');
       const capsule = await factory().extract({ sessionText: text, sessionPath: fixture, project: { name: 'test', root } });
       expect(capsule.files.some(f => f.path === 'src/rate-limit.ts')).toBe(true);
+      expect(capsule.files.some(f => f.path === 'other/rate-limit.ts')).toBe(true);
       expect(JSON.stringify(capsule)).not.toContain(JSON.stringify(root).slice(1, -1));
     });
   }
