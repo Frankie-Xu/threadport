@@ -85,7 +85,7 @@ npm run check
 
 即 `tsc -p tsconfig.json` 再 `vitest run`。现有 9 个测试必须继续绿。新代码用 Vitest，fixture 放 `tests/fixtures/`。
 
-依赖：Node `>=20`（本机已是 v24）。不要为了本层去改成 monorepo。`pnpm-workspace.yaml` 只是残留 stub，不要按 workspace 拆包。
+依赖：Node `>=20`（本机已是 v24）。包管理器只认 npm（`package-lock.json`）。不要做成 monorepo。拉取请求由 `.github/workflows/ci.yml` 跑同一条 `npm run check`。
 
 ### 1.5 本层产品形状
 
@@ -271,8 +271,8 @@ Session 文件位置由调用方传入。Adapter 可以**提示**常见目录（
 - 云同步、账号、遥测
 - 把真实 Claude/Cursor 会话提交进 git
 - 重写已绿的协议层「顺便优化」
-- 把 `pnpm-workspace.yaml` 做成真 monorepo
-- CI / Release（需要时另开 chore 阶段，不算下一层）
+- 把仓库做成 monorepo
+- 关闭或绕过 GitHub CI / `main` 保护规则
 
 ---
 
@@ -313,5 +313,6 @@ Session 文件位置由调用方传入。Adapter 可以**提示**常见目录（
 | 3a Codex adapter | done | ~0.6h | `feat/Frankie-Xu/codex-session-adapter` | Frankie-Xu：`createCodexAdapter` + `--from codex`；合成 fixture；脱敏与无 hidden reasoning。未开 3b/3c。 |
 | 3b Cursor adapter | done | ~0.6h | `feat/Frankie-Xu/cursor-session-adapter` | Frankie-Xu：`createCursorAdapter` + `--from cursor`；合成 fixture；脱敏与无 hidden reasoning。未开 3c。 |
 | 3c Gemini adapter | done | ~0.4h | `feat/Frankie-Xu/gemini-session-adapter` | Frankie-Xu：`createGeminiAdapter` + `--from gemini`；合成 fixture；脱敏与无 hidden reasoning。阶段 3 全部完成。 |
+| chore 仓库卫生 | done | ~0.4h | `chore/Frankie-Xu/repo-hygiene` | CI、squash-only、合入删分支、`main` 保护、Dependabot、PR/Issue 模板；删除 pnpm 残留锁文件。 |
 
 状态只准用：`pending` | `in_progress` | `done` | `blocked`。
