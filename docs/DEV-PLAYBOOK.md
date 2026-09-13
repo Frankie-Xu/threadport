@@ -85,7 +85,7 @@ npm run check
 
 即 `tsc -p tsconfig.json` 再 `vitest run`。现有 9 个测试必须继续绿。新代码用 Vitest，fixture 放 `tests/fixtures/`。
 
-依赖：Node `>=20`（本机已是 v24）。包管理器只认 npm（`package-lock.json`）。不要做成 monorepo。拉取请求由 `.github/workflows/ci.yml` 跑同一条 `npm run check`。
+依赖：Node `>=20`（本机已是 v24）。包管理器只认 npm（`package-lock.json`）。不要做成 monorepo。拉取请求由 `.github/workflows/ci.yml` 在 Node 20 和 24 上跑同一条 `npm run check`。Vitest 只收集 `tests/**/*.test.ts`。
 
 ### 1.5 本层产品形状
 
@@ -314,5 +314,6 @@ Session 文件位置由调用方传入。Adapter 可以**提示**常见目录（
 | 3b Cursor adapter | done | ~0.6h | `feat/Frankie-Xu/cursor-session-adapter` | Frankie-Xu：`createCursorAdapter` + `--from cursor`；合成 fixture；脱敏与无 hidden reasoning。未开 3c。 |
 | 3c Gemini adapter | done | ~0.4h | `feat/Frankie-Xu/gemini-session-adapter` | Frankie-Xu：`createGeminiAdapter` + `--from gemini`；合成 fixture；脱敏与无 hidden reasoning。阶段 3 全部完成。 |
 | chore 仓库卫生 | done | ~0.4h | `chore/Frankie-Xu/repo-hygiene` | CI、squash-only、合入删分支、`main` 保护、Dependabot、PR/Issue 模板；删除 pnpm 残留锁文件。 |
+| chore CI 兼容 | done | ~0.3h | `chore/Frankie-Xu/ci-compat` | Node 20+24 矩阵；Vitest 只测 `tests/`；Dependabot 忽略运行时相关 major。 |
 
 状态只准用：`pending` | `in_progress` | `done` | `blocked`。
