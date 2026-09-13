@@ -39,7 +39,7 @@ export async function readGitState(cwd: string): Promise<GitState> {
   const detached = branch === 'HEAD';
   const head = (await git(root, ["rev-parse", "HEAD"])).trim();
   const status = await git(root, ["status", "--porcelain=v1", "-z"]);
-  const diffOptions = ['--binary', '--no-ext-diff', '--no-textconv', '--no-color', '--no-renames', '--src-prefix=a/', '--dst-prefix=b/'];
+  const diffOptions = ['--binary', '--no-ext-diff', '--no-textconv', '--no-color', '--no-renames', '--src-prefix=a/', '--dst-prefix=b/', '--diff-algorithm=myers', '--no-indent-heuristic', '--unified=3', '--inter-hunk-context=0', '--submodule=short', '--no-relative'];
   const staged = await git(root, ['diff', '--cached', ...diffOptions, 'HEAD']);
   const unstaged = await git(root, ['diff', ...diffOptions]);
   const untracked = (await git(root, ["ls-files", "--others", "--exclude-standard", "-z"]))
@@ -65,8 +65,15 @@ export async function readGitState(cwd: string): Promise<GitState> {
         const opened = await handle.stat();
         if (!opened.isFile() || opened.ino !== info.ino || opened.size !== info.size) throw new Error('File changed during Git snapshot; retry.');
         field((info.mode & 0o111) ? 'executable' : 'file');
-        const content = await handle.readFile();
-        if (content.length !== info.size) throw new Error('File changed during Git snapshot; retry.');
+        const content = Buffer.alloc(info.size);
+        let offset = 0;
+        while (offset < content.length) {
+          const { bytesRead } = await handle.read(content, offset, content.length - offset, offset);
+          if (!bytesRead) break;
+          offset += bytesRead;
+        }
+        const after = await handle.stat();
+        if (offset !== info.size || after.size !== info.size || after.mtimeMs !== opened.mtimeMs) throw new Error('File changed during Git snapshot; retry.');
         field(content);
       } finally { await handle.close(); }
     } else {

@@ -18,6 +18,18 @@ describe('Git snapshot edge cases', () => {
     await writeFile(join(root, 'renamed.md'), 'initial\nextra\n');
     expect((await readGitState(root)).changed_files.sort()).toEqual(['README.md', 'renamed.md']);
   });
+  it('normalizes diff presentation independently of user configuration', async () => {
+    const root = await project();
+    await writeFile(join(root, 'README.md'), 'one\ntwo\nthree\nfour\nfive\n');
+    git(root, 'add', '.'); git(root, 'commit', '-m', 'multiline');
+    await writeFile(join(root, 'README.md'), 'one\ntwo\nchanged\nfour\nfive\n');
+    const before = await readGitState(root);
+    git(root, 'config', 'diff.context', '0');
+    git(root, 'config', 'diff.algorithm', 'patience');
+    git(root, 'config', 'diff.mnemonicPrefix', 'true');
+    git(root, 'config', 'diff.interHunkContext', '99');
+    expect((await readGitState(root)).dirty_diff_hash).toBe(before.dirty_diff_hash);
+  });
   it.skipIf(process.platform === 'win32')('hashes links, not their targets, and permits broken links', async () => {
     const root = await project(); const outside = join(await temporary(), 'outside');
     await writeFile(outside, 'one'); await symlink(outside, join(root, 'link'));

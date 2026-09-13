@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { tracesFromEvents } from '../src/adapters/common.js';
-import { createClaudeAdapter, createCodexAdapter, createGeminiAdapter } from '../src/index.js';
+import { createClaudeAdapter, createCodexAdapter, createCursorAdapter, createGeminiAdapter } from '../src/index.js';
 import { project } from './helpers.js';
 
 describe('verified observable state', () => {
@@ -44,6 +44,55 @@ describe('verified observable state', () => {
       { role: 'user', parts: [{ functionResponse: { id: 'B', name: 'run_shell_command', response: { output: 'exit_code: 0' } } }, { functionResponse: { id: 'A', name: 'run_shell_command', response: { output: 'exit_code: 1' } } }] }
     ] };
     const capsule = await createGeminiAdapter().extract({ sessionText: JSON.stringify(session), project: { name: 'test', root } });
-    expect(capsule.tests.map(t => t.status)).toEqual(['failed', 'passed']);
+    expect(capsule.tests.map(t => [t.command, t.status])).toEqual([['npm test -- B', 'passed'], ['npm test -- A', 'failed']]);
+  });
+  it('uses result arrival order for concurrent retries of the same command', async () => {
+    const root = await project();
+    const session = { messages: [
+      { role: 'model', parts: ['A', 'B'].map(id => ({ functionCall: { id, name: 'run_shell_command', args: { command: 'npm test' } } })) },
+      { role: 'user', parts: [{ functionResponse: { id: 'B', name: 'run_shell_command', response: { exit_code: 0 } } }, { functionResponse: { id: 'A', name: 'run_shell_command', response: { exit_code: 1 } } }] }
+    ] };
+    const capsule = await createGeminiAdapter().extract({ sessionText: JSON.stringify(session), project: { name: 'test', root } });
+    expect(capsule.status).toBe('blocked');
+    expect(capsule.tests.map(t => t.status)).toEqual(['passed', 'failed']);
+  });
+  it('leaves ambiguous ID-less Gemini results unknown', async () => {
+    const root = await project();
+    const session = { messages: [
+      { role: 'model', parts: ['A', 'B'].map(id => ({ functionCall: { name: 'run_shell_command', args: { command: `npm test -- ${id}` } } })) },
+      { role: 'user', parts: [0, 1].map(exit_code => ({ functionResponse: { name: 'run_shell_command', response: { exit_code } } })) }
+    ] };
+    const capsule = await createGeminiAdapter().extract({ sessionText: JSON.stringify(session), project: { name: 'test', root } });
+    expect(capsule.tests.map(t => t.status)).toEqual(['unknown', 'unknown']);
+    expect(capsule.completed).toEqual([]);
+  });
+  it('does not complete an edit whose result is absent', async () => {
+    const root = await project();
+    const capsule = await createClaudeAdapter().extract({ sessionText: JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Edit', id: 'a', input: { file_path: 'file.ts' } }] } }), project: { name: 'test', root } });
+    expect(capsule.completed).toEqual([]);
+    expect(capsule.files[0].summary).toContain('unknown');
+  });
+  for (const factory of [createClaudeAdapter, createCursorAdapter]) {
+    it(`reduces ${factory().agent} retries at their observed result positions`, async () => {
+      const root = await project();
+      const records = [
+        { type: 'assistant', message: { content: ['A', 'B'].map(id => ({ type: 'tool_use', id, name: 'Bash', input: { command: 'npm test' } })) } },
+        { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'B', content: 'exit_code: 0' }, { type: 'tool_result', tool_use_id: 'A', content: 'exit_code: 1' }] } }
+      ];
+      const capsule = await factory().extract({ sessionText: JSON.stringify(records), project: { name: 'test', root } });
+      expect(capsule.status).toBe('blocked');
+      expect(capsule.tests.map(t => t.status)).toEqual(['passed', 'failed']);
+    });
+  }
+  it('reduces Codex retries at their observed result positions', async () => {
+    const root = await project();
+    const records = [
+      ...['A', 'B'].map(call_id => ({ type: 'function_call', call_id, name: 'exec_command', arguments: { cmd: 'npm test' } })),
+      { type: 'function_call_output', call_id: 'B', output: 'exit_code: 0' },
+      { type: 'function_call_output', call_id: 'A', output: 'exit_code: 1' }
+    ];
+    const capsule = await createCodexAdapter().extract({ sessionText: JSON.stringify(records), project: { name: 'test', root } });
+    expect(capsule.status).toBe('blocked');
+    expect(capsule.tests.map(t => t.status)).toEqual(['passed', 'failed']);
   });
 });

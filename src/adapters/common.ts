@@ -27,11 +27,12 @@ export const USER_DONE = /^\s*(?:done|completed|that'?s all|finished|lgtm)[.!]?\
 
 export type SessionRecord = Record<string, unknown>;
 
-export type TraceEvent =
+export type TraceEvent = (
   | { type: "user"; text: string }
   | { type: "assistant"; text: string }
   | { type: "file"; path: string; action: FileAction; outcome?: 'succeeded' | 'failed' | 'unknown'; output?: string }
-  | { type: "command"; command: string; exitCode?: number; output?: string };
+  | { type: "command"; command: string; exitCode?: number; output?: string }
+) & { /** Observed result position, or call position when no result exists. Not serialized. */ order?: number };
 
 export interface SessionTraces {
   objective: string;
@@ -93,6 +94,8 @@ export function parseSessionRecords(text: string, label: string): SessionRecord[
 
 export function tracesFromEvents(events: TraceEvent[]): SessionTraces {
   if (!events.length) throw new Error('No observable session events found; unsupported or empty transcript.');
+  events = events.map((event, index) => ({ event, order: event.order ?? index }))
+    .sort((a, b) => a.order - b.order).map(item => item.event);
   const files = new Map<string, CapsuleFile>();
   const commands: CapsuleCommand[] = [];
   const tests: CapsuleTest[] = [];
