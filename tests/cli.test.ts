@@ -130,6 +130,21 @@ describe("Handoff CLI", () => {
     expect(forced.code).toBe(0);
   });
 
+  it("exports a machine-readable handoff envelope", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-json-") );
+    const project = await isolatedProjectRoot();
+    const extracted = await captureCli(["extract", "--from", "claude", "--session", fixturePath, "--project", project], cwd);
+    expect(extracted.code).toBe(0);
+    const capsulePath = join(cwd, ".threadport", "sess-claude-fixture-basic-001.json");
+    const result = await captureCli(["handoff", "--to", "codex", "--format", "json", capsulePath], cwd);
+    expect(result.code).toBe(0);
+    const envelope = JSON.parse(await readFile(join(cwd, ".threadport", "sess-claude-fixture-basic-001.codex.json"), "utf8"));
+    expect(envelope.protocol).toBe("threadport.handoff.v1");
+    expect(envelope.target_agent).toBe("codex");
+    expect(envelope.safety).toEqual({ execute_commands: false, modify_workspace: false });
+    expect(envelope.capsule.id).toBe("sess-claude-fixture-basic-001");
+  });
+
   it("extracts a Cursor fixture through --from cursor", async () => {
     const cwd = await mkdtemp(join(tmpdir(), "threadport-cli-cursor-"));
     const project = await isolatedProjectRoot();

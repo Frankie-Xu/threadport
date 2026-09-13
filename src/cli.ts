@@ -63,7 +63,7 @@ function usage(): string {
     "threadport extract --from claude|codex|cursor|gemini --session <path> --project <root> [--out <file>] [--force]",
     "threadport validate <capsule.json>",
     "threadport render <capsule.json>",
-    "threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--out <file>] [--force]"
+    "threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--out <file>] [--format markdown|json] [--force]"
   ].join("\n");
 }
 
@@ -148,19 +148,25 @@ async function handoffCommand(argv: string[], io: CliIo): Promise<number> {
   const toIndex = argv.indexOf("--to");
   const target = toIndex >= 0 ? argv[toIndex + 1] : undefined;
   const force = argv.includes("--force");
+  const formatIndex = argv.indexOf("--format");
+  const format = formatIndex >= 0 ? argv[formatIndex + 1] : "markdown";
+  if (format !== "markdown" && format !== "json") {
+    throw new Error("handoff --format must be markdown or json.");
+  }
   const outIndex = argv.indexOf("--out");
-  const input = argv.find((item, index) => !item.startsWith("--") && index !== toIndex + 1 && index !== outIndex + 1);
+  const input = argv.find((item, index) => !item.startsWith("--") && index !== toIndex + 1 && index !== outIndex + 1 && index !== formatIndex + 1);
   if (!target || !["claude", "codex", "cursor", "gemini"].includes(target) || !input) {
     throw new Error("handoff requires --to claude|codex|cursor|gemini and a Capsule JSON path.");
   }
   const capsule = parseCapsule(await readFile(resolvePath(io.cwd(), input), "utf8"));
   const output = outIndex >= 0 && argv[outIndex + 1]
     ? resolvePath(io.cwd(), argv[outIndex + 1])
-    : join(io.cwd(), ".threadport", `${capsule.id}.${target}.md`);
+    : join(io.cwd(), ".threadport", `${capsule.id}.${target}.${format}`);
   await assertWritable(output, force);
   await mkdir(dirname(output), { recursive: true });
   const prompt = `You are taking over a coding task from ThreadPort.\n\n${renderCapsuleMarkdown(capsule)}\n\nTarget agent: ${target}\nReview the evidence above, confirm the next action with the user, and do not execute commands until confirmed.`;
-  await atomicWrite(output, prompt);
+  const envelope = { protocol: "threadport.handoff.v1", target_agent: target, capsule, safety: { execute_commands: false, modify_workspace: false } };
+  await atomicWrite(output, format === "json" ? `${JSON.stringify(envelope, null, 2)}\n` : prompt);
   io.stdout.write(`${output}\n`);
   return 0;
 }
