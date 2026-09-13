@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { basename } from "node:path";
+import { basename, relative, resolve } from "node:path";
 import { validateCapsule } from "../capsule.js";
 import { readGitState } from "../git.js";
 import { redactSecrets } from "../redact.js";
@@ -227,6 +227,16 @@ export async function assembleCapsule(options: {
     ...(item.locator ? { locator: redactField(item.locator, tally) } : {})
   }));
 
+  const git = await readGitState(input.project.root);
+  const portable = input.privacy !== "local";
+  const displayRoot = portable ? "." : input.project.root;
+  const displayGit = portable ? { ...git, root: "." } : git;
+  const portableFiles = files.map((file) => ({ ...file, path: portablePath(file.path, input.project.root, portable) }));
+  const portableEvidence = evidence.map((item) => ({
+    ...item,
+    ...(item.locator ? { locator: portablePath(item.locator, input.project.root, portable) } : {})
+  }));
+
   return validateCapsule({
     schema_version: "1.0",
     id: sanitizeCapsuleId(options.sessionId, options.agent),
@@ -235,7 +245,7 @@ export async function assembleCapsule(options: {
     source_session_id: options.sessionId,
     project: {
       name: input.project.name,
-      root: input.project.root,
+      root: displayRoot,
       ...(input.project.repository ? { repository: input.project.repository } : {})
     },
     objective,
@@ -244,18 +254,27 @@ export async function assembleCapsule(options: {
     completed,
     decisions,
     constraints,
-    files,
+    files: portableFiles,
     commands,
     tests,
     failures,
     next_action: nextAction,
-    evidence,
-    git: await readGitState(input.project.root),
+    evidence: portableEvidence,
+    git: displayGit,
     redaction: {
       applied: tally.count > 0,
       count: tally.count
     }
   });
+}
+
+function portablePath(value: string, projectRoot: string, portable: boolean): string {
+  if (!portable) return value;
+  const absolute = resolve(value);
+  const root = resolve(projectRoot);
+  const rel = relative(root, absolute);
+  if (rel && !rel.startsWith("..") && !resolve(rel).startsWith("/")) return rel;
+  return value.startsWith("/") ? basename(value) : value;
 }
 
 export function sessionIdFrom(records: SessionRecord[], sessionPath: string | undefined, fallback: string): string {
