@@ -154,7 +154,7 @@ async function handoffCommand(argv: string[], io: CliIo): Promise<number> {
     throw new Error("handoff --format must be markdown or json.");
   }
   const outIndex = argv.indexOf("--out");
-  const input = argv.find((item, index) => !item.startsWith("--") && index !== toIndex + 1 && index !== outIndex + 1);
+  const input = argv.find((item, index) => !item.startsWith("--") && index !== toIndex + 1 && index !== outIndex + 1 && index !== formatIndex + 1);
   if (!target || !["claude", "codex", "cursor", "gemini"].includes(target) || !input) {
     throw new Error("handoff requires --to claude|codex|cursor|gemini and a Capsule JSON path.");
   }
