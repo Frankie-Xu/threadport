@@ -10,6 +10,7 @@ import { createGeminiAdapter } from "./adapters/gemini.js";
 import type { SessionAdapter } from "./adapters/types.js";
 import { parseCapsule, serializeCapsule, validateCapsule } from "./capsule.js";
 import { renderCapsuleMarkdown } from "./markdown.js";
+import { detectTargets } from "./targets.js";
 
 /**
  * Read-only ThreadPort handoff CLI.
@@ -38,6 +39,11 @@ export async function runCli(argv: string[], io: CliIo = defaultIo()): Promise<n
     if (command === "handoff") {
       return await handoffCommand(argv.slice(1), io);
     }
+    if (command === "targets") {
+      const targets = await detectTargets();
+      io.stdout.write(`${JSON.stringify(targets, null, 2)}\n`);
+      return 0;
+    }
     if (command === "--help" || command === "-h" || command === undefined) {
       io.stdout.write(`${usage()}\n`);
       return command ? 0 : 1;
@@ -63,7 +69,8 @@ function usage(): string {
     "threadport extract --from claude|codex|cursor|gemini --session <path> --project <root> [--out <file>] [--force]",
     "threadport validate <capsule.json>",
     "threadport render <capsule.json>",
-    "threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--out <file>] [--format markdown|json] [--force]"
+    "threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--out <file>] [--format markdown|json] [--force]",
+    "threadport targets"
   ].join("\n");
 }
 
