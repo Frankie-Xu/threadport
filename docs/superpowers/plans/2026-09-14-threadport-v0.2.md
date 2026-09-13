@@ -719,7 +719,7 @@ npm run test:package
 
 | 任务 | 状态 | 完成等级 | 实际工时 | PR / SHA / 证据 |
 | --- | --- | --- | --- | --- |
-| T01 | review | L1（开发门槛） | 本次约 0.3h（含阅读/验证） | 未提交；[基线与验收](../../verification/t01-baseline.md)；Node24：38 测试通过 |
+| T01 | review | L1（开发门槛） | 本次约 0.3h（含阅读/验证） | 已提交任务分支，待 PR/CI；[基线与验收](../../verification/t01-baseline.md)；同步 main 后 Node24：95 测试通过 |
 | T02 | pending | L0 | 尚未实施 | 尚未实施 |
 | T03 | pending | L0 | 尚未实施 | 尚未实施 |
 | T04 | pending | L0 | 尚未实施 | 尚未实施 |

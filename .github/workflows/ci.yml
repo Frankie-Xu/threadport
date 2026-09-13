@@ -28,9 +28,12 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci
-      - run: npm run check
-      - run: npm run check:pack
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Check types, build, tests, and documentation links
+        run: npm run check
+      - name: Verify isolated package installation
+        run: npm run check:pack
 
   check:
     name: check
@@ -38,5 +41,5 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - name: Require every Node version
+      - name: Require every platform and Node version
         run: test "${{ needs.test.result }}" = "success"

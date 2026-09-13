@@ -42,7 +42,7 @@ T01 不增加格式/lint 依赖或批量格式化源代码：计划将这些列�
 
 新增脚本仅读取项目文档并检查目标是否存在，不读取会话、不发起网络、不修改源数据；无生产接口、存储迁移或执行器变更。
 
-## 交接
+## 首次本地交接（后续推送记录见下文）
 
 任务自有修改：`CONTRIBUTING.md`、PR/feature 模板、`package.json` 的 scripts；新增 `scripts/check-doc-links.mjs` 与本记录；增量修改旧手册、LOCAL-DEVELOPMENT、v0.2 质量门和实施计划进度。CI 原有 `npm run check` 会自动运行新门槛，无需重复修改 workflow。
 
@@ -51,3 +51,21 @@ T01 不增加格式/lint 依赖或批量格式化源代码：计划将这些列�
 提交：未提交，等待维护者本地 review；建议 subject：`chore: align contributor guidance with the workspace release`。本次不是第三方审计，无外部发布。
 
 下一最小任务：T02，先复现同 basename 路径折叠，再实现 portable 路径与证据身份；依计划阅读 contracts 中路径规则，覆盖 Q01/Q02。T02–T21 尚未实施。
+
+
+## 授权推送与 CI 交接
+
+用户随后要求按 GitHub 开发流程推送项目和 CI。本次同步到 `origin/main` 的 `56daf0e`（包含 #25/#26），解决 package scripts 与贡献指南冲突，保留上游 typecheck、依赖修复、三平台双 Node 矩阵和隔离安装包验证。提交同时纳入 v0.2 文档入口及其依赖文档；本机开发说明已改为通用 clone/Node24 步骤。研究文件、HTML 实验和原有 `.gitignore` 改动留在本地。
+
+验证环境仍为 Node 24.18.1 / npm 11.16.0 / macOS arm64：
+
+- `npm ci`：成功，锁文件未变化，审计为 0 vulnerabilities。
+- 首次全量：94/95 通过，项目隔离用例超过默认 5 秒超时；没有修改测试超时或削弱断言。
+- `npm test -- tests/cli-regressions.test.ts`：10/10 通过。
+- 再次 `npm run check`：typecheck/build 通过，19 文件 / 95 测试通过，21 个 Markdown 文件 / 30 个本地目标通过。
+- `npm run check:pack`：43 个包文件，隔离安装后的 CLI 与公共 exports 通过。
+- `git diff origin/main...HEAD --check`：通过；原文 Markdown 尾随双空格改为显式换行符。
+
+GitHub `Protect main` ruleset 已核实为 active：要求 PR、squash、线性历史、解决 review 讨论、与最新 main 同步及 required `check`；禁止删除和 force push，无 bypass actor。没有改弱保护规则。CI 将执行 Ubuntu/macOS/Windows × Node20/24，每项运行安装、typecheck/build/tests/docs 和 package smoke，最后由 `check` 汇总。
+
+远端 CI 结果以对应 PR 的 Checks 为准；上述结果是本地验证，不预先声称远端通过。T01 保持 review，尚未合并 main。下一项 T02 开始前必须重新核实 #25/#26 已修复的路径问题，避免重复实现。
