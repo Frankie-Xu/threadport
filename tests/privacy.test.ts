@@ -19,8 +19,18 @@ describe('privacy boundary', () => {
     it(`${agent}: preserves nested paths and hides paths throughout the capsule`, async () => {
       const root = await project();
       const fixture = resolve(`tests/fixtures/${agent}/session-basic.${agent === 'gemini' ? 'json' : 'jsonl'}`);
-      // JSON-encode replacement paths so this fixture also works on Windows.
-      const text = (await readFile(fixture, 'utf8')).replaceAll('src/rate-limit.ts', JSON.stringify(join(root, 'src/rate-limit.ts')).slice(1, -1));
+      // Re-encode both outer JSON and nested Codex argument JSON on Windows.
+      function replace(value: unknown): unknown {
+        if (typeof value === 'string') {
+          if (value.startsWith('{')) { try { return JSON.stringify(replace(JSON.parse(value))); } catch { /* ordinary prose */ } }
+          return value.replaceAll('src/rate-limit.ts', join(root, 'src/rate-limit.ts'));
+        }
+        if (Array.isArray(value)) return value.map(replace);
+        if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, v]) => [key, replace(v)]));
+        return value;
+      }
+      const original = await readFile(fixture, 'utf8');
+      const text = agent === 'gemini' ? JSON.stringify(replace(JSON.parse(original))) : original.trim().split('\n').map(line => JSON.stringify(replace(JSON.parse(line)))).join('\n');
       const capsule = await factory().extract({ sessionText: text, sessionPath: fixture, project: { name: 'test', root } });
       expect(capsule.files.some(f => f.path === 'src/rate-limit.ts')).toBe(true);
       expect(JSON.stringify(capsule)).not.toContain(JSON.stringify(root).slice(1, -1));

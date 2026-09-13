@@ -18,14 +18,17 @@
     }
   },
   "files": [
-    "dist",
+    "dist/src",
     "schema",
     "examples"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check:pack": "node scripts/pack-smoke.mjs",
     "test": "vitest run",
-    "check": "npm run build && npm test"
+    "check": "npm run typecheck && npm run build && npm test"
   },
   "dependencies": {
     "zod": "^3.25.76"
@@ -35,6 +38,7 @@
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.4"
+    "vite": "6.4.3",
+    "vitest": "4.1.11"
   }
 }

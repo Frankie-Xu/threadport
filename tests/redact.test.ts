@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { redactSecrets } from "../src/redact.js";
 
 describe("secret redaction", () => {
+  it('redacts partial keys and quoted assignments without re-redacting placeholders', () => {
+    expect(redactSecrets('-----BEGIN PRIVATE KEY-----SYNTHETIC').text).not.toContain('SYNTHETIC');
+    const once = redactSecrets('{"password":"synthetic-password-value"}');
+    expect(once.text).not.toContain('synthetic-password-value');
+    expect(redactSecrets(once.text).count).toBe(0);
+  });
   it("redacts common credentials without changing ordinary prose", () => {
     const input = "token_count=12 api_key=super-secret-value-12345 and ghp_12345678901234567890123456789012";
     const result = redactSecrets(input);

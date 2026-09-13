@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFile, realpath, mkdir, lstat } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import { basename, join, resolve, relative, isAbsolute, sep } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
@@ -136,6 +137,10 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
   } catch (error) { io.stderr.write(`${message(error)}\n`); return 1; }
 }
 function message(error: unknown): string { return error instanceof Error ? error.message : String(error); }
-if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
+function isEntryPoint(): boolean {
+  try { return Boolean(process.argv[1]) && pathToFileURL(realpathSync(process.argv[1])).href === import.meta.url; }
+  catch { return false; }
+}
+if (isEntryPoint()) {
   runCli(process.argv.slice(2)).then(code => { process.exitCode = code; });
 }

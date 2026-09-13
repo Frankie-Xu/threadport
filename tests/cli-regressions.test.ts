@@ -1,4 +1,4 @@
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { readFile, readdir, mkdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { runCli } from '../src/cli.js';
@@ -40,5 +40,19 @@ describe('strict CLI and project identity', () => {
     const result = await cli(['extract', '--from', 'claude', '--session', resolve('tests/fixtures/claude/session-basic.jsonl'), '--project', root, '--privacy', 'local', '--out', 'local.json'], cwd);
     expect(result.code, result.stderr).toBe(0);
     expect(JSON.parse(await readFile(join(cwd, 'local.json'), 'utf8')).project.root).toBe(root);
+  });
+  it('validates a handoff only through its explicit envelope route', async () => {
+    const cwd = await temporary();
+    const saved = await cli(['handoff', example, '--to', 'codex', '--format', 'json', '--out', 'handoff.json'], cwd);
+    expect(saved.code, saved.stderr).toBe(0);
+    expect((await cli(['validate', '--handoff', 'handoff.json'], cwd)).code).toBe(0);
+    expect((await cli(['validate', 'handoff.json'], cwd)).code).toBe(1);
+  });
+  it('rejects a non-file Markdown destination before publishing JSON', async () => {
+    const root = await project(), cwd = await temporary();
+    await mkdir(join(cwd, 'capsule.md'));
+    const result = await cli(['extract', '--from', 'claude', '--session', resolve('tests/fixtures/claude/session-basic.jsonl'), '--project', root, '--out', 'capsule.json', '--force'], cwd);
+    expect(result.code).toBe(1);
+    expect(await readdir(cwd)).toEqual(['capsule.md']);
   });
 });

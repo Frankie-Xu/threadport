@@ -6,9 +6,9 @@ import { temporary } from './helpers.js';
 
 describe('filesystem-only target discovery', () => {
   it('detects executables without launching them', async () => {
-    const path = await temporary(); const command = join(path, 'codex');
+    const path = await temporary(); const command = join(path, process.platform === 'win32' ? 'codex.cmd' : 'codex');
     await writeFile(command, '#!/bin/sh\nexit 99\n'); await chmod(command, 0o700);
-    const targets = await detectTargets({ path, platform: 'linux' });
+    const targets = await detectTargets({ path, pathExt: '.CMD;.EXE' });
     expect(targets.find(t => t.agent === 'codex')).toMatchObject({ available: true, launch_supported: false });
     expect(targets.find(t => t.agent === 'claude')?.available).toBe(false);
   });
@@ -19,7 +19,7 @@ describe('filesystem-only target discovery', () => {
   });
   it('does not treat a directory as a command or invent executable launch strings', async () => {
     const path = await temporary(); await mkdir(join(path, 'codex'));
-    expect((await detectTargets({ path, platform: 'linux' })).find(t => t.agent === 'codex')?.available).toBe(false);
+    expect((await detectTargets({ path })).find(t => t.agent === 'codex')?.available).toBe(false);
     expect(() => suggestedLaunch('codex', '/tmp/$(command).md')).toThrow(/not supported/i);
   });
 });
