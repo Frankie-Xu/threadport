@@ -1,18 +1,51 @@
 name: Feature request
-description: Propose a change that stays inside Capsule v1
+description: Propose a verifiable increment for the v0.2 task workspace
 labels: [enhancement]
 body:
   - type: textarea
     id: problem
     attributes:
       label: Problem
-      description: What is hard or missing today
+      description: Who encounters which obstacle while finding, understanding, or continuing a task? Do not include private sessions or secrets.
     validations:
       required: true
   - type: textarea
-    id: proposal
+    id: scope
     attributes:
-      label: Proposal
-      description: The smallest change that would help. Do not assume a schema v2 or MCP server.
+      label: Scope and dependencies
+      value: |
+        Task ID:
+        Feature / acceptance / regression IDs:
+        Included behavior:
+        Explicit exclusions:
+        Dependencies:
     validations:
       required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Contract and affected files
+      description: Link the current specification; describe inputs, outputs, errors, compatibility, and any required ADR. Capsule v1 stays compatible. Log commands must never be executed automatically.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      value: |
+        - [ ] Observable successful behavior
+        - [ ] Key failure and recovery behavior
+        - [ ] Relevant tests and manual evidence
+        - [ ] User documentation and compatibility notes
+    validations:
+      required: true
+  - type: textarea
+    id: delivery
+    attributes:
+      label: Delivery
+      value: |
+        Type / priority (P0–P3):
+        Phase / size (S/M/L):
+        Owner / target milestone:
+        PR:
+        Known limitations:
