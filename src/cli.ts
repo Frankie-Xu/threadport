@@ -2,6 +2,7 @@
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { createHash, randomUUID } from "node:crypto";
 import { createClaudeAdapter } from "./adapters/claude.js";
 import { createCodexAdapter } from "./adapters/codex.js";
 import { createCursorAdapter } from "./adapters/cursor.js";
@@ -79,17 +80,44 @@ async function extractCommand(argv: string[], io: CliIo): Promise<number> {
   });
   validateCapsule(capsule);
 
-  const jsonPath = flags.out
+  let jsonPath = flags.out
     ? resolvePath(io.cwd(), flags.out)
     : join(io.cwd(), ".threadport", `${capsule.id}.json`);
+  if (!flags.out) {
+    try {
+      const existing = parseCapsule(await readFile(jsonPath, "utf8"));
+      if (existing.project.root !== capsule.project.root) {
+        jsonPath = join(io.cwd(), ".threadport", projectFingerprint(projectRoot), `${capsule.id}.json`);
+      }
+    } catch {
+      // No readable existing capsule; use the conventional path.
+    }
+  }
   const markdownPath = siblingMarkdown(jsonPath);
   await assertWritable(jsonPath, flags.force);
   await assertWritable(markdownPath, flags.force === true);
   await mkdir(dirname(jsonPath), { recursive: true });
-  await writeFile(jsonPath, serializeCapsule(capsule), "utf8");
-  await writeFile(markdownPath, `${renderCapsuleMarkdown(capsule)}\n`, "utf8");
+  await atomicWrite(jsonPath, serializeCapsule(capsule));
+  await atomicWrite(markdownPath, `${renderCapsuleMarkdown(capsule)}\n`);
   io.stdout.write(`${jsonPath}\n${markdownPath}\n`);
   return 0;
+}
+
+function projectFingerprint(root: string): string {
+  return createHash("sha256").update(root).digest("hex").slice(0, 12);
+}
+
+async function atomicWrite(path: string, contents: string): Promise<void> {
+  const temporary = `${path}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, contents, "utf8");
+    const { rename } = await import("node:fs/promises");
+    await rename(temporary, path);
+  } catch (error) {
+    const { unlink } = await import("node:fs/promises");
+    await unlink(temporary).catch(() => undefined);
+    throw error;
+  }
 }
 
 async function validateCommand(argv: string[], io: CliIo): Promise<number> {

@@ -45,6 +45,7 @@ export interface CapsuleEvidence {
 export interface GitState {
   root: string;
   branch: string;
+  detached?: boolean;
   head: string;
   dirty: boolean;
   dirty_diff_hash: string;

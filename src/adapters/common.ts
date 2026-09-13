@@ -22,7 +22,7 @@ export const DERIVED_ACCEPTANCE_NOTE =
   "acceptance_criteria is derived from the objective; the session did not state explicit acceptance criteria.";
 export const TEST_COMMAND = /(?:^|[\s/])(?:npm(?:\s+run)?\s+test|npx\s+vitest|vitest|pytest|go\s+test|cargo\s+test|mvn\s+test|gradle(?:w)?\s+test|jest|bun\s+test)\b/i;
 export const SPOKEN_DECISION = /^(?:I(?:'ll| will)|Let's|I am going to)\b/i;
-export const USER_DONE = /\b(?:done|completed|that'?s all|finished|lgtm)\b/i;
+export const USER_DONE = /^\s*(?:done|completed|that'?s all|finished|lgtm)[.!]?\s*$/i;
 
 export type SessionRecord = Record<string, unknown>;
 

@@ -22,10 +22,10 @@ export function redactSecrets(input: string): RedactionResult {
   let count = 0;
   const matched = new Set<string>();
   for (const pattern of patterns) {
-    text = text.replace(pattern.expression, (match, prefix?: string) => {
+    text = text.replace(pattern.expression, (match, prefix?: unknown) => {
       count += 1;
       matched.add(pattern.name);
-      return prefix ? `${prefix}[REDACTED]` : `[REDACTED:${pattern.name}]`;
+      return typeof prefix === "string" ? `${prefix}[REDACTED]` : `[REDACTED:${pattern.name}]`;
     });
   }
   return { text, count, patterns: [...matched].sort() };
