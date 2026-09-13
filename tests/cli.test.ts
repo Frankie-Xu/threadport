@@ -64,7 +64,7 @@ describe("Handoff CLI", () => {
     const capsule = parseCapsule(await readFile(jsonPath, "utf8"));
     const markdown = await readFile(mdPath, "utf8");
     expect(capsule.source_agent).toBe("claude");
-    expect(capsule.objective).toBe("Add a sliding-window login rate limiter.");
+    expect(capsule.objective).toBe("Also add a unit test for the limiter.");
     expect(markdown).toContain(capsule.objective);
     expect(await readFile(join(project, "README.md"), "utf8")).toBe("fixture project\n");
     await expect(readFile(join(project, "package.json"), "utf8")).rejects.toThrow();

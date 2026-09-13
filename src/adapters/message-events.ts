@@ -1,7 +1,7 @@
 import type { FileAction } from '../types.js';
 import type { SessionAdapter } from './types.js';
 import { redactRecords } from '../privacy.js';
-import { assembleCapsule, asString, contentText, isRecord, loadSessionText, parseSessionRecords, resolveCreatedAt, sessionIdFrom, toolResult, tracesFromEvents, type TraceEvent, type ToolResult, type SessionRecord } from './common.js';
+import { assembleCapsule, asString, contentText, isRecord, loadSessionText, parseSessionRecords, resolveCreatedAt, sessionIdFrom, sourceTimestamp, toolResult, tracesFromEvents, type TraceEvent, type ToolResult, type SessionRecord } from './common.js';
 
 const FILE_TOOLS: Record<string, FileAction> = {
   write: 'added', write_file: 'added', create: 'added', edit: 'modified', edit_file: 'modified', strreplace: 'modified', notebookedit: 'modified', delete: 'deleted', delete_file: 'deleted'
@@ -34,7 +34,7 @@ export function messageAdapter(agent: 'claude' | 'cursor'): SessionAdapter {
       const content = blocks(record);
       if (role === 'user') {
         const text = contentText(content);
-        if (text) events.push({ type: 'user', text, order: recordIndex });
+        if (text) events.push({ type: 'user', text, order: recordIndex, occurredAt: sourceTimestamp(record.timestamp ?? record.created_at) });
         continue;
       }
       if (role !== 'assistant') continue;
@@ -42,7 +42,7 @@ export function messageAdapter(agent: 'claude' | 'cursor'): SessionAdapter {
         const order = recordIndex + (blockIndex + 1) / (content.length + 1);
         if (block.type === 'text' || block.type === undefined) {
           const text = asString(block.text)?.trim();
-          if (text) events.push({ type: 'assistant', text, order });
+          if (text) events.push({ type: 'assistant', text, order, occurredAt: sourceTimestamp(record.timestamp ?? record.created_at) });
           continue;
         }
         if (block.type !== 'tool_use' && block.type !== 'tool_call') continue;

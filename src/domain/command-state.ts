@@ -18,3 +18,8 @@ export function latestCommandRuns(runs: readonly CommandRun[]): CommandRun[] {
   return [...latest.values()].sort((a, b) => a.sessionId === b.sessionId
     ? a.ordinal - b.ordinal : a.sessionId < b.sessionId ? -1 : 1);
 }
+
+/** Redaction can make distinct source commands or directories indistinguishable. */
+export function hasCompleteCommandIdentity(run: CommandRun): boolean {
+  return !/\[REDACTED(?::|\])/.test(run.command + (run.cwd ?? ''));
+}

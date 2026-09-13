@@ -10,6 +10,7 @@ import {
   resolveCreatedAt,
   parseSessionRecords,
   sessionIdFrom,
+  sourceTimestamp,
   tracesFromEvents,
   type SessionRecord,
   type TraceEvent
@@ -60,7 +61,7 @@ function eventsFromGemini(records: SessionRecord[]): TraceEvent[] {
     if (role === "user") {
       const text = parts.map((part) => asString(part.text) ?? "").join("\n").trim();
       if (text) {
-        events.push({ type: "user", text, order: recordIndex });
+        events.push({ type: "user", text, order: recordIndex, occurredAt: sourceTimestamp(record.timestamp ?? record.created_at) });
       }
       continue;
     }
@@ -74,7 +75,7 @@ function eventsFromGemini(records: SessionRecord[]): TraceEvent[] {
       }
       const text = asString(part.text)?.trim();
       if (text) {
-        events.push({ type: "assistant", text, order });
+        events.push({ type: "assistant", text, order, occurredAt: sourceTimestamp(record.timestamp ?? record.created_at) });
       }
       const call = isRecord(part.functionCall) ? part.functionCall : isRecord(part.function_call) ? part.function_call : undefined;
       if (!call) {

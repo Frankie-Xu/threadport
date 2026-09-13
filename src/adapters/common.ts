@@ -1,5 +1,7 @@
-import { commandGroupKey, latestCommandRuns } from '../domain/command-state.js';
-import type { CommandRun } from '../domain/models.js';
+import { z } from 'zod';
+import { deriveTask } from '../domain/derive-task.js';
+import { commandGroupKey, hasCompleteCommandIdentity, latestCommandRuns } from '../domain/command-state.js';
+import type { CommandRun, DerivedTaskState, NormalizedEvent } from '../domain/models.js';
 import { readFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { sourcePlatformForRoot } from "../workspace/paths.js";
@@ -26,7 +28,7 @@ export const DERIVED_ACCEPTANCE_NOTE =
   "acceptance_criteria is derived from the objective; the session did not state explicit acceptance criteria.";
 // Recognize a direct invocation only; shell compositions have a different exit-status meaning.
 export const TEST_COMMAND = /^(?![\s\S]*[;&|<>`$\r\n])\s*(?:(?:npm|pnpm|yarn)(?:\s+run)?\s+test(?::[\w:-]+)?|(?:npx|pnpm\s+exec|yarn)\s+(?:vitest|jest)|vitest|pytest|go\s+test|cargo\s+test|mvn\s+test|(?:\.\/)?gradle(?:w)?\s+test|jest|bun\s+test)(?=\s|$)/;
-export const SPOKEN_DECISION = /^(?:I(?:'ll| will)|Let's|I am going to)\b/i;
+export const HISTORICAL_TEST_NOTE = "Historical result; current workspace validity unknown.";
 export const USER_DONE = /^\s*(?:done|completed|that'?s all|finished|lgtm)[.!]?\s*$/i;
 
 export type SessionRecord = Record<string, unknown>;
@@ -36,7 +38,7 @@ export type TraceEvent = (
   | { type: "assistant"; text: string }
   | { type: "file"; path: string; action: FileAction; outcome?: 'succeeded' | 'failed' | 'unknown'; output?: string }
   | { type: "command"; command: string; exitCode?: number | null; cwd?: string | null; sessionId?: string; output?: string }
-) & { /** Observed result position, or call position when no result exists. Not serialized. */ order?: number };
+) & { /** Observed result position, or call position when no result exists. Not serialized. */ order?: number; occurredAt?: string | null };
 
 export interface SessionTraces {
   objective: string;
@@ -45,6 +47,8 @@ export interface SessionTraces {
   files: Map<string, CapsuleFile>;
   commands: CapsuleCommand[];
   commandRuns: CommandRun[];
+  normalizedEvents: NormalizedEvent[];
+  derived: DerivedTaskState;
   tests: CapsuleTest[];
   failures: CapsuleFailure[];
   decisions: CapsuleDecision[];
@@ -106,7 +110,6 @@ export function tracesFromEvents(events: TraceEvent[], sessionId = 'inline-sessi
   const commandRuns: CommandRun[] = [];
   const openCommandGroups = new Set<string>();
   const tests: CapsuleTest[] = [];
-  const decisions: CapsuleDecision[] = [];
   const completed: string[] = [];
   const userTexts: string[] = [];
   let lastUserIndex = -1;
@@ -122,9 +125,6 @@ export function tracesFromEvents(events: TraceEvent[], sessionId = 'inline-sessi
       return;
     }
     if (event.type === "assistant") {
-      if (SPOKEN_DECISION.test(event.text)) {
-        decisions.push({ decision: firstSentence(event.text) });
-      }
       if (sawUnresolvedFailure) {
         lastSpokenAfterFailure = firstSentence(event.text);
       }
@@ -166,7 +166,7 @@ export function tracesFromEvents(events: TraceEvent[], sessionId = 'inline-sessi
       tests.push({
         command: event.command,
         status: testStatus(event.exitCode),
-        ...(summary ? { summary } : {})
+        summary: summary ? `${summary} ${HISTORICAL_TEST_NOTE}` : HISTORICAL_TEST_NOTE
       });
     }
     if (event.exitCode === 0) {
@@ -178,9 +178,23 @@ export function tracesFromEvents(events: TraceEvent[], sessionId = 'inline-sessi
     sawUnresolvedFailure = openCommandGroups.size > 0 || [...fileFailures.values()].some(failure => !failure.resolution);
   });
 
-  const objective = firstLine(userTexts[0] ?? "Resume the recorded session.");
-  const acceptanceCriteria = extractAcceptance(userTexts[0] ?? "");
-  const constraints = extractConstraints(userTexts);
+  const runsByOrdinal = new Map(commandRuns.map(run => [run.ordinal, run]));
+  const normalizedEvents: NormalizedEvent[] = events.map((event, ordinal) => {
+    const run = runsByOrdinal.get(ordinal) ?? null;
+    const eventSession = run?.sessionId ?? sessionId;
+    return {
+      id: run?.eventId ?? `${eventSession}:event:${ordinal}`, sessionId: eventSession, ordinal,
+      occurredAt: event.occurredAt ?? null,
+      kind: event.type === 'user' ? 'user-message' : event.type === 'assistant' ? 'assistant-message'
+        : event.type === 'file' ? 'file-change' : 'command',
+      text: event.type === 'user' || event.type === 'assistant' ? event.text : event.output ?? '',
+      commandRun: run, relativePaths: [], omitted: false,
+    };
+  });
+  const derived = deriveTask(normalizedEvents);
+  const objective = derived.objective?.text ?? 'Unknown objective; review the session evidence.';
+  const acceptanceCriteria = extractAcceptance(userTexts.at(-1) ?? '');
+  const constraints = derived.constraints.map(claim => claim.text);
   const failures = [...collapseFailures(commandRuns, commands), ...fileFailures.values()];
   const lastUserText = userTexts.at(-1) ?? "";
   const userDeclaredDone = USER_DONE.test(lastUserText);
@@ -196,9 +210,11 @@ export function tracesFromEvents(events: TraceEvent[], sessionId = 'inline-sessi
     files,
     commands,
     commandRuns,
+    normalizedEvents,
+    derived,
     tests,
     failures,
-    decisions,
+    decisions: [],
     completed: unique(completed),
     nextAction: openUserInstruction
       ?? (unresolvedFailures ? lastSpokenAfterFailure : undefined)
@@ -220,9 +236,12 @@ export async function assembleCapsule(options: {
   const objective = redactField(traces.objective, tally);
   const acceptance = traces.acceptanceCriteria.length > 0
     ? traces.acceptanceCriteria.map((item) => redactField(item, tally))
-    : [redactField(`The objective is satisfied: ${traces.objective}`, tally)];
+    : traces.derived.objective ? [redactField(`The objective is satisfied: ${traces.objective}`, tally)] : [];
   const constraints = traces.constraints.map((item) => redactField(item, tally));
-  if (traces.acceptanceCriteria.length === 0) {
+  constraints.push(traces.derived.objective
+    ? "Objective is a derived candidate from the latest visible user message; confirm it before continuing."
+    : "Objective is unknown because no visible user message was recorded.");
+  if (traces.acceptanceCriteria.length === 0 && traces.derived.objective) {
     constraints.push(DERIVED_ACCEPTANCE_NOTE);
   }
   const files = [...traces.files.values()].map((file) => ({
@@ -251,7 +270,7 @@ export async function assembleCapsule(options: {
   const nextAction = redactField(traces.nextAction, tally);
   // Session files are read relative to the process cwd, not the project's root.
   const sessionLocator = input.sessionPath && input.privacy !== 'local' ? resolve(input.sessionPath) : input.sessionPath;
-  const evidence = buildEvidence(options.evidenceTitle, sessionLocator, files, commands).map((item) => ({
+  const evidence = buildEvidence(options.evidenceTitle, sessionLocator, files, commands, traces.normalizedEvents).map((item) => ({
     kind: item.kind,
     title: redactField(item.title, tally),
     ...(item.locator ? { locator: redactField(item.locator, tally) } : {})
@@ -310,6 +329,12 @@ export function sessionIdFrom(records: SessionRecord[], sessionPath: string | un
     }
   }
   return fallback;
+}
+
+/** Only normalize an explicit valid timestamp; an absent or invalid source time is unknown. */
+export function sourceTimestamp(value: unknown): string | null {
+  const parsed = z.string().datetime({ offset: true }).safeParse(value);
+  return parsed.success ? new Date(parsed.data).toISOString() : null;
 }
 
 export function resolveCreatedAt(now: Date | undefined, records: SessionRecord[] = []): string {
@@ -417,24 +442,6 @@ function extractAcceptance(userText: string): string[] {
   return items;
 }
 
-function extractConstraints(userTexts: string[]): string[] {
-  const constraints: string[] = [];
-  for (const text of userTexts) {
-    for (const line of text.split(/\r?\n/)) {
-      const trimmed = line.trim().replace(/^[-*]\s+/, "");
-      if (/^do not\b/i.test(trimmed) || /^don't\b/i.test(trimmed)) {
-        constraints.push(trimmed);
-      }
-    }
-  }
-  return unique(constraints);
-}
-
-// Redaction may make different source commands/cwds indistinguishable. Never infer a retry from that.
-function hasCompleteCommandIdentity(run: CommandRun): boolean {
-  return !/\[REDACTED(?::|\])/.test(run.command + (run.cwd ?? ''));
-}
-
 function collapseFailures(runs: readonly CommandRun[], commands: readonly CapsuleCommand[]): CapsuleFailure[] {
   const groups = new Map<string, { run: CommandRun; summary?: string }[]>();
   runs.forEach((run, index) => {
@@ -462,13 +469,20 @@ function buildEvidence(
   title: string,
   sessionPath: string | undefined,
   files: CapsuleFile[],
-  commands: CapsuleCommand[]
+  commands: CapsuleCommand[],
+  events: readonly NormalizedEvent[]
 ): CapsuleEvidence[] {
   const evidence: CapsuleEvidence[] = [{
     kind: "session",
     title,
     locator: sessionPath ?? "inline-session"
   }];
+  for (const event of events) {
+    if ((event.kind === 'user-message' || event.kind === 'assistant-message') && event.text.trim()) {
+      evidence.push({ kind: 'other', title: `Observed ${event.kind}: ${summarize(event.text)}`,
+        locator: `session-event:${event.ordinal}` });
+    }
+  }
   for (const file of files) {
     evidence.push({ kind: "file", title: file.path, locator: file.path });
   }

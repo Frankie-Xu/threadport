@@ -1,7 +1,7 @@
 import type { SessionAdapter } from './types.js';
 import type { FileAction } from '../types.js';
 import { redactRecords } from '../privacy.js';
-import { assembleCapsule, asString, contentText, isRecord, isHiddenType, loadSessionText, parseSessionRecords, resolveCreatedAt, sessionIdFrom, toolResult, tracesFromEvents, type TraceEvent, type ToolResult } from './common.js';
+import { assembleCapsule, asString, contentText, isRecord, isHiddenType, loadSessionText, parseSessionRecords, resolveCreatedAt, sessionIdFrom, sourceTimestamp, toolResult, tracesFromEvents, type TraceEvent, type ToolResult } from './common.js';
 
 export function createCodexAdapter(): SessionAdapter {
   return { agent: 'codex', async extract(input) {
@@ -23,7 +23,7 @@ export function createCodexAdapter(): SessionAdapter {
       if (isHiddenType(asString(item.type))) continue;
       if (item.type === 'message' && (item.role === 'user' || item.role === 'assistant')) {
         const text = contentText(item.content);
-        if (text) events.push({ type: item.role, text, order });
+        if (text) events.push({ type: item.role, text, order, occurredAt: sourceTimestamp(records[order].timestamp ?? records[order].created_at) });
         continue;
       }
       if (item.type !== 'function_call' && item.type !== 'custom_tool_call') continue;

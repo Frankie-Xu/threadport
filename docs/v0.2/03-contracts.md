@@ -19,7 +19,7 @@ interface Claim {
   text: string;
   origin: ClaimOrigin;
   evidence: EvidenceRef[];
-  updatedAt: ISODate;
+  updatedAt: ISODate | null; // unknown source time stays null
 }
 interface Task {
   id: Id;
@@ -77,6 +77,14 @@ Task.projectId 指向本地用户绑定的项目身份。Project 有 id/name 与
 状态轴分开：`lifecycle` 仅人工改变；`attention` 由最近未解决失败/失效证据派生；`freshness` 属于 VerificationReport。三者禁止合成一个含糊的 `status: success`。
 
 `deriveTask(events: readonly NormalizedEvent[]): DerivedTaskState` 返回目标候选、来源引用、按会话/cwd/完整命令分组的最后命令结果及 attention；不修改 Task。DerivedTaskState 的字段为 `objective: Claim | null`、`constraints: Claim[]`、`latestRuns: CommandRun[]`、`attention: string[]`。聚合顺序先 session，后 ordinal；跨会话没有证据关联时不抵消失败。
+
+T04 按最后一条非空用户消息的首个非空行生成 derived 目标候选；这可能只是补充要求，必须由用户确认。assistant 计划仅是消息证据，不自动成为已采纳决策。历史消息保留引用。中文/英文禁止句逐行保留原文，识别是保守规则，不声称完整语义理解。
+
+Claim.updatedAt 缺失时保留 null，见 [ADR 0007](../adr/0007-unknown-claim-time.md)。Task 的修改时间仍必填。`resolveTaskState(task, derived)` 是不写入的呈现合成：已有 Task 的目标、约束（含空数组）、下一步、生命周期和归档优先；无 Task 时生命周期未知。T08 负责持久化与编辑界面。旧 Capsule.status 是兼容投影，不代表新 Task.lifecycle。
+
+attention 使用稳定代码：OBJECTIVE_UNKNOWN、MULTIPLE_SESSION_OBJECTIVES、INCOMPLETE_EVIDENCE、EVIDENCE_TIME_UNKNOWN、COMMAND_RESULT_UNKNOWN、COMMAND_FAILED、COMMAND_IDENTITY_INCOMPLETE、COMMAND_CONTEXT_UNKNOWN、HISTORICAL_VALIDITY_UNKNOWN。任何历史运行均不证明当前工作区有效性。跨会话按 sessionId 字典序聚合并提示竞争候选，不声称全局时间顺序。
+
+旧适配器 bridge 的事件 ID 仅在一次提取内稳定，relativePaths 留空；文件证据仍走原路径隐私投影。消息时间只取明确有效字段，命令时间保持 null。持久索引与原生 SourceAdapter 属于 T06；不可把临时引用当作数据库事件身份。
 
 T03 的 `latestCommandRuns(runs: readonly CommandRun[]): CommandRun[]` 按 sessionId/cwd/完整 command 字符串精确分组，选最大 ordinal；输出按 sessionId、ordinal 排序，不修改输入。源契约要求每个 session 的 ordinal 唯一。`null` cwd 只与同一 session 的 `null` cwd 归入同组，不填入本地项目 root，也不证明两次未知目录实际相同。
 
