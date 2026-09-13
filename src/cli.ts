@@ -12,6 +12,7 @@ import { parseCapsule, serializeCapsule } from './capsule.js';
 import { renderCapsuleMarkdown } from './markdown.js';
 import { detectTargets } from './targets.js';
 import { assertDestination, writeArtifact } from './storage.js';
+import { createHandoff, parseHandoff } from './handoff.js';
 
 /** Local artifact export only: never launches an agent or executes next_action. */
 export interface CliIo {
@@ -66,7 +67,7 @@ async function defaultRoot(): Promise<string> {
 function usage(): string {
   return [
     'threadport extract --from claude|codex|cursor|gemini --session <path> --project <root> [--privacy portable|local] [--out <file>] [--force]',
-    'threadport validate <capsule.json>',
+    'threadport validate [--handoff] <capsule-or-envelope.json>',
     'threadport render <capsule.json>',
     'threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--format markdown|json] [--out <file>] [--force]',
     'threadport targets'
@@ -84,8 +85,10 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
       io.stdout.write(`${JSON.stringify(await detectTargets(), null, 2)}\n`); return 0;
     }
     if (command === 'validate' || command === 'render') {
-      const parsed = options(rest, []);
-      const capsule = parseCapsule(await readFile(resolve(io.cwd(), singleInput(parsed.positional)), 'utf8'));
+      const parsed = options(rest, [], command === 'validate' ? ['handoff'] : []);
+      const text = await readFile(resolve(io.cwd(), singleInput(parsed.positional)), 'utf8');
+      if (parsed.enabled.has('handoff')) { parseHandoff(text); io.stdout.write('valid\n'); return 0; }
+      const capsule = parseCapsule(text);
       io.stdout.write(command === 'validate' ? 'valid\n' : `${renderCapsuleMarkdown(capsule)}\n`); return 0;
     }
     if (command === 'extract') {
@@ -125,7 +128,7 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
       const capsule = parseCapsule(await readFile(input, 'utf8'));
       const output = named.out ? resolve(io.cwd(), named.out) : join(await defaultRoot(), 'handoff', fingerprint(await realpath(input)), `${capsule.id}.${agent}.${format === 'json' ? 'json' : 'md'}`);
       const prompt = `You are taking over a coding task from ThreadPort.\n\n${renderCapsuleMarkdown(capsule)}\n\nTarget agent: ${agent}\nReview the evidence and confirm the next action with the user. Do not execute commands until confirmed.\n`;
-      const envelope = { protocol: 'threadport.handoff.v1', target_agent: agent, capsule, safety: { execute_commands: false, modify_workspace: false } };
+      const envelope = createHandoff(capsule, agent);
       await writeArtifact(output, format === 'json' ? `${JSON.stringify(envelope, null, 2)}\n` : prompt, enabled.has('force'));
       io.stdout.write(`${output}\n`); return 0;
     }

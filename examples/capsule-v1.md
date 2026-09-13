@@ -14,10 +14,10 @@ Define and validate the first Context Capsule schema.
 
 ## Project
 
-- Name: `threadport`
-- Root: `/workspace/threadport`
+- Name: threadport
+- Root: /workspace/threadport
 - Source agent: `claude`
-- Session: `session-example-001`
+- Session: session-example-001
 - Status: **active**
 
 ## Acceptance criteria
@@ -41,20 +41,20 @@ Define and validate the first Context Capsule schema.
 ## Files
 
 | Path | Action | Summary |
-|---|
-| `schema/capsule-v1.schema.json` | added | JSON Schema for the wire format. |
+| --- | --- | --- |
+| schema/capsule-v1.schema.json | added | JSON Schema for the wire format. |
 
 ## Commands
 
 | Command | Exit | Summary |
-|---|
-| `npm test` | 0 | Schema and renderer tests passed. |
+| --- | --- | --- |
+| npm test | 0 | Schema and renderer tests passed. |
 
 ## Tests
 
 | Test | Status | Summary |
-|---|
-| `npm test` | passed | All tests passed. |
+| --- | --- | --- |
+| npm test | passed | All tests passed. |
 
 ## Failures
 
@@ -66,7 +66,7 @@ Implement the first Claude Code session adapter.
 
 ## Git state
 
-- Branch: `main`
+- Branch: main
 - HEAD: `0123456789abcdef0123456789abcdef01234567`
 - Dirty: `false`
 - Dirty diff hash: `0000000000000000000000000000000000000000000000000000000000000000`
