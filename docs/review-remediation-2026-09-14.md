@@ -31,7 +31,7 @@ Local environment: macOS, Node v26.5.0. A fresh `npm ci` succeeded. Final local 
 - `npm audit`: zero reported vulnerabilities after pinning Vitest 4.1.11 and Vite 6.4.3; Node 20 support retained.
 - `git diff --check`: clean.
 
-Remote matrix verification is pending publication. Windows symlink tests are deliberately skipped because they require host privileges; a passing Windows job must not be presented as symlink verification.
+PR [#25](https://github.com/Frankie-Xu/threadport/pull/25) is published. The [first matrix run](https://github.com/Frankie-Xu/threadport/actions/runs/34775131022) passed all four Ubuntu/macOS jobs; Windows exposed a checked-in Markdown fixture converted to CRLF during checkout. `.gitattributes` now fixes text checkouts to LF without weakening the exact-output assertion. The updated six-job run is pending. Windows symlink tests are deliberately skipped because they require host privileges; a passing Windows job must not be presented as symlink verification.
 
 ## Compatibility and remaining boundaries
 
@@ -45,4 +45,4 @@ Remote matrix verification is pending publication. Windows symlink tests are del
 
 ## Delivery
 
-Repair batches are tracked in `docs/superpowers/plans/2026-09-14-review-remediation.md`. Changes are developed on `fix/Frankie-Xu/review-remediation`, never pushed directly to main. Remote PR/check evidence will be appended after it is observed.
+Repair batches are tracked in `docs/superpowers/plans/2026-09-14-review-remediation.md`. Changes are developed on `fix/Frankie-Xu/review-remediation` and published in PR #25, never pushed directly to main. Final remote check evidence will be appended after it is observed.
