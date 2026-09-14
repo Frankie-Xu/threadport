@@ -30,12 +30,13 @@ export async function privateDirectory(path: string): Promise<void> {
       const script = `
         $ErrorActionPreference='Stop'
         try {
-          $acl=Get-Acl -LiteralPath $env:THREADPORT_ACL_PATH
+          $acl=[System.IO.Directory]::GetAccessControl($env:THREADPORT_ACL_PATH)
           $identity=[System.Security.Principal.WindowsIdentity]::GetCurrent()
           $sid=$identity.User.Value
           $owner=$acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
           if($owner -notin @($sid,'S-1-5-32-544','S-1-5-18')){exit 2}
-          $groups=@($sid)+@($identity.Groups | ForEach-Object {$_.Value})
+          $groups=@($sid)
+          foreach($group in $identity.Groups){$groups+= $group.Value}
           $write=0
           foreach($r in $acl.Access){
             $s=$r.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
@@ -47,7 +48,7 @@ export async function privateDirectory(path: string): Promise<void> {
             }
           }
           if($write -ne 278){exit 5}
-        } catch { Write-Output $_.Exception.GetType().Name; exit 6 }
+        } catch { [Console]::WriteLine($_.Exception.GetType().Name); exit 6 }
       `;
       await promisify(execFile)('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')],
         { env: { ...process.env, THREADPORT_ACL_PATH: path }, timeout: 10000, windowsHide: true });
