@@ -2,7 +2,7 @@
 
 **目标：** 以三个独立 PR 完成工作区捕获、显式比较和 verify CLI。范围仍以 [T10 总计划](2026-09-14-threadport-v0.2.md)、[F06](../../v0.2/01-product-spec.md) 与 [验证契约](../../v0.2/03-contracts.md) 为准；不扩大 12–18 小时任务估算。
 
-**基线：** 制定时 main 为 ff32547496cd8811ed2d637ac8988611ddfaad8e。每包开工重新记录实际 main SHA。以下均为计划，T10 尚未实现；拟定文件、入口和测试不能报告为已经存在或通过。
+**基线：** 制定时 main 为 ff32547496cd8811ed2d637ac8988611ddfaad8e。每包开工重新记录实际 main SHA。T10-A 已实现并完成本地验证，实际交付以其 PR 为准；B/C 仍是计划，不得报告为已实现或通过。
 
 **架构：** 本地只读捕获 → 持久化已知范围的 snapshot → verifyWorkspace 比较 → 薄 CLI。沿用现有 SQLite snapshots 表与用户显式绑定；不伪造历史测试快照，不执行日志命令。
 
@@ -12,7 +12,7 @@
 
 | 工作包 | 可独立评审的交付物 | 前置 / 消费者 | 拟定提交及分支 | 当前状态 |
 | --- | --- | --- | --- | --- |
-| T10-A | 有界、只读的当前工作区捕获与保存；无法完整捕获时记录原因 | T02/T05/T08；B 消费 | `feat(T10-A): capture bounded workspace snapshots`；codex/t10-a-snapshot | 未开始；无提交/PR |
+| T10-A | 有界、只读的当前工作区捕获与保存；无法完整捕获时记录原因 | T02/T05/T08；B 消费 | `feat(T10-A): capture bounded workspace snapshots`；codex/t10-a-snapshot | 本地已验证，review；[证据](../../verification/t10-a-snapshot.md) |
 | T10-B | 明确绑定下的 matched/drifted/unverifiable 比较报告 | A 已合并；C/T11/T12/T14 消费 | `feat(T10-B): verify captured workspace state`；codex/t10-b-verify | 未开始；无提交/PR |
 | T10-C | verify CLI 输出与退出码，保留旧 validate 行为 | B 已合并；CLI 用户及后续集成消费 | `feat(T10-C): expose explicit workspace verification`；codex/t10-c-cli | 未开始；无提交/PR |
 
@@ -23,9 +23,9 @@
 **文件与职责：**
 
 - 新增 src/workspace/contracts.ts、snapshot.ts、index.ts：验证契约、捕获实现、SDK 入口。
-- 修改 src/git.ts、src/storage/sqlite-store.ts：复用安全的 Git 读取，提供受校验的 snapshot 保存/读取；沿用 snapshots 表，预计不新增迁移。
+- 实际新增 src/workspace/reader.ts，保留 src/git.ts 不变：固定 Git 清单与有界原始文件读取避免触发外部过滤器。修改 src/storage/sqlite-store.ts 提供绑定校验与不可变 snapshot 保存/读取；沿用 schema 4，无迁移。
 - 修改 package.json、scripts/pack-smoke.mjs：导出 threadport/workspace 并在隔离安装中验证入口。
-- 新增 tests/workspace/snapshot.test.ts；按实际修改扩展 tests/git.test.ts、tests/git-regressions.test.ts、tests/storage/database.test.ts。
+- 新增 tests/workspace/snapshot.test.ts、snapshot-races.test.ts；覆盖真实文件系统与故障注入，原 Git/存储测试保留并全量运行。
 - 新增 docs/v0.2/12-workspace-verification.md、docs/verification/t10-a-snapshot.md：只记录本包已实现的捕获行为与预算。
 
 **测试与完成门：**

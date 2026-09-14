@@ -5,6 +5,7 @@ import { DomainError } from '../domain/errors.js';
 import { openDatabase, type DatabaseOptions } from './database.js';
 import { registerSearchFunctions, searchHistory } from './search-store.js';
 import type { SearchInput, SearchPage } from '../search/contracts.js';
+import { bindingSchema, snapshotSchema, type WorkspaceBinding, type WorkspaceSnapshot } from '../workspace/contracts.js';
 import { IndexStore } from './index-store.js';
 const id = z.string().min(1).max(512);
 const date = z.string().datetime();
@@ -21,6 +22,24 @@ function page(limit: number, offset: number) {
 export class SqliteStore extends IndexStore {
   constructor(db:Database.Database){super(db);registerSearchFunctions(db);}
   searchHistory(input:SearchInput={}):SearchPage{return this.run(()=>searchHistory(this.db,input));}
+  getWorkspace(workspaceId:string):WorkspaceBinding|null {
+    return this.run(()=>{const row=this.db.prepare('SELECT id,project_id AS projectId,canonical_root AS canonicalRoot FROM workspaces WHERE id=?').get(validate(id,workspaceId));return row?validate(bindingSchema,row):null;});
+  }
+  getSnapshot(snapshotId:string):WorkspaceSnapshot|null {
+    return this.run(()=>{const body=this.db.prepare('SELECT body_json FROM snapshots WHERE id=?').pluck().get(validate(id,snapshotId));return body===undefined?null:validate(snapshotSchema,JSON.parse(body as string));});
+  }
+  saveSnapshot(input:WorkspaceSnapshot,expectedWorkspace?:WorkspaceBinding):void {
+    const snapshot=validate(snapshotSchema,input);
+    const expected=expectedWorkspace?validate(bindingSchema,expectedWorkspace):undefined;
+    this.run(()=>this.db.transaction(()=>{
+      const workspace=this.getWorkspace(snapshot.workspaceId);
+      if(!workspace)throw new DomainError('NOT_FOUND','Workspace does not exist.');
+      if(expected&&JSON.stringify(workspace)!==JSON.stringify(expected))throw new DomainError('REVISION_CONFLICT','Workspace binding changed during capture.');
+      const existing=this.getSnapshot(snapshot.id);
+      if(existing){if(JSON.stringify(existing)!==JSON.stringify(snapshot))throw new DomainError('REVISION_CONFLICT','Snapshots are immutable.');return;}
+      this.db.prepare('INSERT INTO snapshots(id,workspace_id,captured_at,body_json) VALUES(?,?,?,?)').run(snapshot.id,snapshot.workspaceId,snapshot.capturedAt,JSON.stringify(snapshot));
+    }).immediate());
+  }
   close(): void { this.db.close(); }
   createProject(projectId: string, name: string): void {
     validate(id, projectId); validate(z.string().min(1).max(120), name);

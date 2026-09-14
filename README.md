@@ -104,3 +104,7 @@ The `threadport/tasks` entry supports manual task fields, revision conflicts, se
 ### History search SDK
 
 Use `threadport/search` to find Chinese substrings, English text, relative paths and manual task titles/objectives with project, agent and UTC date filters. [History search](docs/v0.2/10-history-search.md) documents bounded snippets, keyset pagination and explicit refresh when indexed data changes.
+
+### Workspace snapshot SDK
+
+`threadport/workspace` captures and persists bounded, read-only snapshots of an explicitly selected local worktree. [Snapshot documentation](docs/v0.2/12-workspace-verification.md) describes content and identity digests, incomplete capture reasons and cancellation. Verification reports and the verify CLI remain subsequent work packages.
