@@ -16,12 +16,13 @@ try {
   assert(packed.files.some(file => file.path === 'dist/src/index.js'));
   assert(!packed.files.some(file => file.path.startsWith('dist/tests/')));
   const installRoot = join(temporary, 'consumer'); await mkdir(installRoot);
-  npm(['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', installRoot, join(temporary, packed.filename)], installRoot);
+  npm(['install', '--no-audit', '--no-fund', '--prefix', installRoot, join(temporary, packed.filename)], installRoot);
   const entry = join(installRoot, 'node_modules/threadport/dist/src/cli.js');
   const help = execFileSync(process.execPath, [entry, '--help'], { encoding: 'utf8', timeout: 10_000 });
   assert(help.includes('threadport handoff'));
   // Resolve the public export as an installed package, not by a source-tree import.
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const m = await import("threadport"); if (typeof m.parseHandoff !== "function") process.exit(1);'], { cwd: installRoot, timeout: 10_000 });
+  execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore} = await import("threadport/storage"); const s = await openStore({dataDir:"./data"}); s.createProject("smoke", "Smoke"); s.close();'], { cwd: installRoot, timeout: 15_000 });
   console.log(`Package smoke passed: ${packed.files.length} files; CLI and public exports load from an isolated install.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
