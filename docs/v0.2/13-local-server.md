@@ -42,3 +42,11 @@ index-jobs 为本进程记录，最多保留 1000 组；最多每组 20 个来�
 data 清理/诊断/全删除留 T17，handoff 留 T12；不注册占位成功端点。
 
 由 API 创建的 sourceId 由规范化目录与 agent 的 SHA-256 前缀生成；重复选择不会新增来源，撤销再添加也保留同一来源身份。私有路径本身不编码进 ID。手动 SDK 配置的自定义 sourceId 不会被重写。
+
+## T11-C CLI 与页面入口
+
+运行 `threadport ui [--data-dir <path>] [--no-open] [--demo]`。默认尝试系统浏览器，失败仍保留可用服务并提示使用已打印链接；--no-open 只打印链接。CLI 仅打印一行 `http://127.0.0.1:<port>/#token=<token>` 到 stdout，随后等待终端关闭信号。SIGINT=130，Unix SIGTERM=143；启动/清理失败=5，参数错误=2。监听失败和退出均释放服务资源。
+
+--demo 与 --data-dir 互斥，创建独立临时库，包含明确标记的合成任务、零来源，正常退出删除临时目录。不会读取真实默认数据；异常 OS 强杀可能留下临时目录。Windows 的强制进程终止不能模拟优雅终端 Ctrl-C，本地终端行为仍须实机认证。
+
+GET / 是无需 bearer 的静态 bootstrap，但仍校验 Host/Origin；所有 API 仍需要 bearer。响应以 nonce CSP、no-store、no-referrer 约束，不加载外部字体/脚本。前端读取 fragment 到闭包内存后立即用 history.replaceState 清除；不写 localStorage/sessionStorage，刷新保留 query 并显示从当前终端链接重新打开的恢复提示。页面仅显示任务摘要，T15 再接通 onboarding/编辑/预览完整流程。

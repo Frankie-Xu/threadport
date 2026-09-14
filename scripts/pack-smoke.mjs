@@ -96,7 +96,20 @@ try {
       const tasks=await fetch(server.origin+'/api/v1/tasks',{headers:{authorization:'Bearer '+server.token}});assert.equal(tasks.status,200);assert.equal((await tasks.json()).data.length,1);
     } finally {await server.close();await server.close();}
   `], {cwd:installRoot,timeout:30000});
-  console.log(`Package smoke passed: ${packed.files.length} files; public exports, workspace verification, local server and 3 Cursor extract/validate/handoff roundtrips pass from an isolated install.`);
+  execFileSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import {spawn} from 'node:child_process';
+    import {once} from 'node:events';
+    import {resolve} from 'node:path';
+    const child=spawn(process.execPath,[resolve('node_modules/threadport/dist/src/cli.js'),'ui','--no-open','--data-dir',resolve('data')],{stdio:['ignore','pipe','pipe']});
+    try {
+      const url=await new Promise((done,reject)=>{let text='';const timer=setTimeout(()=>reject(new Error('UI startup timeout')),15000);child.once('error',reject);child.once('exit',()=>reject(new Error('UI exited early')));child.stdout.on('data',chunk=>{text+=chunk;if(text.includes('\\n')){clearTimeout(timer);done(text.trim().split('\\n')[0]);}});});
+      const parsed=new URL(url);assert.equal(parsed.search,'');assert.match(parsed.hash,/^#token=[a-f0-9]{64}$/);
+      assert.equal((await fetch(parsed.origin)).status,200);assert.equal((await fetch(parsed.origin+'/api/v1/status')).status,401);
+      const exited=once(child,'exit');child.kill('SIGTERM');await exited;
+    } finally {child.kill('SIGKILL');}
+  `], {cwd:installRoot,timeout:30000});
+  console.log(`Package smoke passed: ${packed.files.length} files; public exports, UI CLI, workspace verification, local server and 3 Cursor roundtrips pass from an isolated install.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }
