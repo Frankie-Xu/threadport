@@ -20,6 +20,12 @@
 - 与 T03/T04、F05、Q03/Q05/Q15 的手动提取质量相关；Cursor 原生启动/恢复不在本轮范围。
 - 推荐下一轮在本窗口逐项执行；如用户选择子代理方案，需要明确授权。当前未加载 superpowers 执行技能，不依赖其存在才能完成工作。
 
+### 最新执行检查点
+
+2026-09-14 已在本窗口执行：正常重启恢复 Cursor 后，使用新建合成项目重跑 **3.20.17 / build 2026-09-12 11:16（界面本地时间）/ Agents This Mac / macOS 26.6.2 arm64**。真实原生文件编辑拒绝、同 cwd 并发/单路 Stop/结果反序、三条输入路径均已采集；跨 cwd 请求没有被 Cursor 正确执行，不能勾成完整认证。用户确认后已恢复并复核 Auto-Review（with Sandbox），外部文件保护保持开启。
+
+最终整合截止 main `d3c439d`（PR #38），runtime candidate `3404a90`。默认 worker 的 `npm run check` 已通过 **303 tests / 39 files**，`check:pack` 通过 **111 文件包及三条合成往返**；原生取消编辑原因和 requested-cwd 警告均有先失败后通过的回归。最新产物哈希与真实重放结果见[候选验收记录](../../verification/cursor-release-candidate.md)。下节是计划编写时的缺口，不能当成最新未完成清单。PR CI/独立审核/main 交付仍未完成，不能以功能分支推送替代。
+
 ## 1. 已做与未做的准确划分
 
 | 项目 | 已有证据 | 尚缺什么 |
@@ -78,7 +84,7 @@ if (name === 'run_terminal_command_v2') {
 }
 ```
 
-- [x] 同步静态警告内容为：`Experimental selected Cursor database evidence, not a vendor export contract. Tool completion and output text markers do not establish a process exit code. Unreported exits remain unknown. Current Git state is not a historical test snapshot.`
+- [x] 同步静态警告内容为：`Experimental selected Cursor database evidence, not a vendor export contract. Tool completion and output text markers do not establish a process exit code. Unreported exits remain unknown. Recorded cwd is requested context, not a verified execution location. Current Git state is not a historical test snapshot.`
 - [x] 原生 terminal 测试改为断言保留原命令和 cwd、退出码未知；结构化 JSONL 的显式 numeric exit fail/pass/fail 测试保留，不降低该路径要求。原生文件成功/失败测试仍独立验证。真实历史 Node 结果改标为独立观察，而非新构建可可靠推导的原生退出码。
 - [x] 如后续实际版本提供可靠结构化数值退出字段，另写带版本来源的最小 fixture 与 ADR 修订后才能恢复相应映射；本任务不猜测字段名称或扩大默认兼容性。
 
@@ -88,26 +94,29 @@ if (name === 'run_terminal_command_v2') {
 
 - [x] 开始前 `git status --short`、`git fetch origin`、`git log -4 --oneline origin/main`，记录执行时的新 SHA。干净工作区或精确保留任务修改后，在现有功能分支合入 origin/main；不重置、不强推共享分支、不直接推 main。
 - [x] 保留 main 的 Node 24、SQLite 原生依赖和迁移资源，同时保留 Cursor 的三条手动输入路径。检查 `src/sources/registry.ts`，不注册未经设计/验收的 Cursor 自动发现来源。
-- [ ] 在 Node 24 执行 `npm ci`、`npm run check`、`npm run check:pack`、`npm audit`、`git diff --check`；记录实际测试数，不写死 223。若 SQLite 原生安装失败，记录平台与真实错误，不能改回旧 floor 来绕开失败。
-- [ ] 将候选代码 SHA、运行时、OS/架构和输入格式写入新的本地验收记录，所有后续实测绑定此候选。
+- [x] 在 Node 24 执行 `npm ci`、`npm run check`、`npm run check:pack`、`npm audit`、`git diff --check`；记录实际测试数，不写死 223。若 SQLite 原生安装失败，记录平台与真实错误，不能改回旧 floor 来绕开失败。
+- [x] 将候选代码 SHA、运行时、OS/架构和输入格式写入新的本地验收记录，所有后续实测绑定此候选。
 
 ## Task 3: 同一 Cursor 版本补齐基础和文件拒绝实测
 
 **Files:** 新建 `docs/verification/cursor-release-candidate.md`；结构差异仅在明确复现后影响 `tests/adapters/cursor-native.test.ts`、`scripts/export-cursor-session.mjs`、`src/adapters/cursor-native.ts`。
 
-- [ ] 从 About 读取当次版本/build，记录 Agents / This Mac 与 OS；不要预填为 3.20.17。只建一个全新的合成测试项目，不继续使用故意遗留失败的旧项目作为干净基线。
-- [ ] 在该版本重跑：单文件编辑、同名不同目录保护、精确替换失败、独立测试失败→通过→再失败、后续用户 stop/README 指令、待审批 shell、拒绝 shell、运行中 Stop。每步对照文件散列/Git、UI 与选定会话原生记录；结果缺字段时 Capsule 必须保持 unknown。
-- [ ] 文件拒绝必须由真正的原生编辑工具请求触发真实审批，并在用户批准的测试配置下点拒绝。拒绝前后文件字节相同、没有成功编辑证据、不得把结果记作 completed。匹配失败、Undo、拒绝一个写文件 shell 均不算原生编辑拒绝。
-- [ ] 先检查版本是否提供可安全使用的原生编辑审批。若只对工作区外文件提供此审批，必须另获用户对一个新建合成目录的明确授权；不得拿真实外部文件触发。若无法触发，明确记为该模式不支持/无法认证，不伪造拒绝记录。
-- [ ] 如需再调整权限，重新核对原值，仅按具体批准范围收紧；恢复自动执行设置时获取执行时确认。结束后核对恢复值。
-- [ ] 分别采集同版本 Copy Transcript、项目 JSONL、选定会话 SQLite 导出，私下留存原始输入及哈希；只提交独立重建的合成 fixture。Markdown/稀疏 JSONL 的验收是明确降级，不要求恢复原文件中没有的证据。
+- [x] 从 About 读取当次版本/build，记录 Agents / This Mac 与 OS；不要预填为 3.20.17。只建一个全新的合成测试项目，不继续使用故意遗留失败的旧项目作为干净基线。
+- [x] 在该版本重跑：单文件编辑、同名不同目录保护、精确替换失败、独立测试失败→通过→再失败、后续用户 stop/README 指令、待审批 shell、拒绝 shell、运行中 Stop。每步对照文件散列/Git、UI 与选定会话原生记录；结果缺字段时 Capsule 必须保持 unknown。
+- [x] 文件拒绝必须由真正的原生编辑工具请求触发真实审批，并在用户批准的测试配置下点拒绝。拒绝前后文件字节相同、没有成功编辑证据、不得把结果记作 completed。匹配失败、Undo、拒绝一个写文件 shell 均不算原生编辑拒绝。
+- [x] 先检查版本是否提供可安全使用的原生编辑审批。若只对工作区外文件提供此审批，必须另获用户对一个新建合成目录的明确授权；不得拿真实外部文件触发。若无法触发，明确记为该模式不支持/无法认证，不伪造拒绝记录。
+- [x] 如需再调整权限，重新核对原值，仅按具体批准范围收紧；恢复自动执行设置时获取执行时确认。结束后核对恢复值。
+- [x] 分别采集同版本 Copy Transcript、项目 JSONL、选定会话 SQLite 导出，私下留存原始输入及哈希；只提交独立重建的合成 fixture。Markdown/稀疏 JSONL 的验收是明确降级，不要求恢复原文件中没有的证据。
 
 ## Task 4: 并发与导出异常的可重复验收
 
 **Files:** `tests/adapters/cursor-native.test.ts`、`scripts/export-cursor-session.mjs`、`docs/verification/cursor-release-candidate.md`。
 
 - [ ] 在目标版本要求两个原生 shell 调用重叠：两个合成 cwd 使用完全相同命令，慢的一路失败、快的一路成功；再做同 cwd 重叠和一路被停止。必须有独立 call ID，观察开始/完成反序，不把一个 shell 里的两个后台进程当两次工具调用。
-- [ ] 若 Agent 串行执行，记录“未触发并发”，不修改日志制造成功。工具层可靠退出码缺失时验收配对和 unknown，不靠同名命令推断配对/失败恢复；完整失败恢复保留在显式结果的合成回归中。
+- [x] 若 Agent 串行执行，记录“未触发并发”，不修改日志制造成功。工具层可靠退出码缺失时验收配对和 unknown，不靠同名命令推断配对/失败恢复；完整失败恢复保留在显式结果的合成回归中。
+
+实际结果：两路原生 call ID 与时间重叠已验证；同 cwd 单路停止、另一路继续、完成反序及缺失一路结果已验证。跨 cwd 两个请求均在仓库根查找脚本并失败，未实现预定一快一慢/一过一败；上面的组合验收仍不勾选。已增加 requested-cwd 警告，不修改原始记录或宣称修复 Cursor 执行器。
+
 - [x] 对拒绝编辑的合成回归使用以下最小测试；如果通过，只算回归覆盖，不算实测完成。
 
 ```ts
@@ -137,7 +146,7 @@ it('never confirms a native edit rejected by the user', async () => {
 - [x] 用安装后的 `node_modules/threadport/dist/src/cli.js` 对三种合成输入执行 extract→validate→handoff。断言 stderr 警告、stdout 路径、Capsule/Markdown 保守结果，以及源项目不被修改；不是只跑 --help 和 import。
 - [x] 同一安装产物再读取明确授权的真实样例，输出到新的私有目录；记录产物 SHA、版本、路径类型、逐场景结果。开发者 SQLite 导出脚本仍不在 npm 包内，不能写成普通用户已具备自动导出能力。
 - [ ] 用户明确授权创建 PR 后再发布 PR，运行并检查实际 CI；绿色合成平台矩阵不替代这些平台的 Cursor 实机测试。维护者审核/合并后才能将修复记作 main 已交付。
-- [ ] 支持声明采用“版本 + build + OS/架构 + 模式 + 输入来源 + 场景结果”。某一必需场景无法验证时，维持实验性/部分验证声明，并明确哪些结果 unknown。
+- [x] 支持声明采用“版本 + build + OS/架构 + 模式 + 输入来源 + 场景结果”。某一必需场景无法验证时，维持实验性/部分验证声明，并明确哪些结果 unknown。
 
 ## 3. 本轮不应顺手建设的功能
 

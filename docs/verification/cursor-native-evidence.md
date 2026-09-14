@@ -2,7 +2,7 @@
 
 Current behavior update (2026-09-14): [release-candidate verification](cursor-release-candidate.md) supersedes the historical text-marker mappings and delivery state below. Native terminal outputs no longer establish numeric exits, including the exact Node wrapper. Old fail/pass/fail observations are historical evidence, not outcomes certified by the current converter.
 
-Delivery note (2026-09-14): the user authorized committing and pushing this reviewed change on `fix/Frankie-Xu/cursor-transcript-import`. Historical checkpoints below describe the local/uncommitted state at their verification time. The delivery retains the verified `8a1a225` baseline; a fresh fetch found main at `0d00f6d` (PR #31–#33), which is not integrated or certified by this change. No direct main push, PR creation or release is included.
+Delivery note (2026-09-14): the user authorized committing and pushing this reviewed change on `fix/Frankie-Xu/cursor-transcript-import`. Historical checkpoints below describe the local/uncommitted state at their verification time. The [latest candidate](cursor-release-candidate.md) integrates main through `d3c439d` (PR #38) and supersedes earlier integration and live-gate gaps. Fresh 3.20.17 native edit rejection and same-cwd overlap/reverse completion were exercised; effective cross-cwd execution remains unverified. No direct main push, PR creation or release is included.
 
 ## Scope and workflow
 
@@ -22,8 +22,8 @@ The input envelope `threadport.cursor-native.v1` is a ThreadPort verification ar
 ## Mapping boundaries
 
 - Calls use native `toolCallId`; results use completion timestamps, not array order. Duplicate IDs and results preceding calls are rejected.
-- `edit_file_v2` with distinct before/after content references is an observed edit; a client-visible native error is a failed edit. A later successful operation can resolve that same-file operation error, not a separate test failure.
-- Native `status: completed`, `notInterrupted: true` and terminal text markers do not establish a process exit. Original commands and cwd are preserved; all unreported numeric exits stay unknown. Numeric outcomes in explicit structured JSONL are a separate supported path.
+- `edit_file_v2` must complete successfully with distinct before/after content references to confirm an edit. A client-visible native error or terminal cancelled status is failed/rejected evidence even when both references exist. A later successful operation can resolve that same-file operation error, not a separate test failure.
+- Native `status: completed`, `notInterrupted: true` and terminal text markers do not establish a process exit. Original commands and requested cwd are preserved; recorded cwd is not a verified execution location. All unreported numeric exits stay unknown. Numeric outcomes in explicit structured JSONL are a separate supported path.
 - Unsupported tools/results stay unknown with an evidence warning. No assistant success claim supplies a missing result.
 - Git is read at extraction time. Historical test success is not certification of the current workspace.
 
