@@ -20,4 +20,4 @@
 
 回滚：假匹配、退出码或旧 CLI 兼容回归时，检查后续 CLI 消费者后通过 PR revert C 的实际 squash SHA；保留 A/B 捕获/比较 SDK、schema 4、快照及人工绑定。不降级/清库。已有引用仍是合法 Capsule evidence。回滚后运行 workspace、git、全部 CLI 测试、check 与 pack；verify 命令撤销，旧命令与 A/B 仍工作。回滚仅方案审查，未进行生产回滚。
 
-最终本地验证（macOS arm64 / Node 24.18.1）：npm run check 通过，38 文件 / 271 项测试；npm run check:pack 通过，107 个包文件，安装后的 CLI 真进程覆盖 0/4/6/2/5；最终文档检查 92 个目的地 / 40 个 Markdown 文件。未先执行红灯测试，不把首轮通过描述成失败复现；A/B 的先前证据保留。CI 与 merge SHA 记录在 PR；C 合并后 T10 的 SDK/CLI 开发收口，UI/真实接续认证仍在后续任务。
+最终本地验证（macOS arm64 / Node 24.18.1）：npm run check 通过，38 文件 / 271 项测试；npm run check:pack 通过，107 个包文件，安装后的 CLI 真进程覆盖 0/4/6/2/5；最终文档检查 93 个目的地 / 40 个 Markdown 文件。未先执行红灯测试，不把首轮通过描述成失败复现；A/B 的先前证据保留。CI 与 merge SHA 记录在 PR；C 合并后 T10 的 SDK/CLI 开发收口，UI/真实接续认证仍在后续任务。
