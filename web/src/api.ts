@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type {
   Task,
   DerivedTaskState,
@@ -204,35 +204,50 @@ export function query(
 }
 export function useLoad<T>(api: ApiClient, path: string, revision = 0) {
   const [tick, setTick] = useState(0);
+  const key = useMemo(
+    () => ({ api, path, revision, tick }),
+    [api, path, revision, tick],
+  );
   const [state, setState] = useState<{
-    path: string;
+    key: typeof key;
     data?: T;
     error?: Error;
     loading: boolean;
-  }>({ path, loading: true });
+  }>({ key, loading: true });
   useEffect(() => {
     const controller = new AbortController();
     setState((previous) => ({
-      path,
-      data: previous.path === path ? previous.data : undefined,
+      key,
+      data:
+        previous.key.api === api && previous.key.path === path
+          ? previous.data
+          : undefined,
       loading: true,
     }));
     api
       .request<T>(path, "GET", undefined, controller.signal)
       .then((data) => {
-        if (!controller.signal.aborted)
-          setState({ path, data, loading: false });
+        if (!controller.signal.aborted) setState({ key, data, loading: false });
       })
       .catch((error) => {
         if (!controller.signal.aborted)
-          setState({ path, error, loading: false });
+          setState({ key, error, loading: false });
       });
     return () => controller.abort();
-  }, [api, path, revision, tick]);
-  return {
-    ...(state.path === path ? state : { path, loading: true }),
-    reload: () => setTick((value) => value + 1),
-  };
+  }, [key]);
+  // Invalidate controls during render, before the request effect can run.
+  const current =
+    state.key === key
+      ? state
+      : {
+          key,
+          data:
+            state.key.api === api && state.key.path === path
+              ? state.data
+              : undefined,
+          loading: true,
+        };
+  return { ...current, reload: () => setTick((value) => value + 1) };
 }
 export function usePage<T>(api: ApiClient, path: string, revision = 0) {
   const [position, setPosition] = useState({

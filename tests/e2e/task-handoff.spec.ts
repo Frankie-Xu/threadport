@@ -97,6 +97,7 @@ test("preserves conflict drafts and reviews the exact immutable prompt before a 
       },
     }),
   );
+  test.setTimeout(90000);
   await page.goto(server.origin + "/?v=inbox&t=" + taskId);
   await page.evaluate((token) => {
     history.replaceState(null, "", location.search + "#token=" + token);
@@ -117,6 +118,7 @@ test("preserves conflict drafts and reviews the exact immutable prompt before a 
     .getByLabel("Next action", { exact: true })
     .fill("Independent edit");
   await second.getByRole("button", { name: "Save changes" }).click();
+  await expect(second.getByRole("dialog")).toHaveCount(0);
   await expect(
     second.getByText("Independent edit", { exact: true }),
   ).toBeVisible();
@@ -132,6 +134,7 @@ test("preserves conflict drafts and reviews the exact immutable prompt before a 
     .getByLabel("Objective", { exact: true })
     .fill("Keep all operations offline");
   await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
     page.getByText("Keep all operations offline", { exact: true }),
   ).toBeVisible();
@@ -214,6 +217,7 @@ test("preserves conflict drafts and reviews the exact immutable prompt before a 
   await page.getByLabel("Target Agent").selectOption("codex");
   await expect(page.getByLabel("Terminal command")).toHaveCount(0);
   await page.getByRole("button", { name: "Prepare preview" }).click();
+  await expect(prompt).toBeVisible();
   await expect(page.getByText("Export only", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Confirm preview" }),

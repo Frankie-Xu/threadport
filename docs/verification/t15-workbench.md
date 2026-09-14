@@ -41,3 +41,5 @@ T15-A 已合并 PR #49，squash 66185ecc3c7c2a3ab2b34d687ad2f866702f5952，最�
 ![完整接续预览](assets/t15-handoff.png)
 
 CI Chromium 的立即选择状态用例暴露不同于本机 Chrome 的行为：选择后服务仍 active。生命周期改为明确的表单提交，直接读取被选择的字段，并保持 revision CAS；浏览器测试显式保存状态再验证。固定 Chromium 本机下载仍被 storage.googleapis.com TLS 断连阻断，最终兼容结果以 CI 的锁定 Chromium 为准。
+
+继续定位发现根因是异步等待竞争：E2E 将 textarea 中的草稿当作保存后的正文，在弹窗关闭/详情刷新前操作背景控件。补充等待 dialog 关闭后才查保存正文；useLoad 同步比较 api/path/revision/reload 身份，在 effect 发出请求前即禁用旧数据的控件，避免快速操作使用旧 revision。此前仅改显式状态提交在 macOS CI 上仍失败，未把那次运行记为通过。
