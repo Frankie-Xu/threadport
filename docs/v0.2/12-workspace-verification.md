@@ -43,3 +43,17 @@ Git 使用固定只读子命令，移除继承的 GIT_* 重定向，关闭 fsmon
 沿用已有 snapshots 表，数据库仍为 schema 4，无迁移。当前快照不会补写历史 CommandRun.snapshotId，不会把旧测试认证为当前有效。旧 readGitState、Capsule v1 和 CLI 行为保持原状。
 
 本包的文件、实际测试及回滚关系见 [T10-A 验收](../verification/t10-a-snapshot.md)。消费者未合并时可单独 revert 本包，快照数据保留；消费者出现后先处理依赖，不降级数据库。比较及 CLI 的后续工作见 [T10 包计划](../superpowers/plans/2026-09-14-t10-work-packages.md)。
+
+## T10-B：显式比较 SDK
+
+`import { verifyWorkspace } from 'threadport/workspace'`；调用 `await verifyWorkspace(snapshot, binding, options?)`。binding 是人工登记的 WorkspaceBinding（或 null），options 沿用捕获的预算与取消信号。读取当前状态不保存新快照，也不修改传入快照。
+
+- 完整历史快照与当前捕获的 workspaceId、物理绑定身份一致，且 HEAD、指纹相同才返回 `matched`。
+- 完整且绑定一致时，HEAD 不同返回 `drifted / HEAD_CHANGED`；同 HEAD 指纹不同返回 `drifted / CONTENT_CHANGED`。raw.v1 指纹包含 HEAD，因此 HEAD 变化时不能单凭它断言文件也变了。
+- 任一捕获不完整、未绑定、ID/项目/物理根或 worktree 身份不符返回 `unverifiable`。缺失、失读、超限、持续并发变化分别保留安全原因；不完整性优先于差异判断。
+
+报告包含原 snapshotId、workspaceId、verifiedAt、scope 和去重原因。当前聚合指纹无法定位单个变化文件，因此不编造 path 或输出本地绝对路径、底层异常。`matched` 只证明已声明范围的本次比较，不证明业务正确或历史测试仍有效；沿用 A 的 best-effort 读取限制。
+
+portable Capsule 的 `.` 是展示路径，SDK 不根据进程 cwd 猜测项目；消费者必须提供实际登记的绝对 canonicalRoot。快照中没有根路径，绑定变化也不能靠替换路径绕过身份校验。结构损坏或不支持的算法/范围抛 INVALID_INPUT，显式取消向调用者传播。旧 Capsule 到报告的兼容转换及 CLI 留给 T10-C。
+
+仅回滚 B 时移除比较 API，保留 A 的捕获、存储和现有 snapshots/人工绑定。先确认 C/T11/T12/T14 没有依赖；已有消费者先处理它们。无需 schema 降级。

@@ -2,7 +2,7 @@
 
 **目标：** 以三个独立 PR 完成工作区捕获、显式比较和 verify CLI。范围仍以 [T10 总计划](2026-09-14-threadport-v0.2.md)、[F06](../../v0.2/01-product-spec.md) 与 [验证契约](../../v0.2/03-contracts.md) 为准；不扩大 12–18 小时任务估算。
 
-**基线：** 制定时 main 为 ff32547496cd8811ed2d637ac8988611ddfaad8e。每包开工重新记录实际 main SHA。T10-A 已实现并完成本地验证，实际交付以其 PR 为准；B/C 仍是计划，不得报告为已实现或通过。
+**基线：** 制定时 main 为 ff32547496cd8811ed2d637ac8988611ddfaad8e。每包开工重新记录实际 main SHA。T10-A 已合并（PR #37，070d095c2f2fb616b240b2e765e6a2b6df5c104c）；T10-B 已实现，实际验证与交付见证据及 PR；C 仍是计划。
 
 **架构：** 本地只读捕获 → 持久化已知范围的 snapshot → verifyWorkspace 比较 → 薄 CLI。沿用现有 SQLite snapshots 表与用户显式绑定；不伪造历史测试快照，不执行日志命令。
 
@@ -12,8 +12,8 @@
 
 | 工作包 | 可独立评审的交付物 | 前置 / 消费者 | 拟定提交及分支 | 当前状态 |
 | --- | --- | --- | --- | --- |
-| T10-A | 有界、只读的当前工作区捕获与保存；无法完整捕获时记录原因 | T02/T05/T08；B 消费 | `feat(T10-A): capture bounded workspace snapshots`；codex/t10-a-snapshot | 本地已验证，review；[证据](../../verification/t10-a-snapshot.md) |
-| T10-B | 明确绑定下的 matched/drifted/unverifiable 比较报告 | A 已合并；C/T11/T12/T14 消费 | `feat(T10-B): verify captured workspace state`；codex/t10-b-verify | 未开始；无提交/PR |
+| T10-A | 有界、只读的当前工作区捕获与保存；无法完整捕获时记录原因 | T02/T05/T08；B 消费 | `feat(T10-A): capture bounded workspace snapshots`；codex/t10-a-snapshot | 已合并 PR #37；[证据](../../verification/t10-a-snapshot.md) |
+| T10-B | 明确绑定下的 matched/drifted/unverifiable 比较报告 | A 已合并；C/T11/T12/T14 消费 | `feat(T10-B): verify captured workspace state`；codex/t10-b-verify | 本地已验证，待 PR/CI；[证据](../../verification/t10-b-verify.md) |
 | T10-C | verify CLI 输出与退出码，保留旧 validate 行为 | B 已合并；CLI 用户及后续集成消费 | `feat(T10-C): expose explicit workspace verification`；codex/t10-c-cli | 未开始；无提交/PR |
 
 每包包含自己的测试与文档，一个 PR squash 成 main 上一个可定位的提交。A/B 是可直接调用和测试的 SDK 增量，不能只提交无法运行的空接口。C 合并且 T10 全部验收通过后才将总任务标 done；UI 语义一致性留给后续 UI 集成验证。
@@ -40,7 +40,7 @@
 
 **文件与职责：**
 
-- 新增 src/workspace/verify.ts、tests/workspace/verify.test.ts：verifyWorkspace(snapshot, workspace) 与真实临时仓库的比较案例。
+- 新增 src/workspace/verify.ts、tests/workspace/verify.test.ts；扩展 tests/workspace/snapshot-races.test.ts 复用文件读取故障注入：verifyWorkspace(snapshot, workspace) 与真实临时仓库的比较案例。
 - 修改 src/workspace/contracts.ts、index.ts：导出 VerificationReport 和完整比较接口；同时接入 A 的实际捕获实现。
 - 修改 scripts/pack-smoke.mjs、docs/v0.2/12-workspace-verification.md；新增 docs/verification/t10-b-verify.md。
 
