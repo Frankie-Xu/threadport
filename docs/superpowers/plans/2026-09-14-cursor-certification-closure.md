@@ -22,6 +22,8 @@
 
 ### 最新执行检查点
 
+最新集成更新：main 随后合并 #40（`2f46ea5`），造成 PR #41 冲突；已用 `e6cfe5f` 保留上游 server 与 Cursor 全部 package smoke。标准 **317 tests / 41 files**、**123 文件包**及同一新安装产物的三条真实输入重放通过。当前代码/实测可查验，最终 CI 状态以 PR #41 最新 head 为准；下面的 #39 数字是较早检查点。
+
 2026-09-14 已在本窗口执行：正常重启恢复 Cursor 后，使用新建合成项目重跑 **3.20.17 / build 2026-09-12 11:16（界面本地时间）/ Agents This Mac / macOS 26.6.2 arm64**。真实原生文件编辑拒绝、同 cwd 并发/单路 Stop/结果反序、三条输入路径均已采集；跨 cwd 请求没有被 Cursor 正确执行，不能勾成完整认证。用户确认后已恢复并复核 Auto-Review（with Sandbox），外部文件保护保持开启。
 
 2026-09-15 更新：整合截止 main `6512975`（PR #39），runtime candidate `0e065e4`。默认 worker 的 `npm run check` 已通过 **311 tests / 40 files**，`check:pack` 通过 **113 文件包、workspace verify 和三条合成往返**。用户再次授权后，9 月 14 日 23:56–23:58 完成 3 次顺序和 2 次并发原生调用；4 次子目录请求均实际运行于根目录，说明偏差不只发生在并发场景。三条新真实输入经同一安装包提取、校验、交接通过，合成项目未变，审批设置未变且结束后已复核。原生取消编辑原因和 requested-cwd 警告均有先失败后通过的回归。最新产物哈希与真实重放结果见[候选验收记录](../../verification/cursor-release-candidate.md)。下节是计划编写时的缺口，不能当成最新未完成清单。PR 创建与 CI 检查已获授权、待执行；独立审核/main 交付仍未完成，不能以功能分支推送替代。
@@ -190,6 +192,8 @@ const cwd = 'workdir' in args ? asString(args.workdir) ?? null
 - [x] 仅修改上述测试：用完整的 JSON 编码目录标签断言，同时验证命令和测试摘要；加入固定 Windows 反斜杠/空格路径，使 macOS/Linux 也覆盖该格式。
 - [x] 保留目录身份、null 优先级、unknown、portable 隐私等原断言，重跑本地标准 check/pack；不放宽超时、不新增跳过。定向 28 tests、标准 311 tests / 40 files 和 113 文件安装包全部通过。
 - [ ] 更新同一 PR 的 head、证据和实际 CI 结果；检查三平台以及汇总 check，不合并或发布。
+
+推送该修正时 main 已新增 #40，GitHub 因冲突未运行该 head 的 CI；已整合上游，详见最新集成检查点。首次失败与后续成功不能混记为同一 CI run，最终远端结果由 PR #41 记录。
 
 ## 3. 本轮不应顺手建设的功能
 
