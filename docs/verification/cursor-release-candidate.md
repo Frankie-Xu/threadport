@@ -1,6 +1,12 @@
 # Cursor release-candidate verification
 
-## Active follow-up work package: CURSOR-CERT-01
+## Current delivery status — 2026-09-15
+
+**CURSOR-CERT-01 is merged**, not a draft: [PR #41](https://github.com/Frankie-Xu/threadport/pull/41), squash **`d35c70c2946785aa1538de1bf7bd2049522f57ce`**. Its [main CI](https://github.com/Frankie-Xu/threadport/actions/runs/34874139236) passed all three platforms and the aggregate check. Self-review and user-authorized merge are recorded; no independent reviewer or release is claimed. Current verification hardening and newer-main artifact evidence are in [CURSOR-CERT-02](cursor-validation-hardening.md).
+
+The dated sections below preserve historical verification checkpoints and their then-current integration/permission state. They do not override the merged state above. The latest actual Cursor execution remains the 3.20.17 sequential/parallel comparison below; later package replays and synthetic CI are not new live tests. Effective cross-cwd execution remains an observed vendor limitation.
+
+## Historical work package: CURSOR-CERT-01
 
 User-visible result: conservative manual Cursor import with version-specific evidence and explicit unknown outcomes. Related T03/T04, F05, Q03/Q04/Q05/Q15/Q24. Existing feature branch is retained by request. Latest integration baseline is `2f46ea5` (through PR #40); runtime candidate `e6cfe5f` includes fixes `e162fde`, `519e36f`, requested-directory context from `cd8d1b2` and upstream explicit workspace verification CLI/local server, retaining search, workspace capture/verification and all three Cursor package roundtrips. No public schema or automatic Cursor source is added. No downstream package is known to require this manual Cursor converter; recheck consumers before any rollback.
 
@@ -20,7 +26,7 @@ Node 24.18.1 `npm ci` succeeded with zero reported vulnerabilities. Standard **`
 
 Latest retained **123-file** artifact SHA-256: **`ec20c221c031a47b2de108a277647db2815a4c963bda9fe6b47e8f409c7e4415`**. Normal installation into a new private consumer passed extract → validate → handoff for all three saved inputs from the live checkpoint below. Commands, tests, completed work, failures, next action, constraints and status exactly match the preceding accepted import. Input hashes and synthetic project bytes/Git state remain unchanged. This is a revalidation of the new integrated artifact, not another Cursor execution. It supersedes the pre-#40 artifact for current integration acceptance; the earlier artifact remains historical evidence.
 
-PR #41 remains a draft, with final head CI to be read from the PR checks. No independent review, main merge, release or full vendor compatibility certification is claimed.
+At that checkpoint PR #41 was a draft; it has since merged with passing main CI as recorded above. No independent review, release or full vendor compatibility certification is claimed.
 
 ## Latest live checkpoint — sequential and parallel cwd comparison
 
@@ -52,7 +58,7 @@ Delivery at this documentation checkpoint: PR publication and CI are now authori
 
 ### PR #41 — Windows CI assertion follow-up
 
-The package is published as [draft PR #41](https://github.com/Frankie-Xu/threadport/pull/41), not merged. Initial [CI run 34866919537](https://github.com/Frankie-Xu/threadport/actions/runs/34866919537) passed Linux and macOS but failed one Windows assertion: a local-mode summary contains a JSON-quoted directory, while the test searched for the unescaped raw Windows path. The observed summary correctly retained the directory; changing production output to satisfy the assertion would break the intended quoting contract.
+The package was first published as draft [PR #41](https://github.com/Frankie-Xu/threadport/pull/41), subsequently merged. Initial [CI run 34866919537](https://github.com/Frankie-Xu/threadport/actions/runs/34866919537) passed Linux and macOS but failed one Windows assertion: a local-mode summary contains a JSON-quoted directory, while the test searched for the unescaped raw Windows path. The observed summary correctly retained the directory; changing production output to satisfy the assertion would break the intended quoting contract.
 
 `tests/adapters/cursor.test.ts` now checks the complete `JSON.stringify(cwd)` label in both command and direct-test summaries, retaining unknown-outcome assertions. It exercises the host-native path and a fixed synthetic Windows path containing spaces on every platform. No production code, timeout, worker count or skip condition changes. The tested runtime artifact above remains valid; the CI correction is test/documentation only. The first Windows run passed 307 tests, failed one and skipped three optional-SQLite-CLI exporter tests. Those skips are a stated coverage limit, not real Windows exporter certification. Final rerun status must be read from the PR's check results; no green result is assumed here.
 
