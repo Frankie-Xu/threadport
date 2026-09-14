@@ -87,3 +87,9 @@ it('stops with an explicit session event budget instead of pretending the file e
  const page=await adapter.read({candidate,cursor:{...first.cursor,nextOrdinal:100000},maxEvents:1,signal:signal()});
  expect(page.events).toEqual([]);expect(page.warnings).toContain('EVENT_LIMIT');expect(page.session.status).toBe('partial');expect(page.cursor.byteOffset).toBe(first.cursor.byteOffset);
 });
+it('never reassociates a reused ambiguous tool ID with a later successful result',async()=>{
+ const {path,adapter,candidate}=await setup();
+ const calls=['npm test','npm run test:other','npm run test:third'].map(command=>({type:'assistant',sessionId:'synthetic',message:{content:[{type:'tool_use',id:'duplicate',name:'Bash',input:{command}}]}}));
+ await writeFile(path,[...calls,{type:'user',sessionId:'synthetic',message:{content:[{type:'tool_result',tool_use_id:'duplicate',content:{output:'ok',exit_code:0}}]}}].map(x=>JSON.stringify(x)).join('\n')+'\n');
+ const result=await collect(adapter,candidate);expect(result.events.some(e=>e.commandRun?.exitCode===0)).toBe(false);expect(result.page.warnings).toContain('DUPLICATE_TOOL_ID');
+});

@@ -19,7 +19,7 @@ T06 / P1 / F01,F02 / Q07,Q08,Q09。基线 6393bcfa9c9f26068e35ecbd609b405ce2112e
 
 基线上一任务为 202 项测试。新增读取器测试首次因模块缺失失败；实现后 4 项通过。首轮来源测试发现 macOS /var 与 /private/var 别名差异，统一 canonical path 后稳定身份用例通过。之后加入证据替换、源 cursor 归属、半行、容量和取消回归。
 
-最终 npm run check：29 文件 / 219 测试通过，typecheck/build 通过；文档链接另行最终检查。npm run check:pack：72 个包文件，独立安装 CLI、SQLite 与 sources 注册/发现入口通过。新增 17 项行为测试，无真实用户 HOME/历史会话读取。fixture 全为合成结构，未做真实 vendor 版本认证。
+最终 npm run check：29 文件 / 220 测试通过，typecheck/build 通过；文档链接另行最终检查。npm run check:pack：72 个包文件，独立安装 CLI、SQLite 与 sources 注册/发现入口通过。新增 18 项行为测试，无真实用户 HOME/历史会话读取。fixture 全为合成结构，未做真实 vendor 版本认证。
 
 ## 审查与兼容
 
@@ -32,3 +32,5 @@ AI self-review，按范围→正确性→数据边界→设计→可维护性→
 ## 交接
 
 本任务 L2（合成来源集成）。远端三平台 CI 与合并状态以 PR 为准。T05 已合并 #31 / 6393bcf，三平台 Node24 CI 全通过。下一项 T07：Codex 来源与幂等增量索引。现有 .gitignore、research 和两个 HTML 实验文件继续保留，不纳入提交。
+
+提交后复核新增了工具 ID 三次复用的回归，旧投影错误关联 exit 0，先失败后修复：一旦发现重复 ID，清空当前关联并停止该游标的后续自动配对，结果保守保持 unknown。

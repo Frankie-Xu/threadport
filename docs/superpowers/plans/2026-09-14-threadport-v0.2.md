@@ -724,7 +724,7 @@ npm run test:package
 | T03 | done | L2（合成集成） | 本次约 0.2h，至本地验证 | PR #29 / `d184e1a`；[验收与回归](../../verification/t03-command-outcomes.md)；180 测试，六组 CI 通过 |
 | T04 | done | L2（合成集成） | 本次约 0.3h，至本地验证 | PR #30 / `8a1a225`；[验收与回归](../../verification/t04-evidence-model.md)；194 测试，六组 CI 通过 |
 | T05 | done | L2（存储集成） | 本次约 0.2h，至本地验证 | PR #31 / `6393bcf`；[验收与回归](../../verification/t05-sqlite-storage.md)；202 测试，三平台 CI 通过 |
-| T06 | review | L2（来源集成） | 本次约 0.3h，至本地验证 | [验收与回归](../../verification/t06-claude-source.md)；219 测试，远端 CI 与合并以 PR 为准 |
+| T06 | review | L2（来源集成） | 本次约 0.3h，至本地验证 | [验收与回归](../../verification/t06-claude-source.md)；220 测试，远端 CI 与合并以 PR 为准 |
 | T07 | pending | L0 | 尚未实施 | 尚未实施 |
 | T08 | pending | L0 | 尚未实施 | 尚未实施 |
 | T09 | pending | L0 | 尚未实施 | 尚未实施 |

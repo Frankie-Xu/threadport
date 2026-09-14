@@ -32,7 +32,7 @@ export function normalizeBlock(input:{block:RecordValue;row:RecordValue;role:'us
    const vendorId=typeof block.id==='string'&&block.id.length<=512?stableId(sessionId,'call',block.id):null;
    const id=vendorId??stableId(base.id,'call');if(!vendorId)warnings.add('MISSING_TOOL_ID');
    const run={id,sessionId,ordinal,command:command.omitted?'[REDACTED:oversize-command]':command.text,cwd:location?.omitted?'[REDACTED:oversize-cwd]':location?.text??null,exitCode:null,startedAt:base.occurredAt,completedAt:null,eventId:base.id,snapshotId:null};
-   if(vendorId){if(pending.has(vendorId)){pending.delete(vendorId);warnings.add('DUPLICATE_TOOL_ID');}else if(pending.size<128)pending.set(vendorId,{id,command:run.command,cwd:run.cwd,startedAt:run.startedAt});else warnings.add('PENDING_CALL_LIMIT');}
+   if(vendorId&&!warnings.has('DUPLICATE_TOOL_ID')){if(pending.has(vendorId)){pending.clear();warnings.add('DUPLICATE_TOOL_ID');}else if(pending.size<128)pending.set(vendorId,{id,command:run.command,cwd:run.cwd,startedAt:run.startedAt});else warnings.add('PENDING_CALL_LIMIT');}
    return {...base,kind:'command',text:'Observed command invocation; result unknown.',omitted:command.omitted||!!location?.omitted,commandRun:run};
   }
   if(['Write','Edit','MultiEdit','NotebookEdit'].includes(String(block.name))){
