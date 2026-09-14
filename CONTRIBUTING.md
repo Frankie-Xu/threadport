@@ -4,7 +4,7 @@ Start with the [v0.2 development documentation](docs/v0.2/README.md), select the
 
 ## Tasks and branches
 
-Work on one verifiable task at a time. Record its problem, T/F/AC/Q IDs, dependencies, affected contracts, exclusions, and acceptance checklist in an Issue. Prepare a local Issue draft when remote creation is unavailable or not authorized; local progress must not depend on publishing it.
+Work on one verifiable work package at a time. A task may contain several dependency-ordered packages; follow the [work-package delivery rules](docs/v0.2/11-work-package-delivery.md). Record its problem, T/F/AC/Q IDs, dependencies, affected contracts, exclusions, and acceptance checklist in an Issue. Prepare a local Issue draft when remote creation is unavailable or not authorized; local progress must not depend on publishing it.
 
 Use `codex/<task-id>-<short-description>`, for example `codex/t02-portable-paths`. Start from current `main` for a clean checkout. When continuing an existing workspace, record HEAD and preserve all pre-existing uncommitted work; do not reset or stage unrelated files.
 
@@ -28,7 +28,9 @@ Dependabot may propose patch/minor updates. Major updates to Vitest, Zod, TypeSc
 ## Commits, review, and handoff
 
 - Use your own contributor identity and an English imperative commit subject.
-- Keep each change independently reviewable and fill in the PR template with task/acceptance IDs and actual validation results.
+- Use one PR per independently reviewable work package: work package → commit → files → tests → rollback. List upstream/downstream dependencies and exact files before implementation; include necessary tests in the same package.
+- Record the base/head SHA, actual test results, PR and eventual squash SHA. One PR becomes one main commit; multiple branch commits do not become separate rollback units under squash merge.
+- Fill in the PR work-package table and rollback section. Identify whether the package can be reverted alone, which consumers must be reverted first, and whether database compatibility prevents a code downgrade.
 - Review scope, correctness, data boundaries, design, maintainability, and evidence in that order. Mark self-review explicitly; unresolved P0/P1 issues block completion.
 - Record changed files, checks, limitations, task-owned uncommitted changes, and the next smallest action in a local handoff. Update the plan with evidence rather than estimated completion percentages.
 - The maintainer reviews and commits local changes, then uses a PR and squash merge into `main`. Do not push directly to `main` or publish comments, packages, or releases without authorization. Repository settings must be verified independently of these instructions.

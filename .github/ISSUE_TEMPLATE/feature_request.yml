@@ -29,6 +29,21 @@ body:
     validations:
       required: true
   - type: textarea
+    id: work_packages
+    attributes:
+      label: Work package delivery map
+      description: One independently reviewable package per PR. Include implementation, required tests and documentation together. Record planned values now and actual SHAs/results during delivery.
+      value: |
+        Work package ID / observable result:
+        Upstream packages / downstream consumers:
+        Planned commit subject / branch:
+        Exact files and responsibilities:
+        Test commands / expected behavior:
+        Rollback unit / reverse dependency order:
+        Data and schema compatibility / post-rollback checks:
+    validations:
+      required: true
+  - type: textarea
     id: acceptance
     attributes:
       label: Acceptance
