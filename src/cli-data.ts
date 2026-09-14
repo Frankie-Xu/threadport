@@ -56,6 +56,8 @@ export async function runDataCommand(
       );
       return 0;
     }
+    const configured=store.getSource(source!);
+    if(!configured?.enabled)throw new DomainError("INVALID_INPUT","Choose an enabled configured source.");
     index = new IndexService(store);
     process.once("SIGINT", cancel);
     const result = await index.refresh(source!);
