@@ -22,6 +22,8 @@
 
 ### 最新执行检查点
 
+交付状态更正：用户随后明确授权合并；PR #41 已 squash 合并为 `d35c70c2946785aa1538de1bf7bd2049522f57ce`，main CI `34874139236` 三平台及汇总检查通过。下列 #39/#40 和“待 PR”叙述均是历史检查点，不表示当前仍未合并。没有独立审核或发布声明。后续最新 main 重放、Windows 测试稳定性与 SQLite 覆盖见[验证加固计划](2026-09-15-cursor-validation-hardening.md)和[当前报告](../../verification/cursor-validation-hardening.md)。
+
 最新集成更新：main 随后合并 #40（`2f46ea5`），造成 PR #41 冲突；已用 `e6cfe5f` 保留上游 server 与 Cursor 全部 package smoke。标准 **317 tests / 41 files**、**123 文件包**及同一新安装产物的三条真实输入重放通过。当前代码/实测可查验，最终 CI 状态以 PR #41 最新 head 为准；下面的 #39 数字是较早检查点。
 
 2026-09-14 已在本窗口执行：正常重启恢复 Cursor 后，使用新建合成项目重跑 **3.20.17 / build 2026-09-12 11:16（界面本地时间）/ Agents This Mac / macOS 26.6.2 arm64**。真实原生文件编辑拒绝、同 cwd 并发/单路 Stop/结果反序、三条输入路径均已采集；跨 cwd 请求没有被 Cursor 正确执行，不能勾成完整认证。用户确认后已恢复并复核 Auto-Review（with Sandbox），外部文件保护保持开启。
@@ -147,7 +149,7 @@ it('never confirms a native edit rejected by the user', async () => {
 - [x] 在候选代码构建 tarball 并记录 SHA-256；安装到新临时 consumer。沿用仓库包安装策略，不能以忽略原生依赖失败的方式声称集成后的包已通过。
 - [x] 用安装后的 `node_modules/threadport/dist/src/cli.js` 对三种合成输入执行 extract→validate→handoff。断言 stderr 警告、stdout 路径、Capsule/Markdown 保守结果，以及源项目不被修改；不是只跑 --help 和 import。
 - [x] 同一安装产物再读取明确授权的真实样例，输出到新的私有目录；记录产物 SHA、版本、路径类型、逐场景结果。开发者 SQLite 导出脚本仍不在 npm 包内，不能写成普通用户已具备自动导出能力。
-- [ ] 用户明确授权创建 PR 后再发布 PR，运行并检查实际 CI；绿色合成平台矩阵不替代这些平台的 Cursor 实机测试。维护者审核/合并后才能将修复记作 main 已交付。
+- [x] 用户明确授权后发布 PR #41、检查实际三平台 CI，并在后续明确合并授权下交付 main。自审，不声称独立审核；绿色合成平台矩阵不替代这些平台的 Cursor 实机测试。
 - [x] 支持声明采用“版本 + build + OS/架构 + 模式 + 输入来源 + 场景结果”。某一必需场景无法验证时，维持实验性/部分验证声明，并明确哪些结果 unknown。
 
 ## Task 6: CURSOR-CERT-01 后续 — 请求目录可见性
@@ -181,7 +183,7 @@ const cwd = 'workdir' in args ? asString(args.workdir) ?? null
 - [x] 在 `tracesFromEvents` 后按同序的 `commandRuns` 为 Cursor 命令摘要加请求目录前缀；直接测试命令对应的 tests 摘要也加同一前缀。先 `portablePath(cwd, resolve(input.project.root))`（local 模式保留原值），再拼入摘要，最终仍走 `assembleCapsule` 的隐私保护。不得改 command 字段、exit_code 或从输出中猜 cwd。
 - [x] 重跑 `npm run check`、`npm run check:pack` 和最终安装包真实样例 extract → validate → handoff；检查原生和 sparse 两路目录标签、未知结果以及源文件不变。
 - [x] 用户让出 Cursor 窗口后，仅在现有合成项目做只读 `process.cwd()` 单次/并发对照，保持审批与保护不变。若参数仍未生效，保留 vendor 限制，不能依靠 `cd` 改写命令伪装通过。
-- [ ] 更新 ADR 和验收报告，提交 `fix(CURSOR-CERT-01): preserve requested directory context in handoffs`。得到 PR 授权后按仓库模板创建 PR、检查三平台 CI；不自动合并。回滚沿用本包的前向修复优先策略，不动上游存储和迁移。
+- [x] 更新 ADR 和验收报告，提交 `fix(CURSOR-CERT-01): preserve requested directory context in handoffs`。按授权创建 PR #41、检查三平台 CI；随后按用户单独授权合并。回滚沿用本包的前向修复优先策略，不动上游存储和迁移。
 
 执行证据：源码已提交 `cd8d1b2`；该历史检查点为 307 tests / 39 files、111 文件包和 13 组真实样例重放。最新 `0e065e4` 已整合 #39 并通过 311 tests / 40 files、113 文件包及三条新真实输入往返。只读实测已执行并复现 vendor 限制，未修改审批或项目文件；不把执行偏差标成通过。上述最后一项的代码/ADR/报告部分已完成，PR 创建与 CI 已获授权但在本记录时尚待执行，故组合项不勾选；结果应以对应 PR 的实际检查为准。
 
@@ -191,7 +193,7 @@ const cwd = 'workdir' in args ? asString(args.workdir) ?? null
 
 - [x] 仅修改上述测试：用完整的 JSON 编码目录标签断言，同时验证命令和测试摘要；加入固定 Windows 反斜杠/空格路径，使 macOS/Linux 也覆盖该格式。
 - [x] 保留目录身份、null 优先级、unknown、portable 隐私等原断言，重跑本地标准 check/pack；不放宽超时、不新增跳过。定向 28 tests、标准 311 tests / 40 files 和 113 文件安装包全部通过。
-- [ ] 更新同一 PR 的 head、证据和实际 CI 结果；检查三平台以及汇总 check，不合并或发布。
+- [x] 更新同一 PR 的 head、证据和实际 CI 结果；最终 run `34868022248` 三平台及汇总 check 通过。该验证阶段未合并，后续按用户单独授权完成合并；未发布。
 
 推送该修正时 main 已新增 #40，GitHub 因冲突未运行该 head 的 CI；已整合上游，详见最新集成检查点。首次失败与后续成功不能混记为同一 CI run，最终远端结果由 PR #41 记录。
 

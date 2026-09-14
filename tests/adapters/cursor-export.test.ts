@@ -26,6 +26,9 @@ async function fixture() {
 }
 async function sqliteAvailable() { try { await exec('sqlite3', ['-version']); return true; } catch { return false; } }
 const hasSqlite = await sqliteAvailable();
+if (process.env.THREADPORT_REQUIRE_SQLITE === '1' && !hasSqlite) {
+  throw new Error('SQLite CLI is required for this verification run; install sqlite3 before running tests.');
+}
 
 it('fails without output when SQLite CLI is absent', async () => {
   const f = await fixture(); f.db.close();
