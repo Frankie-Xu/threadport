@@ -79,3 +79,9 @@ it('normalizes offset dates and keeps invalid stored activity unknown rather tha
  const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));try{db.prepare('UPDATE sessions SET last_event_at=? WHERE id=?').run('2026-02-30T00:00:00Z',a.id);}finally{db.close();}
  expect((await search.search({projectId:'p'})).items[0].lastActivityAt).toBeNull();expect((await search.search({projectId:'p',from:'2026-01-01T00:00:00Z'})).items).toEqual([]);
 });
+it('preserves literal wildcard, slash, Unicode and NUL matching in the native event scan',async()=>{
+ const {search,dir,a}=await setup();const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));
+ try{db.prepare('UPDATE events SET search_text=? WHERE session_id=?').run('prefix\0AfterNUL 100% a_b slash\\word Ä ä 支付',a.id);}finally{db.close();}
+ for(const q of ['AfterNUL','prefix\0After','%','a_b','slash\\word','Ä','支付'])expect((await search.search({q,projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
+ for(const q of ['aZb','slashword','100anything','不存在'])expect((await search.search({q,projectId:'p'})).items).toEqual([]);
+});
