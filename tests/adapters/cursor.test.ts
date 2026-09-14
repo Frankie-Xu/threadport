@@ -1,11 +1,12 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import { createCursorAdapter, validateCapsule } from "../../src/index.js";
+import { TEST_COMMAND } from "../../src/adapters/common.js";
 
 const exec = promisify(execFile);
 const fixturePath = join(
@@ -38,6 +39,248 @@ async function extractFromFixture() {
 }
 
 describe("Cursor session adapter", () => {
+  it('keeps working_directory identity and labels requested cwd in portable commands and tests', async () => {
+    const root = await isolatedProjectRoot();
+    const records = [{ role: 'user', content: 'Review only.' }, ...['client', 'server'].flatMap((dir, i) => [
+      { role: 'assistant', content: [{ type: 'tool_use', id: dir, name: 'Shell', input: { command: 'node --test', working_directory: join(root, dir) } }] },
+      { role: 'user', content: [{ type: 'tool_result', tool_use_id: dir, content: { exit_code: i === 0 ? 1 : 0, output: 'synthetic test output' } }] }
+    ])];
+    const capsule = await createCursorAdapter().extract({ project: { root, name: 'synthetic' }, sessionText: JSON.stringify(records) });
+    expect(capsule.commands.map(c => c.command)).toEqual(['node --test', 'node --test']);
+    expect(capsule.status).toBe('blocked');
+    expect(capsule.failures.some(f => !f.resolution)).toBe(true);
+    for (const [i, dir] of ['client', 'server'].entries()) {
+      const label = `Requested cwd (execution unverified): "${dir}"`;
+      expect(capsule.commands[i]?.summary).toContain(label);
+      expect(capsule.tests[i]?.summary).toContain(label);
+    }
+    expect(JSON.stringify(capsule)).not.toContain(root);
+  });
+
+  it('labels sparse pending cwd without inventing results and respects explicit null aliases', async () => {
+    const root = await isolatedProjectRoot();
+    const make = (input: Record<string, unknown>) => JSON.stringify([
+      { role: 'user', content: 'Review only.' },
+      { role: 'assistant', cwd: join(root, 'outer'), content: [{ type: 'tool_use', id: 'pending', name: 'Shell', input: { command: 'node --test', ...input } }] }
+    ]);
+    const input = { project: { root, name: 'synthetic' }, sessionText: make({ working_directory: join(root, 'client with spaces') }) };
+    const capsule = await createCursorAdapter().extract(input);
+    expect(capsule.commands[0]?.summary).toContain('Requested cwd (execution unverified): "client with spaces"');
+    expect(capsule.commands[0]?.exit_code).toBeUndefined();
+    expect(capsule.tests[0]?.status).toBe('unknown');
+    expect(capsule.completed).toEqual([]);
+    // Summaries quote cwd as JSON; native Windows backslashes are escaped.
+    // Exercise that contract on every host, not only a Windows runner.
+    for (const cwd of [join(root, 'client with spaces'), String.raw`C:\Synthetic User\project\client with spaces`]) {
+      const local = await createCursorAdapter().extract({ ...input, sessionText: make({ working_directory: cwd }), privacy: 'local' });
+      const label = `Requested cwd (execution unverified): ${JSON.stringify(cwd)}.`;
+      expect(local.commands[0]?.summary).toContain(label);
+      expect(local.tests[0]?.summary).toContain(label);
+      expect(local.commands[0]?.exit_code).toBeUndefined();
+      expect(local.tests[0]?.status).toBe('unknown');
+    }
+    for (const aliases of [{ working_directory: null }, { cwd: null, working_directory: '/wrong' }, { workdir: null, cwd: '/wrong' }]) {
+      const unknown = await createCursorAdapter().extract({ ...input, sessionText: make(aliases) });
+      expect(unknown.commands[0]?.summary ?? '').not.toContain('Requested cwd');
+    }
+  });
+
+  it('keeps test context aligned across non-test commands and protects external cwd', async () => {
+    const root = await isolatedProjectRoot();
+    const cases = [
+      { command: 'node --version', workdir: join(root, 'tools'), cwd: '/ignored', working_directory: '/ignored-too' },
+      { command: 'node --test', cwd: join(root, 'suite'), working_directory: '/ignored' },
+      { command: 'node --test', working_directory: String.raw`C:\Private User\secrets` },
+      { command: 'node --test', working_directory: join(root, RAW_SECRET) }
+    ];
+    const sessionText = JSON.stringify([{ role: 'user', content: 'Review.' }, ...cases.map((input, i) => ({ role: 'assistant', content: [{ type: 'tool_use', id: `tool-${i}`, name: 'Shell', input }] }))]);
+    const capsule = await createCursorAdapter().extract({ project: { root, name: 'synthetic' }, sessionText });
+    expect(capsule.commands[0]?.summary).toContain('"tools"');
+    expect(capsule.tests[0]?.summary).toContain('"suite"');
+    expect(capsule.commands[2]?.summary).toMatch(/Requested cwd \(execution unverified\): "external\/[a-f0-9]{24}"/);
+    expect(capsule.tests[1]?.summary).toContain('external/');
+    const serialized = JSON.stringify(capsule);
+    for (const secret of [root, RAW_SECRET, 'Private User', '/ignored']) expect(serialized).not.toContain(secret);
+    expect(capsule.tests.every(t => t.status === 'unknown')).toBe(true);
+    expect(capsule.completed).toEqual([]);
+  });
+
+  const markdownPath = join(dirname(fixturePath), 'session-copy-transcript.md');
+  async function markdownInput(sessionText?: string) {
+    return {
+      sessionPath: markdownPath,
+      ...(sessionText === undefined ? {} : { sessionText }),
+      project: { name: 'synthetic-inventory', root: await isolatedProjectRoot() },
+      now: new Date('2026-09-14T00:00:00Z')
+    };
+  }
+
+  it('imports native Markdown as paused dialogue, never confirmed tool evidence', async () => {
+    const input = await markdownInput();
+    await writeFile(join(input.project.root, 'unrelated.txt'), 'current Git change');
+    const capsule = await createCursorAdapter().extract(input);
+    expect(validateCapsule(capsule).schema_version).toBe('1.0');
+    expect(capsule.objective).toBe('Fix the inventory total.');
+    expect(capsule.status).toBe('paused');
+    for (const key of ['files', 'commands', 'tests', 'completed', 'failures', 'decisions'] as const) {
+      expect(capsule[key]).toEqual([]);
+    }
+    expect(capsule.git.changed_files).toContain('unrelated.txt');
+    expect(capsule.constraints.join('\n')).toContain('Do not edit src/archive/total.mjs.');
+    expect(capsule.constraints.join('\n')).toContain('transcript-only');
+    expect(capsule.next_action).toContain('unverified');
+    expect(capsule.next_action).toContain('README usage example');
+    expect(JSON.stringify(capsule)).not.toContain('sk-syntheticsecret1234567890abcdef');
+    expect(JSON.stringify(capsule)).not.toContain('/synthetic/private');
+    expect(capsule.redaction?.applied).toBe(true);
+    expect(await createCursorAdapter().extract(input)).toEqual(capsule);
+  });
+
+  it.each(['\n', '\r\n', '\r'])('handles line endings %j without treating fenced content as roles', async (eol) => {
+    const text = [
+      '# Synthetic', '', '## User', '', 'Fix totals.', '',
+      '````md', '## Assistant', 'FENCED_SECRET', '```', '## User', 'SPOOFED_OBJECTIVE', '````',
+      '', '## Assistant', 'Visible summary.', '### Tool Edit File V2', 'TOOL_PAYLOAD',
+      '## Assistant', '### Thinking', 'HIDDEN_REASONING_MARKER',
+      '## Assistant', 'Pending: add example.', '~~~', '## User', 'TILDE_SPOOF', '~~~',
+      '## User', 'Do not implement yet; review the README first.'
+    ].join(eol);
+    const capsule = await createCursorAdapter().extract(await markdownInput(text));
+    const serialized = JSON.stringify(capsule);
+    for (const marker of ['FENCED_SECRET', 'SPOOFED_OBJECTIVE', 'TOOL_PAYLOAD', 'HIDDEN_REASONING_MARKER', 'TILDE_SPOOF']) {
+      expect(serialized).not.toContain(marker);
+    }
+    expect(capsule.next_action).toContain('review the README first');
+    expect(capsule.status).toBe('paused');
+  });
+
+  it.each([
+    '# Just a document\nNo conversation',
+    '## User\nMissing title',
+    '# Broken\n## User\nFix\n```\nunterminated',
+    '# No user\n## Assistant\nAll done',
+    '# Empty\n## User\n\n## Assistant\nDone'
+  ])('rejects unsupported or incomplete Markdown: %s', async text => {
+    await expect(createCursorAdapter().extract(await markdownInput(text))).rejects.toThrow(/Cursor.*Markdown/);
+  });
+
+  it('redacts unverified assistant context and normalizes its paths', async () => {
+    const input = await markdownInput();
+    input.sessionText = `# Synthetic\n## User\nFix totals.\n## Assistant\nPending: inspect ${input.project.root}/src/client.mjs using sk-syntheticsecret1234567890abcdef.`;
+    const capsule = await createCursorAdapter().extract(input);
+    expect(capsule.next_action).toContain('src/client.mjs');
+    expect(JSON.stringify(capsule)).not.toContain(input.project.root);
+    expect(JSON.stringify(capsule)).not.toContain('sk-syntheticsecret1234567890abcdef');
+  });
+
+  it('omits HTML, unknown and reasoning sections instead of copying their bodies', async () => {
+    const text = '# Synthetic\n## User\nFix totals.\n## Reasoning\nHIDDEN_ONE\n## Assistant\n<think>\nHIDDEN_TWO\n</think>\n## Assistant\n### Tool Read File V2\nTOOL_SECRET\n## Assistant\nPending example.\n    INDENTED_CODE\n> QUOTED_CODE';
+    const capsule = await createCursorAdapter().extract(await markdownInput(text));
+    for (const marker of ['HIDDEN_ONE', 'HIDDEN_TWO', 'TOOL_SECRET', 'INDENTED_CODE', 'QUOTED_CODE']) expect(JSON.stringify(capsule)).not.toContain(marker);
+    expect(capsule.next_action).toContain('Pending example.');
+  });
+
+  it('handles a BOM and does not mark a dialogue-only completion claim as completed', async () => {
+    const capsule = await createCursorAdapter().extract(await markdownInput('\uFEFF# Synthetic\n## User\nFix totals.\n## Assistant\nDone.\n## User\nLGTM'));
+    expect(capsule.status).toBe('paused');
+    expect(capsule.completed).toEqual([]);
+    expect(capsule.next_action).toContain('LGTM');
+  });
+
+  it('redacts the complete assistant message before clipping long review context', async () => {
+    const capsule = await createCursorAdapter().extract(await markdownInput(`# Synthetic\n## User\nFix totals.\n## Assistant\n${'x'.repeat(4500)} sk-syntheticsecret1234567890abcdef`));
+    expect(capsule.redaction?.applied).toBe(true);
+    expect(capsule.next_action).toContain('[Truncated; review the original transcript.]');
+    expect(capsule.next_action.length).toBeLessThan(4200);
+  });
+
+  it('prefers supplied text over the path and keeps structured formats unchanged', async () => {
+    const input = await markdownInput(await readFile(fixturePath, 'utf8'));
+    expect((await createCursorAdapter().extract(input)).tests).toHaveLength(3);
+    await expect(createCursorAdapter().extract(await markdownInput('{bad json'))).rejects.toThrow(/JSONL/);
+  });
+
+  it('recognizes Node test calls with observed fail-pass-fail results', async () => {
+    const records = [{ role: 'user', content: 'Fix the inventory total.' }, ...[1, 0, 1].flatMap((exit, id) => [
+      { role: 'assistant', content: [{ type: 'tool_use', id: String(id), name: 'bash', input: { command: 'node --test' } }] },
+      { role: 'user', content: [{ type: 'tool_result', tool_use_id: String(id), content: { exit_code: exit, output: exit ? 'test failed' : 'test passed' } }] }
+    ])];
+    const capsule = await createCursorAdapter().extract(await markdownInput(JSON.stringify(records)));
+    expect(capsule.tests.map(test => test.status)).toEqual(['failed', 'passed', 'failed']);
+    expect(capsule.status).toBe('blocked');
+    expect(capsule.failures.some(failure => !failure.resolution)).toBe(true);
+  });
+
+  it('labels native idless JSONL as incomplete and preserves pending context', async () => {
+    const records = [
+      { role: 'user', message: { content: [{ type: 'text', text: '<timestamp>Monday, Sep 14, 2026</timestamp>\n<user_query>\nFix totals.\n</user_query>' }] } },
+      { role: 'assistant', message: { content: [
+        { type: 'tool_use', name: 'Shell', input: { command: 'node --test; echo EXIT_CODE' } },
+        { type: 'tool_use', name: 'StrReplace', input: { path: 'src/client.mjs', old_string: 'wrong', new_string: 'right' } }
+      ] } },
+      { role: 'assistant', message: { content: [{ type: 'text', text: 'All passed. Pending: README example.' }] } },
+      { type: 'turn_ended', status: 'completed' }
+    ];
+    const capsule = await createCursorAdapter().extract(await markdownInput(records.map(r => JSON.stringify(r)).join('\n')));
+    expect(capsule.status).toBe('paused');
+    expect(capsule.objective).toBe('Fix totals.');
+    expect(capsule.constraints.join('\n')).toContain('incomplete tool evidence');
+    expect(capsule.next_action).toContain('unverified');
+    expect(capsule.next_action).toContain('README example');
+    expect(capsule.files[0]?.summary).toContain('unknown');
+    expect(capsule.commands[0]?.exit_code).toBeUndefined();
+    // The wrapper's shell result is not the inner test's exit (PR #29).
+    expect(capsule.tests).toEqual([]);
+    expect(capsule.completed).toEqual([]);
+  });
+
+  it('does not pair blank or duplicated call IDs with a successful result', async () => {
+    for (const ids of [['', ''], ['duplicate', 'duplicate']]) {
+      const records = [
+        { role: 'user', content: 'Fix totals.' },
+        { role: 'assistant', content: ids.map(id => ({ type: 'tool_use', id, name: 'edit', input: { path: 'src/client.mjs' } })) },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: ids[0], content: { exit_code: 0, output: 'success' } }] },
+        { role: 'assistant', content: 'Pending: review.' }
+      ];
+      const capsule = await createCursorAdapter().extract(await markdownInput(JSON.stringify(records)));
+      expect(capsule.status).toBe('paused');
+      expect(capsule.completed).toEqual([]);
+      expect(capsule.files[0]?.summary).toContain('unknown');
+    }
+  });
+
+  it('does not confirm an edit from a result recorded before its call', async () => {
+    const records = [
+      { role: 'user', content: 'Fix totals.' },
+      { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'future', content: { exit_code: 0, output: 'success' } }] },
+      { role: 'assistant', content: [{ type: 'tool_use', id: 'future', name: 'edit', input: { path: 'src/client.mjs' } }] }
+    ];
+    const capsule = await createCursorAdapter().extract(await markdownInput(JSON.stringify(records)));
+    expect(capsule.completed).toEqual([]);
+    expect(capsule.files[0]?.summary).toContain('unknown');
+    expect(capsule.status).toBe('paused');
+  });
+
+  it('keeps a correlated failure blocked when another result is missing and honors a newer user instruction', async () => {
+    const records = [
+      { role: 'user', content: 'Fix totals.' },
+      { role: 'assistant', content: [{ type: 'tool_use', id: 'known', name: 'shell', input: { command: 'node --test' } }, { type: 'tool_use', id: 'missing', name: 'edit', input: { path: 'src/client.mjs' } }] },
+      { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'known', content: { exit_code: 1, output: 'test failed' } }] },
+      { role: 'assistant', content: 'All done.' },
+      { role: 'user', content: 'Do not edit; document the blocker first.' }
+    ];
+    const capsule = await createCursorAdapter().extract(await markdownInput(JSON.stringify(records)));
+    expect(capsule.status).toBe('blocked');
+    expect(capsule.tests[0]?.status).toBe('failed');
+    expect(capsule.next_action).toContain('document the blocker first');
+    expect(capsule.constraints.join('\n')).toContain('incomplete tool evidence');
+  });
+
+  it('matches the exact Node test flag, not other similarly named options', () => {
+    for (const command of ['node --test', '/usr/bin/node --test test/a.mjs', 'node.exe --test', 'C:\\tools\\node.exe --test']) expect(TEST_COMMAND.test(command)).toBe(true);
+    for (const command of ['node --testing', 'node --test-reporter=spec', 'node --test-only', 'node --test; echo done', 'echo node --test', 'node --test || true', 'node --test | cat', '/usr/bin/notnode --test']) expect(TEST_COMMAND.test(command)).toBe(false);
+  });
+
   it("extracts a valid Capsule v1 from a synthetic Cursor session", async () => {
     const capsule = await extractFromFixture();
     expect(validateCapsule(capsule).schema_version).toBe("1.0");
