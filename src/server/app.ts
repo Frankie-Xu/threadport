@@ -33,7 +33,7 @@ export function createLocalApp(store:Pick<SqliteStore,'statusCounts'|'close'>,in
  app.addHook('onClose',async()=>{try{await indexer.stop();}finally{store.close();}});
  return app;
 }
-export interface LocalServer {origin:string;token:string;close():Promise<void>}
+export interface LocalServer {origin:string;token:string;closed:Promise<void>;close():Promise<void>}
 /** Only loopback and OS-assigned ports; no import-time DB, listener, scanner or logging. */
 export async function startLocalServer(options:{dataDir?:string;demo?:boolean}={}):Promise<LocalServer>{
  const store=await openStore(options);
@@ -44,16 +44,17 @@ export async function startLocalServer(options:{dataDir?:string;demo?:boolean}={
  }});
  const token=randomBytes(32).toString('hex');
  const app=createLocalApp(store,indexer,token,()=>({running:running.size,lastRefreshAt}));
+ let closing:Promise<void>|undefined;const close=()=>closing??=app.close();
+ let resolveClosed!:()=>void;const closed=new Promise<void>(resolve=>{resolveClosed=resolve;});app.addHook('onClose',async()=>{resolveClosed();});
  registerBusinessRoutes(app,store,indexer);
  registerHandoffRoutes(app,store);
- registerDataRoutes(app,store,applicationDataDir(options),indexer);
+ registerDataRoutes(app,store,applicationDataDir(options),indexer,close);
  try{
   store.maintenance().prune();
   const retention=setInterval(()=>{try{store.maintenance().prune();}catch{/* Retry next hour; never discard user data after a failed transaction. */}},3600000);retention.unref();
   app.addHook('onClose',async()=>{clearInterval(retention);});
   await registerBootstrap(app,options.demo??false);
   const origin=await app.listen({host:'127.0.0.1',port:0});indexer.start();
-  let closing:Promise<void>|undefined;
-  return{origin,token,close:()=>closing??=app.close()};
+  return{origin,token,closed,close};
  }catch(error){await app.close();throw error;}
 }

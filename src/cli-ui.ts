@@ -26,7 +26,7 @@ export async function runUi(options:{dataDir?:string;noOpen:boolean;demo:boolean
   const url=server.origin+'/#token='+server.token;
   io.stdout.write(url+'\n');
   if(!options.noOpen){try{await openBrowser(url);}catch{io.stderr.write('Could not open the browser; use the link printed above.\n');}}
-  await stopped;return signal==='SIGINT'?130:143;
+  await Promise.race([stopped,server.closed]);return signal==='SIGINT'?130:signal==='SIGTERM'?143:0;
  }catch{io.stderr.write('Unable to start the local workspace service.\n');return 5;}
  finally{process.removeListener('SIGINT',interrupt);process.removeListener('SIGTERM',terminate);try{try{await server?.close();}finally{if(demoDir)await rm(demoDir,{recursive:true,force:true});}}catch{io.stderr.write('Local service cleanup failed.\n');return 5;}}
 }

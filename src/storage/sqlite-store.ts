@@ -1,3 +1,4 @@
+import {deleteOwnedData} from './delete-data.js';
 import type Database from 'better-sqlite3';
 import { z } from 'zod';
 import type { Task, NormalizedEvent } from '../domain/models.js';
@@ -51,6 +52,8 @@ export class SqliteStore extends IndexStore {
   statusCounts():{events:number;indexedBytes:number;sources:number;sessions:number;tasks:number}{
     return this.run(()=>this.db.prepare('SELECT (SELECT count(*) FROM events) AS events, (SELECT coalesce(sum(byte_offset),0) FROM source_cursors) AS indexedBytes, (SELECT count(*) FROM sources) AS sources, (SELECT count(*) FROM sessions) AS sessions, (SELECT count(*) FROM tasks) AS tasks').get() as {events:number;indexedBytes:number;sources:number;sessions:number;tasks:number});
   }
+  deleteAll(dataDir:string){return deleteOwnedData(this.db,dataDir);}
+  isOpen():boolean{return this.db.open;}
   close(): void { this.db.close(); }
   createProject(projectId: string, name: string): void {
     validate(id, projectId); validate(z.string().min(1).max(120), name);
