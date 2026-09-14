@@ -148,6 +148,41 @@ it('never confirms a native edit rejected by the user', async () => {
 - [ ] 用户明确授权创建 PR 后再发布 PR，运行并检查实际 CI；绿色合成平台矩阵不替代这些平台的 Cursor 实机测试。维护者审核/合并后才能将修复记作 main 已交付。
 - [x] 支持声明采用“版本 + build + OS/架构 + 模式 + 输入来源 + 场景结果”。某一必需场景无法验证时，维持实验性/部分验证声明，并明确哪些结果 unknown。
 
+## Task 6: CURSOR-CERT-01 后续 — 请求目录可见性
+
+**Baseline:** `ab55156`，远端 main 仍为 `d3c439d`；沿用当前 Cursor 功能分支，无其他未提交修改。
+
+**Problem:** `message-events.ts` 没有读取真实 sparse JSONL 的 `working_directory`；原生 cwd 虽参与内部配对，但 Capsule v1 没有 cwd 字段，最终同名命令不可区分。属于同一手动导入证据工作包（T03/T04, F05, Q04/Q15/Q24），不扩展 Cursor 执行器。
+
+**Files:** 修改 `src/adapters/message-events.ts`（Cursor 字段别名与请求目录摘要）、`tests/adapters/cursor.test.ts`、`tests/adapters/cursor-native.test.ts`、`tests/cli.test.ts`（端到端身份/隐私回归）、本计划、`docs/adr/0008-cursor-selected-evidence.md`、`docs/verification/cursor-release-candidate.md`。PR 描述仅在获授权后发布；原始证据不入库。
+
+**Interfaces:** 保持 `messageAdapter(agent).extract(input): Promise<Capsule>` 和 Capsule v1 不变。只在 Cursor 分支优先读取显式 workdir/cwd，然后 working_directory，最后 record.cwd；显式 null 不回落到外层目录。命令和测试摘要增加 `Requested cwd (execution unverified): ...`，目录按现有 portable/local 策略处理，不从日志输出推断实际目录，不让 Claude 路径改变。
+
+- [x] 添加回归：两个 `Shell` 调用都为 `node --test`，输入 `working_directory` 分别为合成项目的 client/server；显式结果 exit 1/0 不得相互解决失败；原生结果即使输出相同也必须显示不同的请求目录。断言 pending 仍 unknown，测试和命令摘要均保留请求目录，portable 输出不含项目绝对路径。
+
+```ts
+expect(capsule.commands.map(c => c.command)).toEqual(['node --test', 'node --test']);
+expect(capsule.commands[0]?.summary).toContain('Requested cwd (execution unverified): "client"');
+expect(capsule.commands[1]?.summary).toContain('Requested cwd (execution unverified): "server"');
+expect(capsule.failures.some(f => !f.resolution)).toBe(true);
+```
+
+- [x] 运行 `npx vitest run tests/adapters/cursor.test.ts tests/adapters/cursor-native.test.ts tests/cli.test.ts`，先确认旧实现回归失败，再实现最小改动。对 `working_directory` 的读取采用：
+
+```ts
+const cwd = 'workdir' in args ? asString(args.workdir) ?? null
+  : 'cwd' in args ? asString(args.cwd) ?? null
+  : agent === 'cursor' && 'working_directory' in args ? asString(args.working_directory) ?? null
+  : asString(record.cwd) ?? null;
+```
+
+- [x] 在 `tracesFromEvents` 后按同序的 `commandRuns` 为 Cursor 命令摘要加请求目录前缀；直接测试命令对应的 tests 摘要也加同一前缀。先 `portablePath(cwd, resolve(input.project.root))`（local 模式保留原值），再拼入摘要，最终仍走 `assembleCapsule` 的隐私保护。不得改 command 字段、exit_code 或从输出中猜 cwd。
+- [x] 重跑 `npm run check`、`npm run check:pack` 和最终安装包真实样例 extract → validate → handoff；检查原生和 sparse 两路目录标签、未知结果以及源文件不变。
+- [ ] 用户让出 Cursor 窗口后，仅在现有合成项目做只读 `process.cwd()` 单次/并发对照，保持审批与保护不变。若参数仍未生效，保留 vendor 限制，不能依靠 `cd` 改写命令伪装通过。
+- [ ] 更新 ADR 和验收报告，提交 `fix(CURSOR-CERT-01): preserve requested directory context in handoffs`。得到 PR 授权后按仓库模板创建 PR、检查三平台 CI；不自动合并。回滚沿用本包的前向修复优先策略，不动上游存储和迁移。
+
+执行证据：源码已提交 `cd8d1b2`；307 tests / 39 files、111 文件包、同一安装产物的 13 组真实样例重放通过。上述最后一项的代码/ADR/报告部分已完成，PR 授权与 CI 未完成，故组合项不勾选。当前未操作 Cursor 窗口或修改审批，等待用户确认补测占用窗口及创建 PR。
+
 ## 3. 本轮不应顺手建设的功能
 
 - Cursor CLI、Cloud、其他桌面模式和 Windows/Linux 实机：独立扩展矩阵，先有目标用户/设备/许可再开工，不要求本机现在下载所有软件。
