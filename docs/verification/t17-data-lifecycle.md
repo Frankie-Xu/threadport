@@ -16,3 +16,5 @@ T17-A 实现诊断白名单、显式预览摘要与不覆盖的原子文件发�
 - 认证 API：`GET /api/v1/diagnostics`、`GET /api/v1/settings`、`POST /api/v1/exports/preview`、`POST /api/v1/exports`。写出必须提交预览的 SHA-256 `expectedDigest`，不接受客户端提供的任意文件名。
 - 文件系统必须支持同目录 hard link；不支持时安全失败，不降级为可能覆盖的写法。临时文件以 0600 创建；Windows 权限遵从当前账户 ACL。
 - 诊断错误最多 20 条安全错误码与时间，不含完整日志。该报告仅描述当前存储，不证明真实 Agent 或平台已经认证。
+
+T17-A 本地验证：Node 24.18.1 / macOS arm64，363 tests / 52 files、4 个浏览器流程、181 文件独立安装包通过。[诊断截图](assets/t17-diagnostics.png) 使用合成任务，粉色带为截图隐私遮罩。首次 Windows CI 的旧 100k 事件回归在 5.576 秒超过 5 秒测试预算，改为该案例 30 秒并用 finally 关闭注入连接，容量/原子回滚断言保持不变；最终 CI 以 PR 为准。

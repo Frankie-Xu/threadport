@@ -52,6 +52,6 @@ it('rejects a stale cursor before changing persisted events',async()=>{
 });
 it('stops at the global event budget and rolls back the over-budget session and cursor',async()=>{
  const {store,path,dataDir}=await setup();await writeFile(path,row('over budget'));const seed=new Database(join(dataDir,'threadport.sqlite'));
- seed.exec("INSERT INTO sessions(id,metadata_json) VALUES('capacity','{}'); WITH RECURSIVE numbers(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM numbers WHERE n<100000) INSERT INTO events(id,session_id,ordinal,body_json,search_text) SELECT 'seed-'||n,'capacity',n,'{}','' FROM numbers;");
- const service=new IndexService(store);services.push(service);const result=await service.refresh('source');expect(result.state).toBe('failed');expect(result.warnings).toContain('INDEX_LIMIT');expect(store.listIndexedSessions('source')).toEqual([]);expect(seed.prepare('SELECT count(*) FROM events').pluck().get()).toBe(100000);seed.close();
-});
+ try{seed.exec("INSERT INTO sessions(id,metadata_json) VALUES('capacity','{}'); WITH RECURSIVE numbers(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM numbers WHERE n<100000) INSERT INTO events(id,session_id,ordinal,body_json,search_text) SELECT 'seed-'||n,'capacity',n,'{}','' FROM numbers;");
+ const service=new IndexService(store);services.push(service);const result=await service.refresh('source');expect(result.state).toBe('failed');expect(result.warnings).toContain('INDEX_LIMIT');expect(store.listIndexedSessions('source')).toEqual([]);expect(seed.prepare('SELECT count(*) FROM events').pluck().get()).toBe(100000);}finally{seed.close();}
+},30000);

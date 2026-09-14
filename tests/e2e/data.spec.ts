@@ -64,4 +64,5 @@ test("previews safe diagnostics and explicitly writes reviewed metadata to a sel
   expect(report).not.toContain(server.token);
   expect(report).not.toContain("Synthetic export task");
   expect(JSON.parse(report!).counts.tasks).toBe(1);
+  if(process.env.THREADPORT_UI_SCREENSHOTS)await page.screenshot({path:"output/playwright/t17-diagnostics.png",mask:[page.locator(".path")]});
 });
