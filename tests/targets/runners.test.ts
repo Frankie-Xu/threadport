@@ -41,3 +41,9 @@ it('enforces the Windows argv budget before returning a launch specification',as
  expect(()=>launchSpec('C:\\Program Files\\Codex\\codex.exe',['--',h.prompt],{handoff:h,workspaceRoot:f.root,vendorSessionId:null},'win32')).not.toThrow();
  }finally{f.store.close();}
 },30000);
+it('also constructs Codex native resume and Claude new-session with complete current context',async()=>{
+ const f=await fixture('codex');try{const service=new HandoffService(f.store);const native=await service.prepareHandoff({...f.input,mode:'native-resume'});const c=await options('codex');const sessionId=f.store.handoffStore().source(f.input.sourceSessionId)!.vendorSessionId;
+ const spec=await new CodexRunner(c.options).prepare({handoff:native,workspaceRoot:f.root,vendorSessionId:sessionId});expect(spec.args).toEqual(['resume','--cd',f.root,'--',sessionId,native.prompt]);
+ const fresh=await service.prepareHandoff({...f.input,target:'claude'});const a=await options('claude');expect((await new ClaudeRunner(a.options).prepare({handoff:fresh,workspaceRoot:f.root,vendorSessionId:null})).args).toEqual(['--',fresh.prompt]);
+ }finally{f.store.close();}
+},30000);
