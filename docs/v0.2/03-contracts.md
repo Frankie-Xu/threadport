@@ -102,7 +102,8 @@ T03 的 `latestCommandRuns(runs: readonly CommandRun[]): CommandRun[]` 按 sessi
 | workspaces | id PK, project_id FK, canonical_root UNIQUE | 缺失只标记，不假改路径 |
 | sessions | id PK, source_id FK, vendor_id, source_path, metadata_json | 清除索引时留身份墓碑以便重关联 |
 | events | id PK, session_id FK, ordinal, body_json, search_text；UNIQUE(session_id, ordinal) | 随来源索引清除 |
-| source_cursors | session_id PK, file_identity, byte_offset, parser_version | 重建重置 |
+| source_cursors | session_id PK, file_identity, byte_offset, parser_version, cursor_json（schema v2） | 重建重置 |
+| index_leases | source_id PK/FK, owner, slot UNIQUE（0/1）, expires_at；schema v2 | 完成释放，崩溃后 30 秒回收 |
 | tasks | id PK, project_id FK, revision, body_json, updated_at | 用户明确删除全部数据才清除 |
 | task_sessions | session_id UNIQUE, task_id FK | 与人工任务一起保留，允许 source missing |
 | task_revisions | task_id FK, revision, changed_at, body_json；复合 PK | 人工历史不随重扫删除 |
@@ -133,7 +134,7 @@ interface ReadCursor {
   pendingCalls?: { id: string; command: string; cwd: string | null; startedAt: ISODate | null }[];
   recognized?: boolean;
   warnings?: string[];
-  metadata?: { sessionId?: Id; vendorSessionId: string | null; formatVersion: string | null; lastEventAt: ISODate | null };
+  metadata?: { cwd?: string | null; sessionId?: Id; vendorSessionId: string | null; formatVersion: string | null; lastEventAt: ISODate | null };
 }
 interface SourceReadResult {
   session: SessionRecord;
@@ -342,3 +343,5 @@ Source/Workspace 的本地路径在认证本地设置 UI 中可展示；不得�
 | MIGRATION_FAILED / IO_FAILED | 500 | false | 保留数据，查看脱敏诊断与恢复说明 |
 
 服务端保留 requestId 和结构化错误；默认不打印 request body、完整 prompt 或绝对 source path。程序员错误不吞掉；转成安全 INTERNAL_ERROR 并记录堆栈时也要脱敏路径。
+
+T07 的 Store 索引端口、占用记录与游标 CAS 提交语义见 [增量索引](08-indexing.md)。来源根以数组 JSON 保存；任务字段与会话关联不随索引提交覆盖。

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type Database from 'better-sqlite3';
 import { DomainError } from '../domain/errors.js';
 import { privateDirectory } from '../platform/paths.js';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export interface Migration { version: number; sql: string }
 export function storageError(error: unknown): DomainError {
   if (error instanceof DomainError) return error;
@@ -12,7 +12,7 @@ export function storageError(error: unknown): DomainError {
     code === 'SQLITE_BUSY' || code === 'SQLITE_LOCKED' ? 'Storage is busy; retry the short transaction.' : 'Storage operation failed; existing data was retained.');
 }
 export async function migrate(db: Database.Database, dataDir: string, supplied?: readonly Migration[]): Promise<void> {
-  const migrations = supplied ?? [{ version: 1, sql: await readFile(new URL('../../migrations/001-initial.sql', import.meta.url), 'utf8').catch(async () => readFile(new URL('../../../migrations/001-initial.sql', import.meta.url), 'utf8')) }];
+  const migrations = supplied ?? await Promise.all(['001-initial.sql','002-index-state.sql'].map(async (name,index)=>({version:index+1,sql:await readFile(new URL(`../../migrations/${name}`,import.meta.url),'utf8').catch(async()=>readFile(new URL(`../../../migrations/${name}`,import.meta.url),'utf8'))})));
   const current = db.pragma('user_version', { simple: true }) as number;
   const target = migrations.at(-1)?.version ?? SCHEMA_VERSION;
   if (current > target) throw new DomainError('MIGRATION_FAILED', 'Database is newer than this application; use a compatible version.');

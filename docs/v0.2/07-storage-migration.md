@@ -21,7 +21,7 @@ try {
 
 Store 提供项目创建/删除、session 墓碑保留、任务读取/分页/revision 历史以及 saveTask。saveTask(task, expectedRevision, sessionIds?) 要求 revision 递增 1；expectedRevision=0 创建；关联省略时保留，[] 明确清空。任务/历史/关联在同一短事务中写入。其他任务已占用 session 时返回 REVISION_CONFLICT；不隐式抢占。手工字段在应用层脱敏并经用户确认后再交 Store，Store 验证 JSON 结构；T08 实现这层用例。
 
-schema v1 的表与索引见 [契约](03-contracts.md)。sessions 允许 source_id 为空以保留墓碑；saveSession 只保留身份，不是 T06/T07 索引实现。后续来源写入应使用 upsert，不可 REPLACE 删除再插入。数据库启用 WAL、外键和 5000ms busy timeout；锁争用返回可重试 STORAGE_BUSY。查询分页上限 1000。
+T05 建立 schema v1；T07 通过迁移 002 升至 v2，新增完整 cursor_json 与扫描占用表，见 [增量索引](08-indexing.md)。表与索引见 [契约](03-contracts.md)。sessions 允许 source_id 为空以保留墓碑；saveSession 只保留身份，不是 T06/T07 索引实现。后续来源写入应使用 upsert，不可 REPLACE 删除再插入。数据库启用 WAL、外键和 5000ms busy timeout；锁争用返回可重试 STORAGE_BUSY。查询分页上限 1000。
 
 ## 迁移失败与恢复
 

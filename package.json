@@ -23,6 +23,10 @@
     "./sources": {
       "types": "./dist/src/sources/registry.d.ts",
       "import": "./dist/src/sources/registry.js"
+    },
+    "./indexing": {
+      "types": "./dist/src/indexing/service.d.ts",
+      "import": "./dist/src/indexing/service.js"
     }
   },
   "files": [
