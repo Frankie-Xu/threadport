@@ -64,6 +64,7 @@ try {
   execFileSync(process.execPath, ['--input-type=module', '-e', `
     import assert from 'node:assert/strict';
     import {execFileSync,spawnSync} from 'node:child_process';
+    import {existsSync} from 'node:fs';
     import {mkdir,writeFile,readFile,realpath} from 'node:fs/promises';
     import {resolve} from 'node:path';
     import {openStore} from 'threadport/storage';
@@ -83,6 +84,7 @@ try {
     await writeFile(root+'/file.txt','changed');result=run('verify.json');assert.equal(result.status,4);assert.equal(JSON.parse(result.stdout).status,'drifted');
     result=run('node_modules/threadport/examples/capsule-v1.json');assert.equal(result.status,6);assert.equal(JSON.parse(result.stdout).scope,null);
     await writeFile('bad.json','{');assert.equal(run('bad.json').status,2);assert.equal(run('missing.json').status,5);
+    const continued=spawnSync(process.execPath,[entry,'continue','--handoff','11111111-1111-4111-8111-111111111111','--data-dir','must-not-open'],{encoding:'utf8',timeout:15000});assert.equal(continued.status,2);assert.match(continued.stderr,/interactive terminal/);assert.equal(existsSync('must-not-open'),false);
   `], {cwd:installRoot,timeout:90000});
   execFileSync(process.execPath, ['--input-type=module', '-e', `
     import assert from 'node:assert/strict';
@@ -109,7 +111,7 @@ try {
       const exited=once(child,'exit');child.kill('SIGTERM');await exited;
     } finally {child.kill('SIGKILL');}
   `], {cwd:installRoot,timeout:30000});
-  console.log(`Package smoke passed: ${packed.files.length} files; public exports, UI CLI, workspace verification, local server and 3 Cursor roundtrips pass from an isolated install.`);
+  console.log(`Package smoke passed: ${packed.files.length} files; public exports, UI/continue CLI, workspace verification, local server and 3 Cursor roundtrips pass from an isolated install.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }

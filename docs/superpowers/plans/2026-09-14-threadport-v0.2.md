@@ -735,8 +735,8 @@ npm run test:package
 | T10 | done | L1（A/B/C SDK 与 CLI） | 未单独计时 | [T10-A 证据](../../verification/t10-a-snapshot.md)、[T10-B 证据](../../verification/t10-b-verify.md)、[T10-C 证据](../../verification/t10-c-cli.md)；C 已合并 PR #39（6512975）；UI/真实接续后续验收 |
 | T11 | done | L1（A/B/C 已合并，#40/#42/#43） | 未单独计时 | [T11 包计划](2026-09-14-t11-work-packages.md)、[A 证据](../../verification/t11-a-server.md) |
 | T12 | done | L1（A/B 已合并，#44/#45） | 未单独计时 | [T12 工作包](2026-09-15-t12-work-packages.md)、[B 证据](../../verification/t12-b-handoff.md) |
-| T13 | review | L1（参数实测、局部验证，待 CI/合并） | 未单独计时 | [T13 计划](2026-09-15-t13-target-runners.md)、[版本矩阵](../../compatibility.md) |
-| T14 | pending | L0 | 尚未实施 | 尚未实施 |
+| T13 | done | L1（参数实测，#46 已合并） | 未单独计时 | [T13 计划](2026-09-15-t13-target-runners.md)、[版本矩阵](../../compatibility.md) |
+| T14 | in_progress | L1（A 待 CI/合并，真实 gate 未满足） | 未单独计时 | [T14 工作包](2026-09-15-t14-terminal-launch.md)、[验证记录](../../verification/t14-terminal-launch.md) |
 | T15 | pending | L0 | 尚未实施 | 尚未实施 |
 | T16 | pending | L0 | 尚未实施 | 尚未实施 |
 | T17 | pending | L0 | 尚未实施 | 尚未实施 |

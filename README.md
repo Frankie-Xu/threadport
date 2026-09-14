@@ -98,7 +98,7 @@ Snapshots distinguish HEAD-to-index, index-to-worktree, and untracked contents, 
 
 `handoff` exports Markdown (`.md`) or a strict `threadport.handoff.v1` envelope. The public `createHandoff`, `parseHandoff`, and `handoffSchema` APIs and `schema/handoff-v1.schema.json` define this envelope. Register `schema/capsule-v1.schema.json` with offline JSON Schema validators to resolve its reference. Consumers must validate both the envelope and capsule. Safety flags declare a no-execution workflow; they are not a sandbox.
 
-`targets` only locates candidates using PATH/PATHEXT. It does not run agents or lookup utilities. Every candidate reports `launch_supported: false`; existence does not establish vendor identity or a compatible CLI version. The old `suggestedLaunch` API now rejects automatic launching rather than returning an unverified shell command. There is no resume/apply/launch command.
+`targets` only locates candidates using PATH/PATHEXT. It does not run agents or lookup utilities. Every candidate reports `launch_supported: false`; existence does not establish vendor identity or a compatible CLI version. The old `suggestedLaunch` API now rejects automatic launching rather than returning an unverified shell command. The new `continue` command requires an immutable task handoff and explicit terminal confirmation; there is no automatic launch or apply mode.
 
 ### Release verification
 
@@ -130,3 +130,6 @@ Use `threadport/search` to find Chinese substrings, English text, relative paths
 `threadport/server` now exposes `startLocalServer({dataDir?})` for a protected loopback service and authenticated `GET /api/v1/status`. The server returns an in-memory token and an idempotent `close()` that stops indexing before closing the database. See [local server documentation](docs/v0.2/13-local-server.md). Business routes and the `ui` CLI remain subsequent T11 work packages.
 
 Start the local entry page with `threadport ui --no-open`, or use `threadport ui --demo --no-open` for isolated synthetic data. Open the printed fragment-token link; refreshing requires reopening the current terminal link. The entry currently shows task summaries; the full workbench UI is a later task. Ctrl-C stops the service.
+
+
+Prepare a task continuation with `threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id>`, then run `threadport continue --handoff <uuid>` in your terminal (use the same optional `--data-dir` for both). Continue displays the complete context, target and workspace, requires typing `CONTINUE`, verifies again, and claims the handoff once before inheriting the terminal. Non-TTY use and `--yes` are rejected. Target nonzero exits are recorded separately and return CLI exit 5; a clean process exit does not mark the task complete. See the [version matrix](docs/compatibility.md) and [local workflows](docs/v0.2/13-local-server.md). Real cross-Agent certification is still pending; the full workbench remains T15.

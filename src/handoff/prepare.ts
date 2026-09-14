@@ -50,5 +50,5 @@ export class HandoffService {
   this.store.saveSnapshot(snapshot,workspace);this.store.handoffStore().save(record);return handoff;
  }
  confirmHandoff(input:ConfirmInput){return confirmHandoff(this.store,input);}
- get(id:string){const value=this.store.handoffStore().read(id);return {handoff:value.record.handoff,state:value.state,expired:value.expired};}
+ get(id:string){this.store.launchStore().reconcile(id);const value=this.store.handoffStore().read(id);return {handoff:value.record.handoff,state:value.state,expired:value.expired,attempts:this.store.launchStore().attempts(id)};}
 }
