@@ -733,8 +733,8 @@ npm run test:package
 | T08 | done | L2（任务集成） | 未单独计时 | [验收与回归](../../verification/t08-task-management.md)；241 测试，PR #34 / 7c13034，三平台 CI 通过 |
 | T09 | done | L2（搜索集成） | 未单独计时 | [验收与回归](../../verification/t09-history-search.md)；249 测试，PR #35 / ff32547，三平台 CI 通过 |
 | T10 | done | L1（A/B/C SDK 与 CLI） | 未单独计时 | [T10-A 证据](../../verification/t10-a-snapshot.md)、[T10-B 证据](../../verification/t10-b-verify.md)、[T10-C 证据](../../verification/t10-c-cli.md)；C 已合并 PR #39（6512975）；UI/真实接续后续验收 |
-| T11 | review | L1（A/B/C，待 C 合并） | 未单独计时 | [T11 包计划](2026-09-14-t11-work-packages.md)、[A 证据](../../verification/t11-a-server.md) |
-| T12 | pending | L0 | 尚未实施 | 尚未实施 |
+| T11 | done | L1（A/B/C 已合并，#40/#42/#43） | 未单独计时 | [T11 包计划](2026-09-14-t11-work-packages.md)、[A 证据](../../verification/t11-a-server.md) |
+| T12 | in_progress | L1（A 本地检查通过，B 未实现） | 未单独计时 | [T12 工作包](2026-09-15-t12-work-packages.md) |
 | T13 | pending | L0 | 尚未实施 | 尚未实施 |
 | T14 | pending | L0 | 尚未实施 | 尚未实施 |
 | T15 | pending | L0 | 尚未实施 | 尚未实施 |
