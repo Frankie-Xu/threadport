@@ -77,7 +77,8 @@ function usage(): string {
     'threadport render <capsule.json>',
     'threadport verify <capsule.json> --project <root> [--json] [--data-dir <path>]',
     'threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--format markdown|json] [--out <file>] [--force]',
-    'threadport targets'
+    'threadport targets',
+    'threadport ui [--data-dir <path>] [--no-open] [--demo]'
   ].join('\n');
 }
 
@@ -86,6 +87,13 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
     const [command, ...rest] = argv;
     if (command === undefined || command === '--help' || command === '-h') {
       io.stdout.write(`${usage()}\n`); return command ? 0 : 1;
+    }
+    if (command === 'ui') {
+      let parsed:ReturnType<typeof options>;
+      try{parsed=options(rest,['data-dir'],['no-open','demo']);if(parsed.positional.length||parsed.enabled.has('demo')&&parsed.named['data-dir'])throw new Error('ui accepts no input path; --demo cannot use --data-dir.');}
+      catch(error){io.stderr.write(`${message(error)}\n`);return 2;}
+      const {runUi}=await import('./cli-ui.js');
+      return runUi({dataDir:parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined,noOpen:parsed.enabled.has('no-open'),demo:parsed.enabled.has('demo')},io);
     }
     if (command === 'verify') return runVerify(rest, io);
     if (command === 'targets') {

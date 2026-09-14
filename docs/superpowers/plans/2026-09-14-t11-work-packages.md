@@ -8,7 +8,7 @@
 | T11-B | tasks/sessions/search/index/sources/workspaces 等已实现用例的 API v1 路由及允许字段 DTO | server/routes.ts、schemas.ts，按缺口补 storage 查询；server 路由集成测试 | 权限、严格输入、游标/冲突/取消、DTO 隐私与真实用例 | 保留 A 的服务与状态能力，处理 C/UI 消费者后 revert B |
 | T11-C | ui CLI 基础、一次性 fragment 链接、信号/启动失败清理、整体 T11 收口 | cli.ts、server 入口、pack-smoke、CLI 测试和使用文档 | 安装后启动/请求/停止、错误码、无 token 日志/持久化、旧 CLI 回归 | 撤销 ui 命令，保留 A/B SDK 和数据 |
 
-A 已合并 PR #40（2f46ea5）；B 已实现，见 [交付卡](../../verification/t11-b-routes.md)；C 待实施。handoff 留 T12，完整 UI 留对应后续 UI 任务。一个包一个 PR，实际 SHA/CI/回滚单元记录在交付卡和 PR。现有无关工作区文件不纳入。
+A 已合并 PR #40（2f46ea5）；B 已实现，见 [交付卡](../../verification/t11-b-routes.md)；C 已实现，见 [交付卡](../../verification/t11-c-ui.md)，最终 CI/交付见 PR。handoff 留 T12，完整 UI 留对应后续 UI 任务。一个包一个 PR，实际 SHA/CI/回滚单元记录在交付卡和 PR。现有无关工作区文件不纳入。
 
 A 执行顺序：
 
