@@ -3,6 +3,8 @@ import { z } from 'zod';
 import type { Task, NormalizedEvent } from '../domain/models.js';
 import { DomainError } from '../domain/errors.js';
 import { openDatabase, type DatabaseOptions } from './database.js';
+import { registerSearchFunctions, searchHistory } from './search-store.js';
+import type { SearchInput, SearchPage } from '../search/contracts.js';
 import { IndexStore } from './index-store.js';
 const id = z.string().min(1).max(512);
 const date = z.string().datetime();
@@ -17,6 +19,8 @@ function page(limit: number, offset: number) {
 }
 /** Infrastructure boundary. Callers supply already redacted task fields; Store validates shape and atomicity. */
 export class SqliteStore extends IndexStore {
+  constructor(db:Database.Database){super(db);registerSearchFunctions(db);}
+  searchHistory(input:SearchInput={}):SearchPage{return this.run(()=>searchHistory(this.db,input));}
   close(): void { this.db.close(); }
   createProject(projectId: string, name: string): void {
     validate(id, projectId); validate(z.string().min(1).max(120), name);

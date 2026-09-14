@@ -334,6 +334,7 @@ Source/Workspace 的本地路径在认证本地设置 UI 中可展示；不得�
 | UNAUTHORIZED / ORIGIN_REJECTED | 401 / 403 | false | 从当前 CLI 输出重新打开页面 |
 | NOT_FOUND | 404 | false | 刷新列表/重新关联来源 |
 | REVISION_CONFLICT | 409 | true | 比较最新 revision 后重交 |
+| SEARCH_STALE | 409 | false | 清除分页游标，重新查询第一页 |
 | PROJECT_MISMATCH | 409 | false | 选择同项目会话或先移出后显式改绑 |
 | REDACTION_REQUIRED | 422 | false | 展示脱敏预览并提交确认后的文本 |
 | WORKSPACE_MISMATCH | 409 | false | 选择正确目录或显式重新绑定 |
@@ -349,3 +350,5 @@ Source/Workspace 的本地路径在认证本地设置 UI 中可展示；不得�
 T07 的 Store 索引端口、占用记录与游标 CAS 提交语义见 [增量索引](08-indexing.md)。来源根以数组 JSON 保存；任务字段与会话关联不随索引提交覆盖。
 
 T08 的已实现 SDK、字段预算、关联事务与完成活动基线见 [人工任务](09-task-management.md)。
+
+T09 已实现的搜索 SDK、返回字段、字面量 AND 与游标失效语义见 [历史搜索](10-history-search.md)。schema v4 增加搜索 generation，与可见数据同事务变更。
