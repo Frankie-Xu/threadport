@@ -28,6 +28,29 @@ try {
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore}=await import("threadport/storage"); const {TaskService}=await import("threadport/tasks"); const s=await openStore({dataDir:"./data"}); const tasks=new TaskService(s); const t=await tasks.create({projectId:"smoke",title:"SDK task"}); const saved=await tasks.update(t.id,1,{objective:"Manual objective"}); if(saved.revision!==2)throw new Error("Task smoke failed"); s.close();'], { cwd: installRoot, timeout: 15000 });
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore}=await import("threadport/storage"); const {SearchService}=await import("threadport/search"); const s=await openStore({dataDir:"./data"}); const page=await new SearchService(s).search({q:"Manual objective"}); if(page.items.length!==1)throw new Error("Search smoke failed"); s.close();'], { cwd: installRoot, timeout: 15000 });
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore}=await import("threadport/storage"); const {SnapshotService,verifyWorkspace}=await import("threadport/workspace"); const {resolve}=await import("node:path"); const s=await openStore({dataDir:"./data"}); s.createWorkspace("snapshot-smoke","smoke",resolve("./data")); const snapshot=await new SnapshotService(s).capture("snapshot-smoke"); if(snapshot.digest!==null||!snapshot.incompleteReasons.includes("NO_GIT")||!s.getSnapshot(snapshot.id))throw new Error("Snapshot smoke failed"); const report=await verifyWorkspace(snapshot,s.getWorkspace("snapshot-smoke")); if(report.status!=="unverifiable"||report.reasons[0].code!=="NO_GIT")throw new Error("Verify smoke failed");s.close();'], { cwd: installRoot, timeout: 15000 });
+  execFileSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import {execFileSync,spawnSync} from 'node:child_process';
+    import {mkdir,writeFile,readFile,realpath} from 'node:fs/promises';
+    import {resolve} from 'node:path';
+    import {openStore} from 'threadport/storage';
+    import {SnapshotService} from 'threadport/workspace';
+    await mkdir('verify-project');const root=await realpath('verify-project');
+    const git=(...args)=>execFileSync('git',['-C',root,...args],{stdio:'pipe'});
+    git('init','-b','main');git('config','user.name','Synthetic');git('config','user.email','test@example.invalid');
+    await writeFile(root+'/file.txt','initial');git('add','.');git('commit','-m','initial');
+    const store=await openStore({dataDir:'./data'});store.createWorkspace('cli-smoke','smoke',root);
+    const snapshot=await new SnapshotService(store).capture('cli-smoke');store.close();
+    const capsule=JSON.parse(await readFile('node_modules/threadport/examples/capsule-v1.json','utf8'));
+    capsule.evidence.push({kind:'other',title:'Snapshot',locator:'threadport:workspace-snapshot:'+snapshot.id});
+    await writeFile('verify.json',JSON.stringify(capsule));
+    const entry=resolve('node_modules/threadport/dist/src/cli.js');
+    const run=(file)=>spawnSync(process.execPath,[entry,'verify',file,'--project',root,'--data-dir','./data','--json'],{encoding:'utf8',timeout:15000});
+    let result=run('verify.json');assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).status,'matched');
+    await writeFile(root+'/file.txt','changed');result=run('verify.json');assert.equal(result.status,4);assert.equal(JSON.parse(result.stdout).status,'drifted');
+    result=run('node_modules/threadport/examples/capsule-v1.json');assert.equal(result.status,6);assert.equal(JSON.parse(result.stdout).scope,null);
+    await writeFile('bad.json','{');assert.equal(run('bad.json').status,2);assert.equal(run('missing.json').status,5);
+  `], {cwd:installRoot,timeout:90000});
   console.log(`Package smoke passed: ${packed.files.length} files; CLI and public exports load from an isolated install.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
