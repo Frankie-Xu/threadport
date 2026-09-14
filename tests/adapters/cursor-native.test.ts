@@ -110,6 +110,23 @@ it('preserves native working directories and never recovers failures from text m
   expect(recovered.commands.every(c => c.exit_code === undefined)).toBe(true);
 });
 
+it('distinguishes requested native directories in exported command and test summaries', async () => {
+  const p = await project();
+  const tools = ['client', 'server'].map((dir, i) => {
+    const tool = shell(dir, 10 + i, 30 - i, i);
+    return { ...tool, tool: { ...tool.tool, params: { command: 'node --test', cwd: join(p.root, dir) }, result: { ...tool.tool.result, output: 'identical output' } } };
+  });
+  const capsule = await createCursorAdapter().extract({ project: p, sessionText: JSON.stringify(envelope([text('u', 1, 'Review.', 0), ...tools])) });
+  expect(capsule.commands.map(c => c.command)).toEqual(['node --test', 'node --test']);
+  // Completion order is server, then client; never attach labels by input array order.
+  for (const [i, dir] of ['server', 'client'].entries()) {
+    expect(capsule.commands[i]?.summary).toContain(`Requested cwd (execution unverified): "${dir}"`);
+    expect(capsule.tests[i]?.summary).toContain(`Requested cwd (execution unverified): "${dir}"`);
+  }
+  expect(capsule.commands.every(c => c.exit_code === undefined)).toBe(true);
+  expect(JSON.stringify(capsule)).not.toContain(p.root);
+});
+
 it('preserves unknown exits for pending and misleading completed native commands', async () => {
   const partial = shell('partial', 10, 20, 0);
   partial.tool.params.command = 'node -e "setTimeout(() => {}, 45000)"';

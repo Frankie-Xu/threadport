@@ -1,8 +1,9 @@
 import type { FileAction } from '../types.js';
 import type { SessionAdapter } from './types.js';
-import { redactRecords } from '../privacy.js';
+import { resolve } from 'node:path';
+import { portablePath, redactRecords } from '../privacy.js';
 import { CURSOR_INCOMPLETE_WARNING, cursorReviewAction, cursorUserText } from './cursor-evidence.js';
-import { assembleCapsule, asString, contentText, isRecord, loadSessionText, parseSessionRecords, resolveCreatedAt, sessionIdFrom, sourceTimestamp, toolResult, tracesFromEvents, type TraceEvent, type ToolResult, type SessionRecord } from './common.js';
+import { TEST_COMMAND, assembleCapsule, asString, contentText, isRecord, loadSessionText, parseSessionRecords, resolveCreatedAt, sessionIdFrom, sourceTimestamp, toolResult, tracesFromEvents, type TraceEvent, type ToolResult, type SessionRecord } from './common.js';
 
 const FILE_TOOLS: Record<string, FileAction> = {
   write: 'added', write_file: 'added', create: 'added', edit: 'modified', edit_file: 'modified', strreplace: 'modified', notebookedit: 'modified', delete: 'deleted', delete_file: 'deleted'
@@ -71,12 +72,29 @@ export function messageAdapter(agent: 'claude' | 'cursor'): SessionAdapter {
         const path = asString(args.file_path) ?? asString(args.path) ?? asString(args.target_file) ?? asString(args.filePath);
         if (path && FILE_TOOLS[name]) events.push({ type: 'file', path, action: FILE_TOOLS[name], outcome: result?.outcome ?? 'unknown', output: result?.text, order: result?.order ?? order });
         const command = asString(args.command);
-        const cwd = 'workdir' in args ? asString(args.workdir) ?? null : 'cwd' in args ? asString(args.cwd) ?? null : asString(record.cwd) ?? null;
+        const cwd = 'workdir' in args ? asString(args.workdir) ?? null
+          : 'cwd' in args ? asString(args.cwd) ?? null
+          : agent === 'cursor' && 'working_directory' in args ? asString(args.working_directory) ?? null
+          : asString(record.cwd) ?? null;
         if (command?.trim() && shells.has(name)) events.push({ type: 'command', command, cwd, exitCode: result?.exitCode, output: result?.text, order: result?.order ?? order });
         if ((path && FILE_TOOLS[name] && result?.outcome === 'unknown') || (command && shells.has(name) && result?.exitCode === undefined)) incomplete = true;
       }
     }
     const traces = tracesFromEvents(events, sessionId);
+    if (agent === 'cursor') {
+      let testIndex = 0;
+      // Capsule v1 has no cwd field. Keep source identity visible without
+      // rewriting commands or claiming the requested directory was honored.
+      traces.commands.forEach((command, index) => {
+        const test = TEST_COMMAND.test(command.command) ? traces.tests[testIndex++] : undefined;
+        const cwd = traces.commandRuns[index].cwd;
+        if (!cwd?.trim()) return;
+        const path = input.privacy === 'local' ? cwd : portablePath(cwd, resolve(input.project.root));
+        const context = `Requested cwd (execution unverified): ${JSON.stringify(path)}.`;
+        command.summary = `${context}${command.summary ? ` ${command.summary}` : ''}`;
+        if (test) test.summary = `${context}${test.summary ? ` ${test.summary}` : ''}`;
+      });
+    }
     if (agent === 'cursor' && incomplete) {
       traces.constraints.push(CURSOR_INCOMPLETE_WARNING);
       if (traces.status !== 'blocked') traces.status = 'paused';

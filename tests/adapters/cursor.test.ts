@@ -39,6 +39,64 @@ async function extractFromFixture() {
 }
 
 describe("Cursor session adapter", () => {
+  it('keeps working_directory identity and labels requested cwd in portable commands and tests', async () => {
+    const root = await isolatedProjectRoot();
+    const records = [{ role: 'user', content: 'Review only.' }, ...['client', 'server'].flatMap((dir, i) => [
+      { role: 'assistant', content: [{ type: 'tool_use', id: dir, name: 'Shell', input: { command: 'node --test', working_directory: join(root, dir) } }] },
+      { role: 'user', content: [{ type: 'tool_result', tool_use_id: dir, content: { exit_code: i === 0 ? 1 : 0, output: 'synthetic test output' } }] }
+    ])];
+    const capsule = await createCursorAdapter().extract({ project: { root, name: 'synthetic' }, sessionText: JSON.stringify(records) });
+    expect(capsule.commands.map(c => c.command)).toEqual(['node --test', 'node --test']);
+    expect(capsule.status).toBe('blocked');
+    expect(capsule.failures.some(f => !f.resolution)).toBe(true);
+    for (const [i, dir] of ['client', 'server'].entries()) {
+      const label = `Requested cwd (execution unverified): "${dir}"`;
+      expect(capsule.commands[i]?.summary).toContain(label);
+      expect(capsule.tests[i]?.summary).toContain(label);
+    }
+    expect(JSON.stringify(capsule)).not.toContain(root);
+  });
+
+  it('labels sparse pending cwd without inventing results and respects explicit null aliases', async () => {
+    const root = await isolatedProjectRoot();
+    const make = (input: Record<string, unknown>) => JSON.stringify([
+      { role: 'user', content: 'Review only.' },
+      { role: 'assistant', cwd: join(root, 'outer'), content: [{ type: 'tool_use', id: 'pending', name: 'Shell', input: { command: 'node --test', ...input } }] }
+    ]);
+    const input = { project: { root, name: 'synthetic' }, sessionText: make({ working_directory: join(root, 'client with spaces') }) };
+    const capsule = await createCursorAdapter().extract(input);
+    expect(capsule.commands[0]?.summary).toContain('Requested cwd (execution unverified): "client with spaces"');
+    expect(capsule.commands[0]?.exit_code).toBeUndefined();
+    expect(capsule.tests[0]?.status).toBe('unknown');
+    expect(capsule.completed).toEqual([]);
+    const local = await createCursorAdapter().extract({ ...input, privacy: 'local' });
+    expect(local.commands[0]?.summary).toContain(root);
+    for (const aliases of [{ working_directory: null }, { cwd: null, working_directory: '/wrong' }, { workdir: null, cwd: '/wrong' }]) {
+      const unknown = await createCursorAdapter().extract({ ...input, sessionText: make(aliases) });
+      expect(unknown.commands[0]?.summary ?? '').not.toContain('Requested cwd');
+    }
+  });
+
+  it('keeps test context aligned across non-test commands and protects external cwd', async () => {
+    const root = await isolatedProjectRoot();
+    const cases = [
+      { command: 'node --version', workdir: join(root, 'tools'), cwd: '/ignored', working_directory: '/ignored-too' },
+      { command: 'node --test', cwd: join(root, 'suite'), working_directory: '/ignored' },
+      { command: 'node --test', working_directory: String.raw`C:\Private User\secrets` },
+      { command: 'node --test', working_directory: join(root, RAW_SECRET) }
+    ];
+    const sessionText = JSON.stringify([{ role: 'user', content: 'Review.' }, ...cases.map((input, i) => ({ role: 'assistant', content: [{ type: 'tool_use', id: `tool-${i}`, name: 'Shell', input }] }))]);
+    const capsule = await createCursorAdapter().extract({ project: { root, name: 'synthetic' }, sessionText });
+    expect(capsule.commands[0]?.summary).toContain('"tools"');
+    expect(capsule.tests[0]?.summary).toContain('"suite"');
+    expect(capsule.commands[2]?.summary).toMatch(/Requested cwd \(execution unverified\): "external\/[a-f0-9]{24}"/);
+    expect(capsule.tests[1]?.summary).toContain('external/');
+    const serialized = JSON.stringify(capsule);
+    for (const secret of [root, RAW_SECRET, 'Private User', '/ignored']) expect(serialized).not.toContain(secret);
+    expect(capsule.tests.every(t => t.status === 'unknown')).toBe(true);
+    expect(capsule.completed).toEqual([]);
+  });
+
   const markdownPath = join(dirname(fixturePath), 'session-copy-transcript.md');
   async function markdownInput(sessionText?: string) {
     return {

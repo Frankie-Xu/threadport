@@ -54,11 +54,11 @@ describe("Handoff CLI", () => {
     const project = await isolatedProjectRoot();
     const createdAt = '2026-09-14T00:00:00.000Z';
     const cases = [
-      { name: 'sparse', source: [{ role: 'user', content: 'Review only.' }, { role: 'assistant', content: [{ type: 'tool_use', name: 'Shell', input: { command: 'node --test' } }] }] },
+      { name: 'sparse', source: [{ role: 'user', content: 'Review only.' }, { role: 'assistant', content: [{ type: 'tool_use', name: 'Shell', input: { command: 'node --test', working_directory: join(project, 'client') } }] }] },
       { name: 'native', source: { format: 'threadport.cursor-native.v1', sessionId: '11111111-1111-4111-8111-111111111111', createdAt: Date.parse(createdAt), bubbles: [
         { bubbleId: 'u', type: 1, createdAt, text: 'Review only.' },
         { bubbleId: 'tool', type: 2, createdAt, startedAtMs: Date.parse(createdAt), completedAtMs: Date.parse(createdAt) + 1,
-          tool: { name: 'run_terminal_command_v2', toolCallId: 'tool', status: 'completed', params: { command: 'node --test', cwd: '/synthetic' }, result: { rejected: true } } }
+          tool: { name: 'run_terminal_command_v2', toolCallId: 'tool', status: 'completed', params: { command: 'node --test', cwd: join(project, 'client') }, result: { rejected: true } } }
       ] } }
     ];
     for (const entry of cases) {
@@ -73,10 +73,12 @@ describe("Handoff CLI", () => {
       const capsule = parseCapsule(await readFile(out, 'utf8'));
       expect(capsule.status).toBe('paused');
       expect(capsule.commands[0]).not.toHaveProperty('exit_code');
+      expect(capsule.commands[0]?.summary).toContain('Requested cwd (execution unverified): "client"');
       expect((await captureCli(['validate', out], cwd)).code).toBe(0);
       const handoff = await captureCli(['handoff', '--to', 'cursor', out, '--out', join(cwd, `${entry.name}-handoff.md`)], cwd);
       expect(handoff.code).toBe(0);
       expect(await readFile(handoff.stdout.trim(), 'utf8')).toContain('incomplete tool evidence');
+      expect(await readFile(handoff.stdout.trim(), 'utf8')).toContain('Requested cwd (execution unverified)');
     }
   });
 
