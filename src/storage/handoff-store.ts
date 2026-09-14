@@ -27,7 +27,7 @@ export class HandoffStore {
  }).immediate();}
  read(id:string):{record:HandoffRecord;state:string;expired:boolean}{
   const row=this.db.prepare('SELECT body_json,digest,state FROM handoffs WHERE id=?').get(id) as {body_json:string;digest:string;state:string}|undefined;
-  if(!row)throw new DomainError('NOT_FOUND','Handoff does not exist.');
+  if(!row||row.state==='retained')throw new DomainError('NOT_FOUND','Handoff does not exist.');
   let record:HandoffRecord;try{record=JSON.parse(row.body_json);validateExport(record.handoff);if(recordDigest(record)!==row.digest||record.handoff.id!==id||record.approval&&record.approval.digest!==row.digest)throw new Error();}catch{throw new DomainError('REVISION_CONFLICT','Stored preview changed; prepare again.');}
   return {record,state:row.state,expired:Date.now()>=Date.parse(record.handoff.expiresAt)};
  }

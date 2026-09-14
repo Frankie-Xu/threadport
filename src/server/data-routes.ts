@@ -1,3 +1,4 @@
+import type { IndexService } from '../indexing/service.js';
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { createHash } from "node:crypto";
@@ -44,7 +45,20 @@ export function registerDataRoutes(
   app: FastifyInstance,
   store: SqliteStore,
   dataDir: string,
+  indexer: IndexService,
 ) {
+  let maintaining=false;
+  app.post('/api/v1/data/clear-index', async request=>{
+    z.object({confirmation:z.literal(true)}).strict().parse(request.body);
+    if(maintaining)throw new DomainError('STORAGE_BUSY','Maintenance is in progress.');
+    maintaining=true;
+    try{await indexer.pause();return{data:store.maintenance().clearIndex()};}
+    finally{maintaining=false;indexer.resume();}
+  });
+  app.post('/api/v1/data/prune',async request=>{
+    z.object({confirmation:z.literal(true)}).strict().parse(request.body);
+    return{data:store.maintenance().prune()};
+  });
   app.get("/api/v1/diagnostics", async (request) => {
     z.object({}).strict().parse(request.query);
     return { data: diagnostics(store) };

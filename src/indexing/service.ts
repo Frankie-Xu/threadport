@@ -9,15 +9,18 @@ export interface IndexProgress { sourceId:string;state:'queued'|'running'|'compl
 export type IndexPort=Pick<IndexStore,'getSource'|'listSources'|'acquireIndexLease'|'renewIndexLease'|'releaseIndexLease'|'getIndexedSession'|'listIndexedSessions'|'commitIndexPage'>;
 export class IndexService {
  private readonly jobs=new Map<string,{controller:AbortController;promise:Promise<IndexProgress>;progress:IndexProgress}>();
- private readonly slots=new ReadSlots();private stopTimer:(()=>void)|undefined;private stopping=false;
+ private readonly slots=new ReadSlots();private stopTimer:(()=>void)|undefined;private stopping=false;private paused=false;
  constructor(private readonly store:IndexPort,private readonly options:{onProgress?:(progress:IndexProgress)=>void;adapterFactory?:(sourceId:string)=>SourceAdapter}={}){}
  progress(sourceId:string):IndexProgress|undefined{const p=this.jobs.get(sourceId)?.progress;return p?structuredClone(p):undefined;}
  async cancelAndWait(sourceId:string):Promise<void>{const job=this.jobs.get(sourceId);if(job){job.controller.abort();await job.promise;}}
  cancel(sourceId:string):void{this.jobs.get(sourceId)?.controller.abort();}
  start():void{if(this.stopping)throw new DomainError('INVALID_INPUT','Indexer is stopped.');if(!this.stopTimer)this.stopTimer=scheduleRefresh(()=>this.refreshAll());}
+ async pause():Promise<void>{this.paused=true;this.stopTimer?.();this.stopTimer=undefined;for(const job of this.jobs.values())job.controller.abort();await Promise.allSettled([...this.jobs.values()].map(job=>job.promise));}
+ resume():void{if(this.stopping)return;this.paused=false;this.start();}
  async stop():Promise<void>{this.stopping=true;this.stopTimer?.();this.stopTimer=undefined;for(const job of this.jobs.values())job.controller.abort();await Promise.allSettled([...this.jobs.values()].map(job=>job.promise));}
  async refreshAll():Promise<IndexProgress[]>{const promises:Promise<IndexProgress>[]=[];for(let offset=0;;offset+=100){const configs=this.store.listSources(100,offset);for(const config of configs)if(config.enabled)promises.push(this.refresh(config.id));if(configs.length<100)break;}return Promise.all(promises);}
  refresh(sourceId:string):Promise<IndexProgress>{
+  if(this.paused)return Promise.reject(new DomainError('STORAGE_BUSY','Indexer maintenance is in progress.'));
   if(this.stopping)return Promise.reject(new DomainError('INVALID_INPUT','Indexer is stopped.'));
   const existing=this.jobs.get(sourceId);if(existing&&['queued','running'].includes(existing.progress.state))return existing.promise;
   const controller=new AbortController();const progress:IndexProgress={sourceId,state:'queued',files:0,events:0,failures:0,warnings:[]};

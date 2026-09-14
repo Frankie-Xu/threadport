@@ -1,3 +1,4 @@
+import {Maintenance} from './maintenance.js';
 import {Diagnostics,StorageInfo} from "./diagnostics.js";
 import { useEffect, useState } from "react";
 import {
@@ -22,7 +23,7 @@ export function Settings({
     [status, setStatus] = useState(""),
     [revoking, setRevoking] = useState<Source | null>(null);
   const action = useAction();
-  const [diagnostic,setDiagnostic]=useState(false);
+  const [diagnostic,setDiagnostic]=useState(false),[storageRevision,setStorageRevision]=useState(0);
   useEffect(() => {
     if (!job) return;
     let stopped = false;
@@ -76,7 +77,7 @@ export function Settings({
           <h1>Settings</h1>
         </div>
       </div>
-      <StorageInfo api={api}/><section className="panel"><h2>Diagnostics</h2><p>Preview a report before you choose to share it.</p><button className="quiet" onClick={()=>setDiagnostic(true)}>Preview diagnostics</button></section>{diagnostic&&<Diagnostics api={api} onClose={()=>setDiagnostic(false)}/>}
+      <StorageInfo key={storageRevision} api={api}/><Maintenance api={api} onChanged={()=>{sources.reload();setStorageRevision(n=>n+1);onSaved();}}/><section className="panel"><h2>Diagnostics</h2><p>Preview a report before you choose to share it.</p><button className="quiet" onClick={()=>setDiagnostic(true)}>Preview diagnostics</button></section>{diagnostic&&<Diagnostics api={api} onClose={()=>setDiagnostic(false)}/>}
       <section className="panel">
         <h2>Workspaces</h2>
         <WorkspaceForm api={api} onSaved={onSaved} />

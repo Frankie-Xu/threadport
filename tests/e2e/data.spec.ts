@@ -66,3 +66,28 @@ test("previews safe diagnostics and explicitly writes reviewed metadata to a sel
   expect(JSON.parse(report!).counts.tasks).toBe(1);
   if(process.env.THREADPORT_UI_SCREENSHOTS)await page.screenshot({path:"output/playwright/t17-diagnostics.png",mask:[page.locator(".path")]});
 });
+
+test("cancels index clearing without side effects and explicitly confirms cache removal", async ({
+  page,
+}) => {
+  await page.goto(server.origin + "/?v=settings#token=" + server.token);
+  await page.getByRole("button", { name: "Clear cached index…" }).click();
+  await expect(
+    page.getByRole("button", { name: "Confirm clear index" }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Clear cached index…" }).click();
+  await page
+    .getByLabel(
+      "I understand that imported evidence will be unavailable until rebuilt",
+    )
+    .check();
+  await page.getByRole("button", { name: "Confirm clear index" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByText(/Removed 0 cached events/)).toBeVisible();
+  const response = await fetch(server.origin + "/api/v1/tasks/" + taskId, {
+    headers: { authorization: "Bearer " + server.token },
+  });
+  expect((await response.json()).data.task.title).toBe("Synthetic export task");
+});
