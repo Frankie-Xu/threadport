@@ -17,6 +17,8 @@ import { renderCapsuleMarkdown } from './markdown.js';
 import { detectTargets } from './targets.js';
 import { assertDestination, writeArtifact } from './storage.js';
 import { createHandoff, parseHandoff } from './handoff.js';
+import { ZodError } from 'zod';
+import { DomainError } from './domain/errors.js';
 
 /** Local artifact export only: never launches an agent or executes next_action. */
 export interface CliIo {
@@ -73,6 +75,7 @@ function usage(): string {
     'threadport extract --from claude|codex|cursor|gemini --session <path> --project <root> [--privacy portable|local] [--out <file>] [--force]',
     'threadport validate [--handoff] <capsule-or-envelope.json>',
     'threadport render <capsule.json>',
+    'threadport verify <capsule.json> --project <root> [--json] [--data-dir <path>]',
     'threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--format markdown|json] [--out <file>] [--force]',
     'threadport targets'
   ].join('\n');
@@ -84,6 +87,7 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
     if (command === undefined || command === '--help' || command === '-h') {
       io.stdout.write(`${usage()}\n`); return command ? 0 : 1;
     }
+    if (command === 'verify') return runVerify(rest, io);
     if (command === 'targets') {
       if (rest.length) throw new Error('targets accepts no arguments.');
       io.stdout.write(`${JSON.stringify(await detectTargets(), null, 2)}\n`); return 0;
@@ -141,6 +145,25 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
     }
     throw new Error(`Unknown command: ${command}\n${usage()}`);
   } catch (error) { io.stderr.write(`${message(error)}\n`); return 1; }
+}
+async function runVerify(argv:string[],io:CliIo):Promise<number>{
+ let parsed:ReturnType<typeof options>;
+ try{
+  parsed=options(argv,['project','data-dir'],['json']);
+  singleInput(parsed.positional);
+  if(!parsed.named.project)throw new Error('verify requires --project.');
+ }catch(error){io.stderr.write(`${message(error)}\n`);return 2;}
+ try{
+  const text=await readFile(resolve(io.cwd(),parsed.positional[0]),'utf8');
+  const {verifyCapsule}=await import('./workspace/verify-capsule.js');
+  const report=await verifyCapsule(text,resolve(io.cwd(),parsed.named.project),parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined);
+  io.stdout.write(parsed.enabled.has('json')?`${JSON.stringify(report)}\n`:
+   `${report.status}\nScope: ${report.scope??'unknown'}\n${report.reasons.map(reason=>`${reason.code}: ${reason.message}\n`).join('')}`);
+  return report.status==='matched'?0:report.status==='drifted'?4:6;
+ }catch(error){
+  const invalid=error instanceof SyntaxError||error instanceof ZodError||error instanceof DomainError&&error.code==='INVALID_INPUT';
+  io.stderr.write(invalid?'Invalid verification input.\n':'Unable to read verification input or local store.\n');return invalid?2:5;
+ }
 }
 function message(error: unknown): string { return error instanceof Error ? error.message : String(error); }
 function isEntryPoint(): boolean {
