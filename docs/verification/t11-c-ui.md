@@ -9,3 +9,5 @@ CLI：ui --data-dir --no-open --demo；demo 不接受 data-dir，使用独立临
 证据：本地真实 CLI 子进程 3 用例验证启动、CSP、认证、SIGTERM 后端口关闭、demo 标记/零来源、坏参数和 IO 错误；原有 API 边界测试仍运行。Unix SIGTERM 确认应用退出 143；Windows child.kill 是 OS 终止，CI 仅证明退出/端口关闭，不冒充 Windows 终端 Ctrl-C 认证。手工 Playwright 检查 demo 页面、fragment 清空、两种 Web Storage 均空、刷新恢复提示；1280 桌面视图已查看，768 宽度已检查。截图仅含合成任务，不含链接 token。
 
 回滚：关闭/认证/link 泄漏或旧 CLI 回归时，处理已接入的 UI 消费者后 revert 本包 squash。A/B API/SDK、schema 4、真实数据保留；撤销公开 ui 命令与 bootstrap，临时 demo 仅由当前进程生成/清理，不操作源日志。运行 CLI/server、完整 check 和 pack；回滚为方案审查，未实际执行。自审，无外部评审声明。
+
+更新到实际 B 合并基线 4b6005367a53c658132f3140357d0864769ec75f 后：npm run check 通过，43 文件 / 324 项测试；npm run check:pack 通过，133 文件，并保留独立 Cursor 修复的三条产物验证。实际浏览器截图：[入口页](assets/t11c-bootstrap.png)。最终 CI 和本包 squash SHA 记录在 PR。
