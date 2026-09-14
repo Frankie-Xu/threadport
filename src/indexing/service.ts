@@ -12,6 +12,7 @@ export class IndexService {
  private readonly slots=new ReadSlots();private stopTimer:(()=>void)|undefined;private stopping=false;
  constructor(private readonly store:IndexPort,private readonly options:{onProgress?:(progress:IndexProgress)=>void;adapterFactory?:(sourceId:string)=>SourceAdapter}={}){}
  progress(sourceId:string):IndexProgress|undefined{const p=this.jobs.get(sourceId)?.progress;return p?structuredClone(p):undefined;}
+ async cancelAndWait(sourceId:string):Promise<void>{const job=this.jobs.get(sourceId);if(job){job.controller.abort();await job.promise;}}
  cancel(sourceId:string):void{this.jobs.get(sourceId)?.controller.abort();}
  start():void{if(this.stopping)throw new DomainError('INVALID_INPUT','Indexer is stopped.');if(!this.stopTimer)this.stopTimer=scheduleRefresh(()=>this.refreshAll());}
  async stop():Promise<void>{this.stopping=true;this.stopTimer?.();this.stopTimer=undefined;for(const job of this.jobs.values())job.controller.abort();await Promise.allSettled([...this.jobs.values()].map(job=>job.promise));}

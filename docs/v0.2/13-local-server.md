@@ -26,3 +26,19 @@ token 为每次启动新生成的 32 随机字节（hex 64 位）。调用方只
 状态返回 200；认证失败 401；Host/Origin 403；坏输入/未知字段 400；超体积 413；错误内容类型 415；未实现路由 404；内部错误 500。错误形状 `{error:{code,message,retryable,requestId}}`。业务 DomainError 映射、其他 DTO 和写路由留 T11-B，CLI 信号生命周期及 UI 链接留 T11-C；A 不代表 T11 全部完成。
 
 实现采用固定版本 Fastify 5.12.4，参考 [Server options](https://fastify.dev/docs/latest/Reference/Server/) 与 [Hooks](https://fastify.dev/docs/latest/Reference/Hooks/)。测试写路由仅用于验证框架防护，不在生产注册。
+
+## T11-B 业务路由
+
+已接通 projects/workspaces、sources、index-jobs、tasks（列表/详情/修改/会话关联）、sessions 搜索与 events、targets。成功为 `{data}`，列表分页增加 nextCursor；严格 Zod 输入校验，未知写字段为 400，任务修订/项目归属冲突为 409，需要先确认脱敏为 422，忙为 503。错误不回显底层 SQL、路径或请求内容。
+
+来源必须是显式提交的绝对、可访问、非符号链接目录，不能选择文件系统根；该规范化目录成为 adapter 的扫描允许列表，不自动扩大到 HOME。仅支持已实现的 Claude/Codex 来源。工作区必须 confirmBinding=true，根规范化后相同目录复用同一绑定；跨项目重绑定拒绝。路径只在认证 settings 的 sources/workspaces 响应出现。
+
+通用 Task/Session/Event DTO 显式投影，文本二次脱敏、私有绝对路径转 portable opaque locator，不输出 sourcePath 或本地 executable。命令 cwd 可为 null 或 opaque locator，不能由摘要误猜目录。targets 此时仍明确 launch_supported=false，真实能力认证留 T13。
+
+任务列表支持 q/projectId/lifecycle/archived/cursor/limit；q 搜索标题和人工 objective，默认排除归档。分页绑定过滤条件与索引代数，修改后返回 SEARCH_STALE 要求重查。sessions 返回现有 SearchService 的 task/session 混合匹配，消费者按 kind 区分；事件分页绑定 session/limit/generation，不执行日志命令。
+
+index-jobs 为本进程记录，最多保留 1000 组；最多每组 20 个来源，相同正在运行的来源组返回原 jobId，底层同来源扫描由 T07 合并。完成结果固定保存，不把后一次扫描状态覆盖旧 job；重启后旧 jobId 返回 404。取消等待结束，保留已提交批次；DELETE 可用空 JSON body。来源撤销必须 confirmation=true，先取消本进程扫描，再事务清理该来源的索引，保留 session 墓碑、人工任务及修订和关联，不修改源日志；外部索引租约未释放时返回忙。
+
+data 清理/诊断/全删除留 T17，handoff 留 T12；不注册占位成功端点。
+
+由 API 创建的 sourceId 由规范化目录与 agent 的 SHA-256 前缀生成；重复选择不会新增来源，撤销再添加也保留同一来源身份。私有路径本身不编码进 ID。手动 SDK 配置的自定义 sourceId 不会被重写。

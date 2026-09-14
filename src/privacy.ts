@@ -103,3 +103,8 @@ export function protectCapsule(input: Capsule, privacy: 'local' | 'portable', ro
   result.redaction = { applied: count > 0, count };
   return result;
 }
+
+/** Generic API text cannot carry private machine paths; no inferred workspace root. */
+export function publicText(text:string):string {
+  return portableText(redactSecrets(text).text,new Map(),['/__threadport_unknown_workspace__'],'posix');
+}

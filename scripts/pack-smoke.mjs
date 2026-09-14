@@ -60,6 +60,7 @@ try {
       assert.equal((await fetch(server.origin+'/api/v1/status')).status,401);
       const response=await fetch(server.origin+'/api/v1/status',{headers:{authorization:'Bearer '+server.token}});
       assert.equal(response.status,200);assert.equal((await response.json()).data.counts.tasks,1);
+      const tasks=await fetch(server.origin+'/api/v1/tasks',{headers:{authorization:'Bearer '+server.token}});assert.equal(tasks.status,200);assert.equal((await tasks.json()).data.length,1);
     } finally {await server.close();await server.close();}
   `], {cwd:installRoot,timeout:30000});
   console.log(`Package smoke passed: ${packed.files.length} files; CLI and public exports load from an isolated install.`);
