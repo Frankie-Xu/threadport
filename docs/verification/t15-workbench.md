@@ -23,3 +23,5 @@ macOS arm64 / Node 24.18.1。初次浏览器准备受 Chromium CDN TLS 断连阻
 ![768px 合成历史页面](assets/t15-history-768.png)
 
 最终本地：npm run check 通过（357 项/50 文件），浏览器 E2E 1 项通过，隔离安装包 169 文件通过。同步重复点击仅创建一项任务。React/Vite 构建日志设为 warn，避免污染 npm pack --json；安装后实际请求 JS/CSS 所在的打包资源。
+
+合并 #48 基线后，Windows 的旧 command-context 集成用例在 Git/快照子进程上耗时 5.315 秒，触发默认 5 秒测试预算；该用例断言身份隔离而非性能。仅为这一组真实 Git 集成测试设 30 秒上限，不跳过断言或调整产品资源限制。macOS 一次 node-gyp 头文件下载后回调中断发生在 npm ci，属于环境失败；保留日志并重跑 CI。
