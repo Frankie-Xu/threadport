@@ -16,6 +16,8 @@ This supersedes the initial exact-wrapper marker inference. The observed stopped
 
 The fresh 3.20.17 parallel probe also recorded different requested `cwd` values while both command outputs reported module lookup at the repository root. Retain requested cwd for source fidelity and pairing, but explicitly warn that it is not a verified execution location. Do not substitute paths guessed from output text or claim this fixes the vendor's execution behavior.
 
+An actual external-file edit rejection in the same version reported `status: cancelled`, a client-visible rejection error, and both before/after content references despite unchanged file bytes. Treat this terminal cancellation as failed/rejected edit evidence and retain its reason. Content references alone never prove an edit occurred; the old converter already withheld success but omitted this rejection reason. The fixture is independently reconstructed from the isolated test, not a copied real log.
+
 Capsule v1 and handoff formats stay unchanged. Database access is read-only; no source mutation, account access, network transmission or Agent launch is added to the core.
 
 ## Alternatives and costs

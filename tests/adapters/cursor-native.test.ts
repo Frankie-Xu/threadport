@@ -42,6 +42,19 @@ it('never confirms a rejected native edit or an unknown tool', async () => {
     } else expect(capsule.constraints.join('\n')).toContain('incomplete tool evidence');
   }
 });
+it('retains a cancelled native edit rejection even when after-content references exist', async () => {
+  // Reconstructed from the isolated 3.20.17 external-file approval rejection.
+  // Both content references existed although the actual file was unchanged.
+  const attempted = edit('cancelled-edit', 10);
+  const denied = { ...attempted, tool: { ...attempted.tool, status: 'cancelled',
+    error: 'Edit rejected: User chose to skip' } };
+  const capsule = await createCursorAdapter().extract({ project: await project(),
+    sessionText: JSON.stringify(envelope([text('u', 1, 'Review only.', 0), denied])) });
+  expect(capsule.completed).toEqual([]);
+  expect(capsule.files[0]?.summary).not.toBe('Confirmed in session.');
+  expect(capsule.failures).toContainEqual({ summary: 'Edit rejected: User chose to skip' });
+  expect(capsule.status).toBe('blocked');
+});
 async function project() {
   const root = await mkdtemp(join(tmpdir(), 'threadport-native-'));
   await exec('git', ['init', '-b', 'main', root]);

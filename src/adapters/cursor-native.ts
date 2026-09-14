@@ -61,7 +61,7 @@ export function cursorNativeRecords(value: unknown): SessionRecord[] {
       // arbitrary output. Keep the result timestamp/text, not a fabricated exit.
     } else if (name === 'edit_file_v2') {
       name = 'edit'; input = { path: params?.relativeWorkspacePath ?? '' };
-      if (end != null && (tool.status === 'error' || result?.rejected)) {
+      if (end != null && (tool.status === 'error' || tool.status === 'cancelled' || result?.rejected)) {
         error = true; output = { output: tool.error || 'Cursor edit rejected or failed.' };
       } else if (finished && result?.beforeContentId && result.afterContentId && result.beforeContentId !== result.afterContentId) {
         output = { output: 'Edited file; Cursor recorded before/after content references.' };
