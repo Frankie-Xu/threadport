@@ -46,7 +46,8 @@ it('applies body/type/origin and strict schema boundaries before future write ha
   [JSON.stringify({value:'ok'}),{},200],
   [JSON.stringify({value:'ok',unknown:true}),{},400],
   ['{',{},400],
-  [JSON.stringify({value:'x'.repeat(1024*1024)}),{},413],
+  [JSON.stringify({value:'x'.repeat(1024*1024)}),{'transfer-encoding':'chunked'},413],
+  ['',{'content-length':String(1024*1024+1)},413],
   [JSON.stringify({value:'ok'}),{origin:'null'},403],
   [JSON.stringify({value:'ok'}),{'content-type':'text/plain'},415],
  ] as const){const response=await raw(origin,'/api/v1/test-write',{...headers,...extra},'POST',body);expect(response.status,response.text).toBe(status);}
