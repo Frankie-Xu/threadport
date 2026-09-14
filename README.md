@@ -4,7 +4,7 @@
 
 Find unfinished AI coding tasks, review their evidence, and prepare a continuation with Claude or Codex.
 
-Experimental local workbench; real Agent/platform certification and external user validation are still pending. See the [release HOLD record](docs/verification/release-0.2.0.md).
+Development snapshot `0.2.0-dev.0`. Experimental local workbench; real Agent/platform certification and external user validation are still pending. See the [release HOLD record](docs/verification/release-0.2.0.md).
 
 This repository contains the first implementation of the ThreadPort Context Capsule v1 format. A Capsule records observable work state — objective, decisions, files, commands, tests, Git identity, evidence, and the next action — so a task can move between Claude Code, Codex, Cursor, and Gemini without copying hidden reasoning or silently executing code.
 

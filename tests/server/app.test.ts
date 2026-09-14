@@ -12,7 +12,7 @@ it('binds loopback on a random port and protects even status reads',async()=>{
  }
  const response=await fetch(server.origin+'/api/v1/status',{headers:{authorization:`Bearer ${server.token}`,origin:server.origin}});
  expect(response.status).toBe(200);expect(response.headers.get('access-control-allow-origin')).toBeNull();
- expect(await response.json()).toMatchObject({data:{version:'0.1.0',capacity:{events:0,eventLimit:100000}}});
+ expect(await response.json()).toMatchObject({data:{version:'0.2.0-dev.0',capacity:{events:0,eventLimit:100000}}});
 },30000);
 
 import { createLocalApp } from '../../src/server/app.js';

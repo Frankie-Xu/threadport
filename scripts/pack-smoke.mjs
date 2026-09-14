@@ -28,7 +28,7 @@ try {
   const help = execFileSync(process.execPath, [entry, '--help'], { encoding: 'utf8', timeout: 10_000 });
   assert(help.includes('threadport handoff'));
   const doctor=execFileSync(process.execPath,[entry,'doctor','--json','--data-dir',join(temporary,'doctor-data')],{encoding:'utf8',timeout:15000});
-  const report=JSON.parse(doctor);assert.equal(report.protocol,'threadport.diagnostics.v1');assert.equal(report.counts.tasks,0);assert.equal(doctor.includes(temporary),false);
+  const report=JSON.parse(doctor);assert.equal(report.protocol,'threadport.diagnostics.v1');assert.equal(report.version,packed.version);assert.equal(report.counts.tasks,0);assert.equal(doctor.includes(temporary),false);
   // Resolve the public export as an installed package, not by a source-tree import.
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const m = await import("threadport"); if (typeof m.parseHandoff !== "function") process.exit(1);'], { cwd: installRoot, timeout: 10_000 });
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore} = await import("threadport/storage"); const s = await openStore({dataDir:"./data"}); s.createProject("smoke", "Smoke"); s.close();'], { cwd: installRoot, timeout: 15_000 });
