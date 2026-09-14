@@ -20,3 +20,5 @@ Node 24 为运行时门槛。升级前停止旧服务，备份应用数据目录
 新增严格消费者 TypeScript 编译最初复现缺失 Node/SQLite declarations；将公开声明依赖的 @types/node 和 @types/better-sqlite3 从 devDependencies 移入 dependencies，版本不变。修复后纯安装目录严格编译通过。CI 每个平台保留已验证 tarball 与 SHA-256/清单 14 天，不包含真实日志或凭据。
 
 版本号使用 dev 预发布标记，避免将新增工作台混同于已有 0.1.0 协议原型；这不表示 alpha 真实接续门槛已经通过。已安装 doctor 的版本必须与 tarball manifest 一致。
+
+本地集成候选验证：377 tests / 56 files、6 个浏览器流程、187 文件的 0.2.0-dev.0 独立安装包通过。浏览器主流程另阻断所有非本服务网络，验证新增任务、中文搜索、刷新后重新打开仍可用；不将本地工作台离线读取扩展为目的端 Agent 离线能力。最终合并和平台结果以 PR/CI artifact 为准。
