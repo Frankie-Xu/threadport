@@ -78,6 +78,7 @@ function usage(): string {
     'threadport verify <capsule.json> --project <root> [--json] [--data-dir <path>]',
     'threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--format markdown|json] [--out <file>] [--force]',
     'threadport targets',
+    'threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id> [--mode native-resume|new-session] [--data-dir <path>]',
     'threadport ui [--data-dir <path>] [--no-open] [--demo]'
   ].join('\n');
 }
@@ -94,6 +95,18 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
       catch(error){io.stderr.write(`${message(error)}\n`);return 2;}
       const {runUi}=await import('./cli-ui.js');
       return runUi({dataDir:parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined,noOpen:parsed.enabled.has('no-open'),demo:parsed.enabled.has('demo')},io);
+    }
+    if (command === 'prepare') {
+      let parsed:ReturnType<typeof options>;
+      try{parsed=options(rest,['task','source-session','to','workspace','mode','data-dir']);if(parsed.positional.length||!parsed.named.task||!parsed.named['source-session']||!parsed.named.to||!parsed.named.workspace)throw new Error('prepare requires --task, --source-session, --to and --workspace.');}
+      catch{io.stderr.write('Invalid prepare arguments.\n');return 2;}
+      const {prepareSchema}=await import('./handoff/contracts.js');
+      const input=prepareSchema.safeParse({taskId:parsed.named.task,sourceSessionId:parsed.named['source-session'],target:parsed.named.to,workspaceId:parsed.named.workspace,mode:parsed.named.mode??'new-session'});
+      if(!input.success){io.stderr.write('Invalid prepare arguments.\n');return 2;}
+      const {openStore}=await import('./storage/sqlite-store.js');let store:Awaited<ReturnType<typeof openStore>>|undefined;
+      try{store=await openStore({dataDir:parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined});const {HandoffService}=await import('./handoff/prepare.js');io.stdout.write(JSON.stringify(await new HandoffService(store).prepareHandoff(input.data),null,2)+'\n');return 0;}
+      catch(error){io.stderr.write('Preparation failed; review task, source and workspace.\n');return error instanceof DomainError&&['INVALID_INPUT','NOT_FOUND','PROJECT_MISMATCH','REDACTION_REQUIRED'].includes(error.code)?2:error instanceof DomainError&&error.code==='REVISION_CONFLICT'?4:5;}
+      finally{store?.close();}
     }
     if (command === 'verify') return runVerify(rest, io);
     if (command === 'targets') {

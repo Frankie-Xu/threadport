@@ -39,7 +39,7 @@ token 为每次启动新生成的 32 随机字节（hex 64 位）。调用方只
 
 index-jobs 为本进程记录，最多保留 1000 组；最多每组 20 个来源，相同正在运行的来源组返回原 jobId，底层同来源扫描由 T07 合并。完成结果固定保存，不把后一次扫描状态覆盖旧 job；重启后旧 jobId 返回 404。取消等待结束，保留已提交批次；DELETE 可用空 JSON body。来源撤销必须 confirmation=true，先取消本进程扫描，再事务清理该来源的索引，保留 session 墓碑、人工任务及修订和关联，不修改源日志；外部索引租约未释放时返回忙。
 
-data 清理/诊断/全删除留 T17，handoff 留 T12；不注册占位成功端点。
+data 清理/诊断/全删除留 T17；不注册占位成功端点。
 
 由 API 创建的 sourceId 由规范化目录与 agent 的 SHA-256 前缀生成；重复选择不会新增来源，撤销再添加也保留同一来源身份。私有路径本身不编码进 ID。手动 SDK 配置的自定义 sourceId 不会被重写。
 
@@ -50,3 +50,16 @@ data 清理/诊断/全删除留 T17，handoff 留 T12；不注册占位成功端
 --demo 与 --data-dir 互斥，创建独立临时库，包含明确标记的合成任务、零来源，正常退出删除临时目录。不会读取真实默认数据；异常 OS 强杀可能留下临时目录。Windows 的强制进程终止不能模拟优雅终端 Ctrl-C，本地终端行为仍须实机认证。
 
 GET / 是无需 bearer 的静态 bootstrap，但仍校验 Host/Origin；所有 API 仍需要 bearer。响应以 nonce CSP、no-store、no-referrer 约束，不加载外部字体/脚本。前端读取 fragment 到闭包内存后立即用 history.replaceState 清除；不写 localStorage/sessionStorage，刷新保留 query 并显示从当前终端链接重新打开的恢复提示。页面仅显示任务摘要，T15 再接通 onboarding/编辑/预览完整流程。
+
+
+## T12-B 准备、确认与导出
+
+`POST /api/v1/handoffs` 接受 taskId/sourceSessionId/target/mode/workspaceId；只允许已关联且同项目的 Claude/Codex 来源。当前目录必须具有完整、可读取的 SHA-1 Git 快照，否则拒绝准备，不伪造 Capsule 必填值。原生模式还要求同 Agent 和来源保存的 vendor session ID；真实目标支持由 T13 决定。
+
+包固定任务 revision，15 分钟有效，promptDigest 为完整实际 prompt 的 SHA-256。prompt 最多 32 KiB UTF-8，先省略旧来源摘录并列出数量/源省略提示，目标、约束和下一步不截断，仍超限则拒绝。人工文本的路径/秘密投影在完整预览中可见；导出重新检查脱敏和摘要，不在导出时静默改写。JSON 包含完整 prompt；Markdown 下载字节就是 prompt。包仅含 metadata，不同步代码或原始日志。
+
+工作区 verification 优先比较来源命令明确引用的历史快照；没有引用时只核验当前准备快照，历史命令当前有效性仍为 unknown，不生成测试通过记录。私有审批记录还绑定实际准备时的工作区路径、物理身份/摘要和来源身份。历史 drifted/unverifiable、来源 partial、未知人工字段需要 acknowledgeUncertainty=true；新工作区变化（包括分支变化）、任务修订、来源绑定或包内容变化，确认返回冲突，必须重新准备。
+
+`GET /api/v1/handoffs/:id` 返回 handoff/state/expired。`POST .../confirm` 接受 promptDigest/acknowledgeUncertainty，只返回 `threadport continue --handoff <uuid>`。本包不启动进程；T14 将在终端重新验证和确认。`POST .../export` 接受 format=json/markdown，返回下载字节，不接受服务端输出路径。过期包仍可作为只读 metadata 导出，不能确认执行。
+
+CLI：`threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id> [--mode native-resume|new-session] [--data-dir <path>]` 输出完整 JSON，默认 new-session。参数/不可准备输入=2，修订冲突=4，I/O=5。自定义数据目录后续使用 continue 时仍须由用户显式提供 --data-dir，不把路径拼入 UI 固定命令。

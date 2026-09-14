@@ -13,7 +13,11 @@
 
 T12-A 不运行 git diff/status，不执行 clean/process/textconv/fsmonitor。GitState 的 dirty_diff_hash 使用明确的 threadport.workspace.raw.v1 当前状态摘要；Capsule 引用原始快照，核验走已存在的显式快照路径，不与旧 diff 算法混用。changed_files 是原始 blob/index/HEAD 差异；属性过滤造成的差异保守视为 dirty。无有效 SHA-1 HEAD 或完整快照时，不伪造 Capsule 必填字段。
 
-- [ ] T12-A：建立上述失败测试，增加只读投影接口，运行局部及完整检查，提交/推送/PR/CI/合并。
+- [x] T12-A：建立上述失败测试，增加只读投影接口，运行局部及完整检查，提交/推送/PR/CI/合并。
 - [ ] T12-B：逐项实现总计划 AC-F07-1..4/Q16，运行局部及完整检查，提交/推送/PR/CI/合并。
 
-T12-A 本地证据：Node 24.18.1/macOS arm64；328 测试 / 44 文件、typecheck/build/docs 通过；隔离安装包 133 文件通过。四项新增投影测试先失败于缺少接口，再通过。T12-A 当前为本地验证，远程 CI/合并尚待完成。
+T12-A 本地证据：Node 24.18.1/macOS arm64；328 测试 / 44 文件、typecheck/build/docs 通过；隔离安装包 133 文件通过。前三项新增投影测试先失败于缺少接口，再通过，随后补充第四项摘要/删除回归。T12-A 三平台 CI 已通过，PR #44 合并为 `79f9cac06c2aa7fabd1d95c43c4d11d2c8494aed`。
+
+T12-B 具体新增文件还包括 tests/handoff/helpers.ts、api-cli.test.ts 和本地 API 文档/验证记录。准备包要求当前工作区可完整读取；历史显式快照可以 drifted/unverifiable，用户确认绑定准备时的当前快照，后续变化始终拒绝。默认 mode=new-session；是否具备真实原生恢复能力由 T13 决定。
+
+T12-B 局部验证与边界详见[验证记录](../../verification/t12-b-handoff.md)。远程 CI 和实际合并 SHA 记录在 PR。
