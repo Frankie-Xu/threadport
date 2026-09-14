@@ -46,8 +46,11 @@ export async function startLocalServer(options:{dataDir?:string;demo?:boolean}={
  const app=createLocalApp(store,indexer,token,()=>({running:running.size,lastRefreshAt}));
  registerBusinessRoutes(app,store,indexer);
  registerHandoffRoutes(app,store);
- registerDataRoutes(app,store,applicationDataDir(options));
+ registerDataRoutes(app,store,applicationDataDir(options),indexer);
  try{
+  store.maintenance().prune();
+  const retention=setInterval(()=>{try{store.maintenance().prune();}catch{/* Retry next hour; never discard user data after a failed transaction. */}},3600000);retention.unref();
+  app.addHook('onClose',async()=>{clearInterval(retention);});
   await registerBootstrap(app,options.demo??false);
   const origin=await app.listen({host:'127.0.0.1',port:0});indexer.start();
   let closing:Promise<void>|undefined;

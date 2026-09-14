@@ -9,6 +9,7 @@ import { bindingSchema, snapshotSchema, type WorkspaceBinding, type WorkspaceSna
 import { IndexStore } from './index-store.js';
 import { LaunchStore } from './launch-store.js';
 import { HandoffStore } from './handoff-store.js';
+import { MaintenanceStore } from './maintenance.js';
 import { BusinessStore } from './api-store.js';
 const id = z.string().min(1).max(512);
 const date = z.string().datetime();
@@ -24,6 +25,7 @@ function page(limit: number, offset: number) {
 /** Infrastructure boundary. Callers supply already redacted task fields; Store validates shape and atomicity. */
 export class SqliteStore extends IndexStore {
   constructor(db:Database.Database){super(db);registerSearchFunctions(db);}
+  maintenance():MaintenanceStore{return new MaintenanceStore(this.db);}
   launchStore():LaunchStore{return new LaunchStore(this.db);}
   handoffStore():HandoffStore{return new HandoffStore(this.db);}
   apiStore():BusinessStore{return new BusinessStore(this.db);}
