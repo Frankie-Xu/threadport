@@ -61,3 +61,18 @@ it('keeps session ownership and revision checks atomic across task links',async(
  expect((await api('/tasks/'+one.id+'/sessions/session','DELETE',{expectedRevision:2})).status).toBe(200);
  expect((await api('/tasks/'+two.id+'/sessions','POST',{sessionId:'session',expectedRevision:1})).status).toBe(200);
 },30000);
+
+it('paginates unassigned sessions independently of task history and invalidates attachment cursors',async()=>{
+ const {api}=await setup();const root=await temporary();
+ for(const id of ['one','two','three'])await writeFile(join(root,id+'.jsonl'),JSON.stringify({type:'user',sessionId:id,message:{role:'user',content:'Synthetic '+id}})+'\n');
+ const source=await api('/sources','POST',{agent:'claude',root});const job=await api('/index-jobs','POST',{sourceIds:[source.body.data.id]});
+ for(let i=0;i<100;i++){const state=(await api('/index-jobs/'+job.body.data.jobId)).body.data.progress[0].state;if(!['queued','running'].includes(state)){expect(state).toBe('completed');break;}await new Promise(resolve=>setTimeout(resolve,10));}
+ const project=(await api('/workspaces','POST',{root:await temporary(),confirmBinding:true})).body.data.projectId;
+ const first=await api('/sessions/unassigned?limit=1&projectId='+project);expect(first.body.data).toHaveLength(1);expect(first.body.data[0].projectId).toBeNull();expect(first.body.data[0].lastEventAt).toBeNull();expect(JSON.stringify(first.body)).not.toContain(root);
+ const next=await api('/sessions/unassigned?limit=1&projectId='+project+'&cursor='+first.body.nextCursor);expect(next.body.data[0].id).not.toBe(first.body.data[0].id);
+ const task=await api('/tasks','POST',{projectId:project,title:'Bound',sessionId:first.body.data[0].id});expect(task.status).toBe(201);
+ expect((await api('/sessions/unassigned?limit=1&projectId='+project+'&cursor='+first.body.nextCursor)).status).toBe(409);
+ expect((await api('/sessions/unassigned')).body.data).toHaveLength(2);
+ expect((await api('/sessions/unassigned?cursor=invalid')).status).toBe(400);
+ expect((await api('/sessions/unassigned?limit=101')).status).toBe(400);
+},30000);

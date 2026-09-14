@@ -49,7 +49,7 @@ data 清理/诊断/全删除留 T17；不注册占位成功端点。
 
 --demo 与 --data-dir 互斥，创建独立临时库，包含明确标记的合成任务、零来源，正常退出删除临时目录。不会读取真实默认数据；异常 OS 强杀可能留下临时目录。Windows 的强制进程终止不能模拟优雅终端 Ctrl-C，本地终端行为仍须实机认证。
 
-GET / 是无需 bearer 的静态 bootstrap，但仍校验 Host/Origin；所有 API 仍需要 bearer。响应以 nonce CSP、no-store、no-referrer 约束，不加载外部字体/脚本。前端读取 fragment 到闭包内存后立即用 history.replaceState 清除；不写 localStorage/sessionStorage，刷新保留 query 并显示从当前终端链接重新打开的恢复提示。页面仅显示任务摘要，T15 再接通 onboarding/编辑/预览完整流程。
+GET / 是无需 bearer 的静态 bootstrap，但仍校验 Host/Origin；所有 API 仍需要 bearer。响应以仅允许同源脚本/样式的 CSP、no-store、no-referrer 约束，不加载外部字体/脚本。前端读取 fragment 到闭包内存后立即用 history.replaceState 清除；不写 localStorage/sessionStorage，刷新保留 query 并显示从当前终端链接重新打开的恢复提示。T15-A 提供英文 onboarding、收件箱、历史与设置；编辑/预览属于 T15-B。GET /assets/<固定构建文件名>.js|css 可公开读取，但仍校验 Host/Origin，仅从启动时的内存白名单提供，不将请求路径拼接到文件系统。刷新后可粘贴当前终端链接恢复，查询参数保留。
 
 
 ## T12-B 准备、确认与导出
@@ -80,3 +80,7 @@ GET handoff 增加 attempts，包含安全状态/时间/errorCode/targetExitCode
 私有 approval 的运行元数据记录当前 ThreadPort owner PID/attempt ID（不进入导出，也不改变包摘要）。读取 launching 包时，若 owner PID 已不存在，标记 interrupted/OWNER_LOST；这表示观察中断，不证明 Agent 子进程已经停止。PID 存在或无法判断时保守保留占用；不杀其他进程、不自动重试。任何消费终态都要求重新 prepare 一个新 UUID。
 
 T14-A 只通过合成子进程与实际终端取消验证。Claude 当前未登录，至少一条真实跨 Agent 接续 gate 尚未完成；不能据此标记整个 T14 或版本发布完成。
+
+## T15-A 未归类列表
+
+GET /api/v1/sessions/unassigned 支持 projectId、limit（默认 50，最大 100）、cursor。仅返回启用来源中未关联任务的会话；选定项目时仍包含 projectId=null 的会话，创建时由用户确认项目。返回 id/agent/projectId/workspaceId/title/lastEventAt/status，不含日志路径或 vendor ID。独立分页不受已关联搜索结果占位；generation 变化返回 SEARCH_STALE，客户端显式重置分页。

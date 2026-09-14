@@ -12,7 +12,7 @@ async function start(args:string[]){
 }
 it('starts the installed-style CLI, serves a CSP bootstrap and stops on a signal',async()=>{
  const {child,url,output}=await start(['--data-dir',await temporary()]);const parsed=new URL(url);const token=new URLSearchParams(parsed.hash.slice(1)).get('token')!;
- const page=await fetch(parsed.origin);expect(page.status).toBe(200);expect(page.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");const html=await page.text();expect(html).not.toContain(token);expect(html).toContain('history.replaceState');expect(html).not.toContain('sessionStorage');expect(html).not.toContain('localStorage');
+ const page=await fetch(parsed.origin);expect(page.status).toBe(200);expect(page.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");const html=await page.text();expect(html).not.toContain(token);const asset=html.match(/src="(\/assets\/[^"]+\.js)"/)?.[1];expect(asset).toBeTruthy();const script=await fetch(parsed.origin+asset);expect(script.status).toBe(200);expect(script.headers.get('x-content-type-options')).toBe('nosniff');expect(await script.text()).toContain('replaceState');expect((await fetch(parsed.origin+'/assets/missing.js')).status).toBe(404);expect((await fetch(parsed.origin+asset,{headers:{Origin:'https://example.invalid'}})).status).toBe(403);expect(html).not.toContain('sessionStorage');expect(html).not.toContain('localStorage');
  expect((await fetch(parsed.origin+'/api/v1/status')).status).toBe(401);
  expect((await fetch(parsed.origin+'/api/v1/status',{headers:{authorization:'Bearer '+token}})).status).toBe(200);
  const exited=once(child,'exit');child.kill('SIGTERM');const [code,signal]=await exited;
@@ -22,7 +22,7 @@ it('starts the installed-style CLI, serves a CSP bootstrap and stops on a signal
 },30000);
 it('creates a visibly marked isolated demo without sources',async()=>{
  const {child,url}=await start(['--demo']);const parsed=new URL(url),token=new URLSearchParams(parsed.hash.slice(1)).get('token')!;
- expect(await (await fetch(parsed.origin)).text()).toContain('DEMO');
+ expect(await (await fetch(parsed.origin)).text()).toContain('data-demo="true"');
  const status=await (await fetch(parsed.origin+'/api/v1/status',{headers:{authorization:'Bearer '+token}})).json();expect(status.data.counts).toMatchObject({sources:0,tasks:1});
  const exited=once(child,'exit');child.kill('SIGTERM');await exited;
 },30000);
