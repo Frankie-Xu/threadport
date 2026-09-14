@@ -127,6 +127,13 @@ interface ReadCursor {
   byteOffset: number;
   nextOrdinal: number;
   parserVersion: string;
+  // T06 private extensions; persist the entire cursor with the event batch.
+  checkpoint?: { headLength: number; headHash: string; tailHash: string };
+  blockOffset?: number;
+  pendingCalls?: { id: string; command: string; cwd: string | null; startedAt: ISODate | null }[];
+  recognized?: boolean;
+  warnings?: string[];
+  metadata?: { sessionId?: Id; vendorSessionId: string | null; formatVersion: string | null; lastEventAt: ISODate | null };
 }
 interface SourceReadResult {
   session: SessionRecord;
@@ -136,6 +143,7 @@ interface SourceReadResult {
   hasMore: boolean;
 }
 interface SourceAdapter {
+  readonly diagnostics: readonly { sourceId: Id; rootIndex: number; code: string }[];
   readonly agent: Agent;
   readonly parserVersion: string;
   discover(roots: readonly string[], signal: AbortSignal): AsyncIterable<SourceCandidate>;
@@ -162,6 +170,8 @@ interface TaskService {
   detachSession(taskId: Id, sessionId: Id, expectedRevision: number): Promise<Task>;
 }
 ```
+
+T06 的原生 Claude 入口是 `threadport/sources`；createClaudeSource({sourceId, roots, onDiagnostic?}) 固定允许根目录，discover 请求只能选择这些根。每次 read 最多一个完整 JSONL 物理记录，maxEvents 取 1–1000；blockOffset 允许记录内继续。空 events 不表示结束，按 hasMore 与 warning 判断。SOURCE_RESET 要求 T07 清理该会话的旧索引并保留人工关联。pendingCalls 最多 128 条、每项字段限长且已脱敏；游标是私有数据，不应导出。来源状态和支持字段见 [兼容记录](../../compatibility/claude-source.md)。
 
 SourceAdapter 接受只读根目录，不能内部访问 process.env.HOME 扩大范围。项目绑定与任务关联在应用层完成。Store 是上述用例依赖的事务端口，其方法与具体用例对齐；不要发布泛型任意 SQL 或全局数据库句柄。
 

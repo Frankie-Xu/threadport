@@ -23,6 +23,7 @@ try {
   // Resolve the public export as an installed package, not by a source-tree import.
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const m = await import("threadport"); if (typeof m.parseHandoff !== "function") process.exit(1);'], { cwd: installRoot, timeout: 10_000 });
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore} = await import("threadport/storage"); const s = await openStore({dataDir:"./data"}); s.createProject("smoke", "Smoke"); s.close();'], { cwd: installRoot, timeout: 15_000 });
+  execFileSync(process.execPath, ['--input-type=module', '-e', 'const {createSourceRegistry} = await import("threadport/sources"); const s = createSourceRegistry([{agent:"claude",sourceId:"smoke",roots:["./data"]}]).get("smoke"); for await (const candidate of s.discover(["./data"], new AbortController().signal)) throw new Error("Unexpected candidate");'], { cwd: installRoot, timeout: 15_000 });
   console.log(`Package smoke passed: ${packed.files.length} files; CLI and public exports load from an isolated install.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });

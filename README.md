@@ -64,6 +64,10 @@ The CLI validates before writing and does not run `next_action`. `--from` accept
 - Complete visible record strings are secret-redacted before summaries are truncated. Metadata also passes an output privacy boundary. Secret scanning is heuristic, not a guarantee that arbitrary credentials, encoded secrets, or personal information have been removed. Inspect artifacts before sharing.
 - File tool calls without a recognized successful result remain attempts, not completed work. Unsupported/empty session formats are rejected. The adapters support the observed fixture formats, not every vendor version; result IDs are used where available, and ambiguous ID-less concurrent Gemini results remain unknown. See [compatibility evidence](docs/compatibility-evidence.md): no live vendor version is currently certified.
 
+### Allowed Claude source discovery
+
+The v0.2 `threadport/sources` SDK exposes `createSourceRegistry` and `createClaudeSource`. Configure explicit `roots` and a `sourceId`; the adapter never discovers roots from HOME. Iterate `discover(roots, signal)`, then call `read({candidate, cursor, maxEvents, signal})`, persisting its whole cursor. Continue while `hasMore` is true, including pages with zero events. Inspect warnings for partial lines, limits and reset requirements. The old extract API is unchanged. See [native source compatibility and limits](compatibility/claude-source.md); automatic indexing and UI integration follow in later tasks.
+
 ### Git fingerprints and handoff boundary
 
 Snapshots distinguish HEAD-to-index, index-to-worktree, and untracked contents, including symlinks as links. They use a new domain-separated hash algorithm, so capsules exported by the old incomplete algorithm must be re-extracted before comparing. No Capsule v1 fields were added. Git output is capped at 32 MiB per command with a 30-second timeout; aggregate untracked regular-file content is capped at 64 MiB. Ignore generated data before extraction. Snapshot consistency checks are best-effort; no repository lock or atomic filesystem snapshot is claimed.

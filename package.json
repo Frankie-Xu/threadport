@@ -19,6 +19,10 @@
     "./storage": {
       "types": "./dist/src/storage/sqlite-store.d.ts",
       "import": "./dist/src/storage/sqlite-store.js"
+    },
+    "./sources": {
+      "types": "./dist/src/sources/registry.d.ts",
+      "import": "./dist/src/sources/registry.js"
     }
   },
   "files": [

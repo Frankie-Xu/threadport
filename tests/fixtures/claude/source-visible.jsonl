@@ -1,0 +1,3 @@
+{"type":"user","sessionId":"synthetic-source-001","version":"synthetic-1","timestamp":"2026-09-14T00:00:00Z","message":{"content":"修复测试。\n禁止上传日志。"}}
+{"type":"assistant","sessionId":"synthetic-source-001","message":{"content":[{"type":"tool_use","id":"synthetic-call-1","name":"Bash","input":{"command":"npm test","cwd":"/synthetic/project"}}]}}
+{"type":"user","sessionId":"synthetic-source-001","message":{"content":[{"type":"tool_result","tool_use_id":"synthetic-call-1","content":{"output":"Synthetic tests passed","exit_code":0}}]}}
