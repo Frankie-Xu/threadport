@@ -2,15 +2,29 @@
 
 [![CI](https://github.com/Frankie-Xu/threadport/actions/workflows/ci.yml/badge.svg)](https://github.com/Frankie-Xu/threadport/actions/workflows/ci.yml)
 
-Portable, verifiable work state for coding agents.
+Find unfinished AI coding tasks, review their evidence, and prepare a continuation with Claude or Codex.
 
-> Move the work, not the conversation.
+Experimental local workbench; real Agent/platform certification and external user validation are still pending. See the [release HOLD record](docs/verification/release-0.2.0.md).
 
 This repository contains the first implementation of the ThreadPort Context Capsule v1 format. A Capsule records observable work state — objective, decisions, files, commands, tests, Git identity, evidence, and the next action — so a task can move between Claude Code, Codex, Cursor, and Gemini without copying hidden reasoning or silently executing code.
 
 ## Current implementation
 
-The planned task workspace is specified in the [v0.2 development documentation](docs/v0.2/README.md) (Chinese), including phased implementation and acceptance criteria. It describes planned behavior; the implementation below remains the current CLI foundation.
+The development checkout includes a task inbox, searchable history, manual revision controls, a complete continuation preview and terminal confirmation. The [v0.2 documentation](docs/v0.2/README.md) distinguishes implemented behavior from remaining acceptance gates. Capsule v1 and the legacy artifact CLI remain available.
+
+With Node 24, try the current checkout:
+
+```sh
+npm ci
+npm run build
+node dist/src/cli.js ui --no-open
+```
+
+1. Open the loopback link printed in your terminal. Add an explicit workspace and source directory in Settings.
+2. Refresh the source, find a session in History and create or attach a task. Review observed evidence and confirm your objective and constraints.
+3. Prepare a continuation, read the complete text, then copy the fixed ThreadPort command to a terminal. The terminal asks for confirmation before launching a compatible installed Agent.
+
+Without local logs, `node dist/src/cli.js ui --demo --no-open` opens synthetic data. Demo is not real continuation evidence. No account or telemetry is required by ThreadPort. Agent authentication belongs to your existing installation.
 
 - JSON Schema: `schema/capsule-v1.schema.json`
 - TypeScript validator and serializer: `src/capsule.ts`

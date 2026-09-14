@@ -49,12 +49,29 @@ jobs:
         run: npm ci
       - name: Check types, build, tests, and documentation links
         run: npm run check
+      - name: Cache pinned browser binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/ms-playwright
+            ~/Library/Caches/ms-playwright
+            ~/AppData/Local/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
       - name: Install Chromium for browser acceptance
         run: npx playwright install --with-deps chromium
       - name: Check browser workflows
         run: npm run test:e2e
       - name: Verify isolated package installation
-        run: npm run check:pack
+        run: npm run test:package
+        env:
+          THREADPORT_PACKAGE_OUTPUT: output/package-review
+      - name: Retain verified package and checksum evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.os }}-node-${{ matrix.node }}
+          path: output/package-review/
+          if-no-files-found: error
+          retention-days: 14
 
   check:
     name: check
