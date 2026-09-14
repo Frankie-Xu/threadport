@@ -46,7 +46,17 @@ export function registerDataRoutes(
   store: SqliteStore,
   dataDir: string,
   indexer: IndexService,
+  shutdown:()=>Promise<void>,
 ) {
+  let shuttingDown=false;
+  app.addHook('onRequest',async()=>{if(shuttingDown)throw new DomainError('STORAGE_BUSY','The local service is shutting down.');});
+  app.post('/api/v1/data/delete-all',async(request,reply)=>{
+    z.object({confirmation:z.literal('DELETE LOCAL DATA')}).strict().parse(request.body);
+    if(maintaining)throw new DomainError('STORAGE_BUSY','Maintenance is in progress.');
+    maintaining=true;
+    try{await indexer.pause();const result=store.deleteAll(dataDir);shuttingDown=true;return{data:result};}
+    finally{maintaining=false;if(!store.isOpen()){shuttingDown=true;const stop=()=>{void shutdown().catch(()=>{});};if(reply.raw.destroyed)setImmediate(stop);else{reply.raw.once('finish',stop);reply.raw.once('close',stop);}}else indexer.resume();}
+  });
   let maintaining=false;
   app.post('/api/v1/data/clear-index', async request=>{
     z.object({confirmation:z.literal(true)}).strict().parse(request.body);

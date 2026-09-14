@@ -1,3 +1,4 @@
+import {DeleteData} from './delete-data.js';
 import {Maintenance} from './maintenance.js';
 import {Diagnostics,StorageInfo} from "./diagnostics.js";
 import { useEffect, useState } from "react";
@@ -183,6 +184,7 @@ export function Settings({
           </button>
         </Modal>
       )}
+      <DeleteData api={api}/>
     </>
   );
 }

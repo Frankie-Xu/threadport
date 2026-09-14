@@ -213,7 +213,7 @@ function Shell({
           <ErrorNotice error={projects.error} />
           {projects.loading && !projects.data ? (
             <p role="status">Loading workspace…</p>
-          ) : projects.data?.data.length === 0 ? (
+          ) : projects.data?.data.length === 0 && view !== "settings" ? (
             <section className="onboarding">
               <p className="eyebrow">WELCOME TO THREADPORT</p>
               <h1>Start with a workspace</h1>

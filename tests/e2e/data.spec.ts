@@ -91,3 +91,30 @@ test("cancels index clearing without side effects and explicitly confirms cache 
   });
   expect((await response.json()).data.task.title).toBe("Synthetic export task");
 });
+
+test("requires the deletion phrase and stops after removing only application data", async ({
+  page,
+}) => {
+  const own = await mkdtemp(join(tmpdir(), "threadport-delete-ui-")),
+    local = await startLocalServer({ dataDir: join(own, "data") });
+  try {
+    await page.goto(local.origin + "/?v=settings#token=" + local.token);
+    await page.getByRole("button", { name: "Delete local data…" }).click();
+    await expect(
+      page.getByRole("button", { name: "Delete and stop service" }),
+    ).toBeDisabled();
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.getByRole("button", { name: "Delete local data…" }).click();
+    await page.getByLabel("Deletion confirmation").fill("DELETE LOCAL DATA");
+    if(process.env.THREADPORT_UI_SCREENSHOTS)await page.getByRole("dialog").screenshot({path:"output/playwright/t17-delete.png"});
+    await page.getByRole("button", { name: "Delete and stop service" }).click();
+    await expect(
+      page.getByText(/Local data deleted. The service has stopped./),
+    ).toBeVisible();
+    await local.closed;
+  } finally {
+    await local.close();
+    await rm(own, { recursive: true, force: true });
+  }
+});
