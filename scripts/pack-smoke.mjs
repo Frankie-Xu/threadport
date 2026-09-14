@@ -1,3 +1,4 @@
+import {pathToFileURL} from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
@@ -119,13 +120,22 @@ try {
       const url=await new Promise((done,reject)=>{let text='';const timer=setTimeout(()=>reject(new Error('UI startup timeout')),15000);child.once('error',reject);child.once('exit',()=>reject(new Error('UI exited early')));child.stdout.on('data',chunk=>{text+=chunk;if(text.includes('\\n')){clearTimeout(timer);done(text.trim().split('\\n')[0]);}});});
       const parsed=new URL(url);assert.equal(parsed.search,'');assert.match(parsed.hash,/^#token=[a-f0-9]{64}$/);
       const page=await fetch(parsed.origin);assert.equal(page.status,200);const html=await page.text();const asset=html.match(/src="([^"]+[.]js)"/)[1];assert.equal((await fetch(parsed.origin+asset)).status,200);assert.equal((await fetch(parsed.origin+'/api/v1/status')).status,401);
+      ${process.argv.includes('--browser') ? `
+      const {chromium}=await import(${JSON.stringify(pathToFileURL(join(root,'node_modules/playwright/index.mjs')).href)});
+      const browser=await chromium.launch({headless:true,...(process.env.THREADPORT_TEST_CHROME?{channel:'chrome'}:{})});
+      try{const page=await browser.newPage();page.setDefaultTimeout(15000);let external=0;await page.route('**/*',route=>{if(new URL(route.request().url()).origin===parsed.origin)return route.continue();external++;return route.abort();});
+       await page.goto(url);await page.getByText('SDK task',{exact:true}).click();await page.getByRole('button',{name:'Edit task',exact:true}).click();await page.getByLabel('Objective',{exact:true}).fill('Installed package objective');await page.getByRole('button',{name:'Save changes'}).click();await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByText('Installed package objective',{exact:true}).waitFor();
+       await page.reload();await page.getByLabel('Current terminal link').fill(url);await page.getByRole('button',{name:'Reconnect',exact:true}).click();await page.getByText('Installed package objective',{exact:true}).waitFor();assert.equal(external,0);
+      }finally{await browser.close();}
+      ` : ''}
       const exited=once(child,'exit');child.kill('SIGTERM');await exited;
     } finally {child.kill('SIGKILL');}
-  `], {cwd:installRoot,timeout:30000});
+  `], {cwd:installRoot,timeout:90000});
   const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8',timeout:10000}).trim();assert.match(sourceCommit,/^[0-9a-f]{40}$/);
   const dirty=spawnSync('git',['diff','--quiet','HEAD','--'],{cwd:root}).status!==0;
-  const manifest={sourceCommit,trackedChanges:dirty,protocol:'threadport.package-evidence.v1',version:packed.version,filename:packed.filename,sha256,integrity:packed.integrity,node:process.version,platform:process.platform,arch:process.arch,files:packed.files.map(file=>file.path),checks:'isolated-install,public-imports,doctor,storage,search,workspace,UI,legacy-Cursor',certification:'synthetic package checks only; real Agent and user gates are separate'};
+  const manifest={sourceCommit,trackedChanges:dirty,installedBrowser:process.argv.includes('--browser'),protocol:'threadport.package-evidence.v1',version:packed.version,filename:packed.filename,sha256,integrity:packed.integrity,node:process.version,platform:process.platform,arch:process.arch,files:packed.files.map(file=>file.path),checks:'isolated-install,public-imports,doctor,storage,search,workspace,UI,legacy-Cursor',certification:'synthetic package checks only; real Agent and user gates are separate'};
   if(process.env.THREADPORT_PACKAGE_OUTPUT){const destination=resolve(process.env.THREADPORT_PACKAGE_OUTPUT);await mkdir(destination,{recursive:true});await copyFile(join(temporary,packed.filename),join(destination,packed.filename),constants.COPYFILE_EXCL);await writeFile(join(destination,packed.filename+'.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});}
+  if(process.argv.includes('--browser'))console.log('Installed browser smoke passed: task edit, persisted reload, and loopback-only access.');
   console.log(`Verified archive SHA-256: ${sha256}`);
   console.log(`Package smoke passed: ${packed.files.length} files; public exports, UI/continue CLI, workspace verification, local server and 3 Cursor roundtrips pass from an isolated install.`);
 } finally {
