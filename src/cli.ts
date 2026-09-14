@@ -8,6 +8,9 @@ import { createHash } from 'node:crypto';
 import { createClaudeAdapter } from './adapters/claude.js';
 import { createCodexAdapter } from './adapters/codex.js';
 import { createCursorAdapter } from './adapters/cursor.js';
+import { CURSOR_TRANSCRIPT_WARNING } from './adapters/cursor-markdown.js';
+import { CURSOR_INCOMPLETE_WARNING } from './adapters/cursor-evidence.js';
+import { CURSOR_NATIVE_NOTE } from './adapters/cursor-native.js';
 import { createGeminiAdapter } from './adapters/gemini.js';
 import { parseCapsule, serializeCapsule } from './capsule.js';
 import { renderCapsuleMarkdown } from './markdown.js';
@@ -101,6 +104,9 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
       const projectRoot = resolve(io.cwd(), named.project);
       const canonicalRoot = await realpath(projectRoot);
       const capsule = await adapters[agent]().extract({ sessionPath: resolve(io.cwd(), named.session), project: { name: basename(projectRoot) || 'project', root: projectRoot }, privacy });
+      if (agent === 'cursor') for (const warning of [CURSOR_TRANSCRIPT_WARNING, CURSOR_INCOMPLETE_WARNING, CURSOR_NATIVE_NOTE]) {
+        if (capsule.constraints.includes(warning)) io.stderr.write(`Warning: ${warning}\n`);
+      }
       const output = named.out ? resolve(io.cwd(), named.out) : join(await defaultRoot(), `${fingerprint(canonicalRoot)}-${agent}`, `${capsule.id}.json`);
       if (!named.out) {
         const rel = relative(canonicalRoot, await realpath(await defaultRoot()));

@@ -6,7 +6,7 @@ This is an evidence register, not a promise that an adapter supports all release
 | --- | --- | --- |
 | Claude | Synthetic `tests/fixtures/claude/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
 | Codex | Synthetic `tests/fixtures/codex/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
-| Cursor | Synthetic `tests/fixtures/cursor/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
+| Cursor | Synthetic JSONL, Copy Transcript Markdown, selected-native conversion and SQLite exporter regressions | Cursor 3.20.10: selected edit/test evidence; 3.20.17: pending/rejected shell and stop-command scenarios; Agents This Mac / macOS 26.6.2 only. No full version/mode certification |
 | Gemini | Synthetic `tests/fixtures/gemini/session-basic.json` and regression records | Not certified — no permitted, versioned live sample supplied |
 
 The September 14 acceptance follow-up fixes path normalization and Markdown rendering and closes filesystem-fault and Windows-symlink test gaps. Those changes do not close this sample-dependent gate. An installed binary, a schema-valid export or green synthetic tests alone is insufficient evidence of live format compatibility.
@@ -25,4 +25,24 @@ For each supported version, evidence should include a successful file edit, a re
 4. If parsing fails, minimize a synthetic structural reproduction and add it to the normal regression suite before changing the adapter. Keep real logs outside the repository.
 5. Update the register with the exact tested version, date, relevant regression test and observed limitations only after this comparison passes. Do not infer compatibility with adjacent or future versions.
 
-Status at this follow-up: samples and desired version targets have been requested from the user; none have been supplied in scope. Live-format certification remains blocked on that input, not silently checked off.
+## Cursor Copy Transcript follow-up — September 14
+
+The user authorized one new, isolated synthetic project session in their installed Cursor desktop. About showed version 3.20.10 and build date September 11, 2026, 05:04; the session environment showed **This Mac**. macOS was 26.6.2 (25G83). An update was available but not installed during this run. This is not a Cursor CLI or Cloud sample and does not certify other desktop modes.
+
+The session repaired one client file while preserving a same-named server file and test assertions. Independent Node test runs went from two failures (exit 1) to two passes (exit 0); local Git diff confirmed the single-line client change. The final visible answer left a README usage example pending. Those independent checks describe the smoke task, not extra information available in the exported transcript.
+
+`Chat actions → Copy → Copy Transcript` produced Markdown with User/Assistant headings and sparse tool headings. Terminal commands and edit results lacked complete structured arguments, exit-code fields and call/result links. Original extraction failed at line 1 as JSONL. The repaired importer successfully extracted and validated a paused, explicitly transcript-only Capsule from the same local export. Manual comparison verified preservation of the objective and pending example, no invented tool evidence, a current independent Git snapshot, portable paths, and warnings in JSON/Markdown.
+
+Repository regression material is newly authored synthetic data, not the live transcript. `tests/adapters/cursor.test.ts` covers conservative dialogue parsing, code-fence boundaries, skipped hidden/tool sections, privacy, malformed input, structured-format preservation and structured Node fail/pass/fail ordering. `tests/cli.test.ts` checks warning propagation through extract, validate and handoff. The original transcript and live outputs remain local, outside this repository.
+
+**Limits:** Code and unsupported sections are omitted, unfenced role headings are unauthenticated, and long assistant context is truncated with a notice. Rejected edits, missing/concurrent results, later real user turns and failure/pass/failure sequences were not exercised in this live session. Synthetic regressions are not live evidence for those scenarios. No full Cursor version certification is claimed; Claude, Codex and Gemini still lack permitted versioned live samples.
+
+## Extended native evidence follow-up
+
+The subsequent authorized run added a failed exact replacement, a successful regression edit, a final failing test, and a later user instruction to stop. A read-only query restricted to this test session found native tool IDs/results in local storage that the JSONL and Copy Transcript paths omit. The developer-only selected-session exporter and adapter now verify those richer records; see the [executed matrix and limits](verification/cursor-native-evidence.md).
+
+The selected evidence path preserves actual edit outcomes, completion ordering and inner Node test exits 1/0/1. It leaves the final failure blocked and retains the latest user instruction. Sparse JSONL instead keeps results unknown and warns; native timestamp wrappers no longer replace the task objective. Neither a JSON file nor a terminal tool marked completed is automatically considered complete evidence.
+
+Cursor 3.20.17 subsequently supplied live pending-approval, rejected-shell and stop-command evidence in the same isolated test session. The stopped command still reported `notInterrupted: true`; the adapter correctly keeps its exit unknown instead of treating that flag as proof of uninterrupted success. The original Auto-Review (with Sandbox) mode was restored and verified after user confirmation. File-edit permission rejection, broader same-command concurrency, other tools/modes/platforms and other vendors remain separate, uncompleted live gates.
+
+After integrating main through PR #30 (`8a1a225`), the Cursor follow-up preserves native command cwd, prevents a result preceding its call from confirming success, and respects the shared direct-test and latest-user objective rules. Node 24 checks passed 223 tests; isolated packaging and three saved live-snapshot reimports passed. See the [review checkpoint](verification/cursor-native-evidence.md#post-integration-review--pr-29-and-pr-30) for remaining limits. These changes are local and uncommitted, not a published compatibility release.

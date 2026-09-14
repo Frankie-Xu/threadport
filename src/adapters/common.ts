@@ -27,7 +27,7 @@ export const DEFAULT_NEXT_ACTION = "Review the capsule and confirm the next edit
 export const DERIVED_ACCEPTANCE_NOTE =
   "acceptance_criteria is derived from the objective; the session did not state explicit acceptance criteria.";
 // Recognize a direct invocation only; shell compositions have a different exit-status meaning.
-export const TEST_COMMAND = /^(?![\s\S]*[;&|<>`$\r\n])\s*(?:(?:npm|pnpm|yarn)(?:\s+run)?\s+test(?::[\w:-]+)?|(?:npx|pnpm\s+exec|yarn)\s+(?:vitest|jest)|vitest|pytest|go\s+test|cargo\s+test|mvn\s+test|(?:\.\/)?gradle(?:w)?\s+test|jest|bun\s+test)(?=\s|$)/;
+export const TEST_COMMAND = /^(?![\s\S]*[;&|<>`$\r\n])\s*(?:(?:\/(?:[^\s/]+\/)*|[A-Za-z]:\\(?:[^\s\\]+\\)*)?node(?:\.exe)?\s+--test|(?:npm|pnpm|yarn)(?:\s+run)?\s+test(?::[\w:-]+)?|(?:npx|pnpm\s+exec|yarn)\s+(?:vitest|jest)|vitest|pytest|go\s+test|cargo\s+test|mvn\s+test|(?:\.\/)?gradle(?:w)?\s+test|jest|bun\s+test)(?=\s|$)/;
 export const HISTORICAL_TEST_NOTE = "Historical result; current workspace validity unknown.";
 export const USER_DONE = /^\s*(?:done|completed|that'?s all|finished|lgtm)[.!]?\s*$/i;
 
