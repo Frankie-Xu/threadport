@@ -103,10 +103,11 @@ if (process.argv[2] === "--worker") {
     return { ...ready, began };
   }
   async function close() {
-    if (!child || child.exitCode !== null) return;
+    if (!child || child.exitCode !== null || child.signalCode !== null) return;
     const current = child,
       exited = once(current, "exit");
-    current.send("close");
+    if (current.connected) current.send("close");
+    else current.kill();
     const timer = setTimeout(() => current.kill("SIGKILL"), 5000);
     await exited;
     clearTimeout(timer);
