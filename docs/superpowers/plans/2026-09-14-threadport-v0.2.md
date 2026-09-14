@@ -321,7 +321,7 @@ npm test -- tests/search/service.test.ts
 
 ### T10 · 工作区快照与显式验证
 
-**执行拆分：** 按 [T10-A 捕获 / T10-B 比较 / T10-C CLI 工作包计划](2026-09-14-t10-work-packages.md) 逐包提交、推送、PR、CI 与合并；以下仍是总任务验收；A 已合并，B 的实现与验证见包计划，C 尚未开始。
+**执行拆分：** 按 [T10-A 捕获 / T10-B 比较 / T10-C CLI 工作包计划](2026-09-14-t10-work-packages.md) 逐包提交、推送、PR、CI 与合并；以下仍是总任务验收；A/B 已合并，C 已实现并完成本地验证；实际交付与合并证据见包计划及 PR。
 
 **阶段 / 工时 / 依赖：** P2 / 12–18 小时 / T02,T05,T08\
 **覆盖：** F06 / Q12,Q13,Q14,Q15
@@ -336,10 +336,10 @@ npm test -- tests/search/service.test.ts
 
 **必审案例：** Q12–Q15；portable .、不同 root 绑定、wrong repo、无 commit、detached HEAD、untracked、改 HEAD、符号链接、并发读写、超限；源目录不变。
 
-- [ ] **步骤 1 — 核对输入：** 阅读上述接口、相关源文件和既有测试，在 Issue 写下本任务的 AC 与当前失败行为；记录 HEAD，确认依赖任务已完成。
-- [ ] **步骤 2 — 建立可失败证据：** 将上述必审案例逐个放入指定测试文件，先运行目标测试，确认失败是待实现行为导致；纯文档任务用链接/模板/基线检查替代新增测试。
-- [ ] **步骤 3 — 实现一个可观测增量：** 在指定生产模块实现一个案例所需逻辑；遵循输入/输出和错误契约，接好调用方。重复步骤 2/3 直到该任务全部案例覆盖，不增加边界外功能。
-- [ ] **步骤 4 — 验证交付：** 运行下方命令并保存结果；涉及实机/人工门槛时同时补齐证据，不以自动测试代替。
+- [x] **步骤 1 — 核对输入：** 阅读上述接口、相关源文件和既有测试，在 Issue 写下本任务的 AC 与当前失败行为；记录 HEAD，确认依赖任务已完成。
+- [x] **步骤 2 — 建立可失败证据：** 将上述必审案例逐个放入指定测试文件，先运行目标测试，确认失败是待实现行为导致；纯文档任务用链接/模板/基线检查替代新增测试。
+- [x] **步骤 3 — 实现一个可观测增量：** 在指定生产模块实现一个案例所需逻辑；遵循输入/输出和错误契约，接好调用方。重复步骤 2/3 直到该任务全部案例覆盖，不增加边界外功能。
+- [x] **步骤 4 — 验证交付：** 运行下方命令并保存结果；涉及实机/人工门槛时同时补齐证据，不以自动测试代替。
 
 ```bash
 npm test -- tests/workspace tests/git.test.ts tests/cli.test.ts
@@ -347,8 +347,8 @@ npm test -- tests/workspace tests/git.test.ts tests/cli.test.ts
 
 **预期结果：** matched/drifted/unverifiable 与 CLI 退出码一致，没有假 matched。
 
-- [ ] **步骤 5 — 审查与收口：** 执行质量文档 review 顺序，检查 diff、数据去向、兼容与失败恢复；补用户文档。修复 P0/P1，再运行受影响检查，最后运行 `npm run check`。
-- [ ] **步骤 6 — 提交与交接：** 按本任务边界提交，PR关联 Issue/AC/证据；更新进度表的真实等级、commit与下一步。建议标题：`feat: verify captured workspaces with explicit uncertainty`。
+- [x] **步骤 5 — 审查与收口：** 执行质量文档 review 顺序，检查 diff、数据去向、兼容与失败恢复；补用户文档。修复 P0/P1，再运行受影响检查，最后运行 `npm run check`。
+- [x] **步骤 6 — 提交与交接：** 按本任务边界提交，PR关联 Issue/AC/证据；更新进度表的真实等级、commit与下一步。建议标题：`feat: verify captured workspaces with explicit uncertainty`。
 
 **完成门：** 产出接口与调用方实际接通、必审案例通过、没有未解决 P0/P1、文档对应实际行为。阶段涉及发布/实机时，还必须通过该阶段人工 gate，才可标 L3。
 
@@ -717,7 +717,7 @@ npm run test:package
 
 ## 4. 进度表
 
-以下按实际证据更新；未实施任务仍保持 L0。T01/T02/T03/T04/T05/T06/T07/T08/T09 已合并；T10-A 已合并，T10-B 已实现，T10-C 尚未实施，按其验证记录与 PR 跟进，不代表整体产品或真实接续认证完成。
+以下按实际证据更新；未实施任务仍保持 L0。T01/T02/T03/T04/T05/T06/T07/T08/T09 已合并；T10-A/B 已合并，T10-C 已实现并完成本地验证，按其验证记录与 PR 跟进，不代表整体产品或真实接续认证完成。
 
 | 任务 | 状态 | 完成等级 | 实际工时 | PR / SHA / 证据 |
 | --- | --- | --- | --- | --- |
@@ -730,7 +730,7 @@ npm run test:package
 | T07 | done | L2（索引集成） | 未单独计时 | [验收与回归](../../verification/t07-incremental-index.md)；233 测试，PR #33 / 0d00f6d，三平台 CI 通过 |
 | T08 | done | L2（任务集成） | 未单独计时 | [验收与回归](../../verification/t08-task-management.md)；241 测试，PR #34 / 7c13034，三平台 CI 通过 |
 | T09 | done | L2（搜索集成） | 未单独计时 | [验收与回归](../../verification/t09-history-search.md)；249 测试，PR #35 / ff32547，三平台 CI 通过 |
-| T10 | in_progress | L1（A/B；C 未实现） | 未单独计时 | [T10-A 证据](../../verification/t10-a-snapshot.md)、[T10-B 证据](../../verification/t10-b-verify.md)；总任务验收尚未完成 |
+| T10 | review | L1（A/B/C SDK 与 CLI） | 未单独计时 | [T10-A 证据](../../verification/t10-a-snapshot.md)、[T10-B 证据](../../verification/t10-b-verify.md)、[T10-C 证据](../../verification/t10-c-cli.md)；C PR 合并即完成本开发任务；UI/真实接续后续验收 |
 | T11 | pending | L0 | 尚未实施 | 尚未实施 |
 | T12 | pending | L0 | 尚未实施 | 尚未实施 |
 | T13 | pending | L0 | 尚未实施 | 尚未实施 |

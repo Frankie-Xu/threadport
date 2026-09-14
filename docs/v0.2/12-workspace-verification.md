@@ -57,3 +57,37 @@ Git 使用固定只读子命令，移除继承的 GIT_* 重定向，关闭 fsmon
 portable Capsule 的 `.` 是展示路径，SDK 不根据进程 cwd 猜测项目；消费者必须提供实际登记的绝对 canonicalRoot。快照中没有根路径，绑定变化也不能靠替换路径绕过身份校验。结构损坏或不支持的算法/范围抛 INVALID_INPUT，显式取消向调用者传播。旧 Capsule 到报告的兼容转换及 CLI 留给 T10-C。
 
 仅回滚 B 时移除比较 API，保留 A 的捕获、存储和现有 snapshots/人工绑定。先确认 C/T11/T12/T14 没有依赖；已有消费者先处理它们。无需 schema 降级。
+
+## T10-C：verify CLI
+
+```bash
+threadport verify ./capsule.json --project /absolute/project --data-dir /private/threadport-data --json
+threadport verify ./capsule.json --project /absolute/project --data-dir /private/threadport-data
+```
+
+`--project` 必填；相对路径按调用 cwd 解析。`--data-dir` 可选，默认沿用平台应用数据目录。stdout 是单份 JSON 或文本报告；诊断仅写 stderr。退出码：matched=0、drifted=4、unverifiable=6、输入错误=2、输入文件或数据库失败=5。未知/重复选项与多余位置参数返回 2。旧 `validate` 仍仅检查 schema，保持原来的 0/1 退出行为。
+
+Capsule v1 字段冻结。为了显式选择 A 已保存的快照，CLI 识别一个现有 `evidence` 条目：
+
+```json
+{"kind":"other","title":"Explicit workspace snapshot","locator":"threadport:workspace-snapshot:<snapshot-id>"}
+```
+
+这是一条本地引用协议，不增加 Capsule schema 字段。生产者在人工选择工作区并通过 SnapshotService 保存快照后，才把该 ID 明确写入 evidence；不得为旧日志自动生成引用或选“最新快照”。ID 限 1–512 位 ASCII 字母、数字、点、下划线、连字符且首位为字母/数字；重复或非法引用是输入错误。其他 evidence 保持原义。引用不认证 Capsule 文本、命令结果或历史测试；matched 比较的是该引用的快照与当前工作区。
+
+示例（已显式创建项目/工作区绑定并打开 store；输出 Capsule 位于工作区之外）：
+
+```ts
+const snapshot = await new SnapshotService(store).capture(workspaceId);
+capsule.evidence.push({
+  kind: 'other', title: 'Explicit workspace snapshot',
+  locator: `threadport:workspace-snapshot:${snapshot.id}`,
+});
+await writeFile(outputOutsideWorkspace, serializeCapsule(capsule));
+```
+
+读取本地保存的绑定后，CLI 核对 `--project` 的真实路径，再调用 B；不会使用 Capsule 中的 `.` 或旧机器路径猜测绑定。CLI 以 SQLite readonly/fileMustExist 打开已有 schema 4，不建库、不迁移、不保存新快照；数据库损坏或版本不兼容返回 5，请用兼容版本处理。SQLite 可能维护自身 WAL 共享内存文件，因此应用数据目录应独立于被验证仓库。
+
+没有引用、数据库不存在或引用记录不存在时返回 unverifiable；报告 snapshotId 可为 null，workspaceId/scope 为 null，表示没有可声明的范围。不能用虚构 ID 或完整范围填空。已有快照时报告遵循 B；未绑定、根目录不符、移动/失读等不会返回 matched；捕获结束再检查绑定是否变更。
+
+回滚 C：确认后续消费者后，通过 PR revert C 的 squash 提交；保留 A/B SDK、schema 4、快照、绑定和既有 Capsule evidence 数据。旧版本会把该 evidence 当普通证据，不会自动执行它。撤销公开 verify 命令是回滚的用户可见变化。
