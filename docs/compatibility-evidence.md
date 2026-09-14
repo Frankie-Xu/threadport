@@ -4,8 +4,8 @@ This is an evidence register, not a promise that an adapter supports all release
 
 | Adapter | Committed evidence | Live version certification |
 | --- | --- | --- |
-| Claude | Synthetic `tests/fixtures/claude/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
-| Codex | Synthetic `tests/fixtures/codex/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
+| Claude | [Native source boundary and limits](../compatibility/claude-source.md); Synthetic `tests/fixtures/claude/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
+| Codex | [Native source boundary and limits](../compatibility/codex-source.md); Synthetic `tests/fixtures/codex/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
 | Cursor | Synthetic JSONL, Copy Transcript Markdown, selected-native conversion and SQLite exporter regressions | Cursor 3.20.10: selected edit/test evidence; 3.20.17: pending/rejected shell and stop-command scenarios; Agents This Mac / macOS 26.6.2 only. No full version/mode certification |
 | Gemini | Synthetic `tests/fixtures/gemini/session-basic.json` and regression records | Not certified — no permitted, versioned live sample supplied |
 
@@ -41,7 +41,7 @@ Repository regression material is newly authored synthetic data, not the live tr
 
 The subsequent authorized run added a failed exact replacement, a successful regression edit, a final failing test, and a later user instruction to stop. A read-only query restricted to this test session found native tool IDs/results in local storage that the JSONL and Copy Transcript paths omit. The developer-only selected-session exporter and adapter now verify those richer records; see the [executed matrix and limits](verification/cursor-native-evidence.md).
 
-The selected evidence path preserves actual edit outcomes, completion ordering and inner Node test exits 1/0/1. It leaves the final failure blocked and retains the latest user instruction. Sparse JSONL instead keeps results unknown and warns; native timestamp wrappers no longer replace the task objective. Neither a JSON file nor a terminal tool marked completed is automatically considered complete evidence.
+The selected evidence path preserves observed edit outcomes, completion ordering and the latest user instruction. The initial build inferred inner Node test exits 1/0/1 from output markers; that inference has been removed. Those historical test observations do not certify numeric exits in the current converter: native shell results now remain unknown, including exact wrappers. Sparse JSONL also keeps absent results unknown and warns; native timestamp wrappers no longer replace the task objective. Neither a JSON file nor a terminal tool marked completed is automatically considered complete evidence. See the [current release-candidate verification](verification/cursor-release-candidate.md).
 
 Cursor 3.20.17 subsequently supplied live pending-approval, rejected-shell and stop-command evidence in the same isolated test session. The stopped command still reported `notInterrupted: true`; the adapter correctly keeps its exit unknown instead of treating that flag as proof of uninterrupted success. The original Auto-Review (with Sandbox) mode was restored and verified after user confirmation. File-edit permission rejection, broader same-command concurrency, other tools/modes/platforms and other vendors remain separate, uncompleted live gates.
 

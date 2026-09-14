@@ -26,7 +26,7 @@ npm ci
 npm run check
 ```
 
-Requires Node `>=20`. CI runs that gate on Node 20 and Node 24. Session adapters and the handoff CLI are available. Processing is local-only: source sessions and project contents are read, while exported artifacts are written to explicit or temporary destinations. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
+Requires Node `>=24.0.0` for this v0.2 development checkout. CI runs Node 24. See [runtime and storage migration](docs/v0.2/07-storage-migration.md). Session adapters and the handoff CLI are available. Processing is local-only: source sessions and project contents are read, while exported artifacts are written to explicit or temporary destinations. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
 
 ```ts
 import { createClaudeAdapter, createCodexAdapter, createCursorAdapter, createGeminiAdapter } from "threadport";
@@ -82,6 +82,14 @@ Cursor's project-local native JSONL can also omit call IDs/results. Those sessio
 
 For explicitly permitted single-session database evidence, a developer-only read-only exporter is available; see [Cursor evidence verification](docs/verification/cursor-native-evidence.md). It is experimental, requires the SQLite CLI, is not included in the npm package and does not discover sessions automatically. This richer path has been checked against the isolated test session, but does not certify every tool or release.
 
+### Allowed Claude source discovery
+
+The v0.2 `threadport/sources` SDK exposes `createSourceRegistry` and `createClaudeSource`. Configure explicit `roots` and a `sourceId`; the adapter never discovers roots from HOME. Iterate `discover(roots, signal)`, then call `read({candidate, cursor, maxEvents, signal})`, persisting its whole cursor. Continue while `hasMore` is true, including pages with zero events. Inspect warnings for partial lines, limits and reset requirements. The old extract API is unchanged. See [native source compatibility and limits](compatibility/claude-source.md); indexing is available through IndexService; UI integration follows in later tasks.
+
+### Incremental indexing
+
+`threadport/sources` now registers Claude and Codex. `threadport/indexing` provides `IndexService` for manual refresh, cancellation and optional 15-second refresh while a local service runs. Full cursors and event batches commit atomically; rescans preserve manual tasks and links. Database schema v2 adds durable cursor state and two scan lease slots. See [indexing and recovery](docs/v0.2/08-indexing.md) and [Codex format evidence](compatibility/codex-source.md).
+
 ### Git fingerprints and handoff boundary
 
 Snapshots distinguish HEAD-to-index, index-to-worktree, and untracked contents, including symlinks as links. They use a new domain-separated hash algorithm, so capsules exported by the old incomplete algorithm must be re-extracted before comparing. No Capsule v1 fields were added. Git output is capped at 32 MiB per command with a 30-second timeout; aggregate untracked regular-file content is capped at 64 MiB. Ignore generated data before extraction. Snapshot consistency checks are best-effort; no repository lock or atomic filesystem snapshot is claimed.
@@ -101,8 +109,12 @@ npm run check:pack
 npm audit
 ```
 
-`npm pack` builds through `prepack`; only runtime build files, schemas, examples and package documentation are distributed. `check:pack` installs the tarball into an isolated directory and checks the CLI and public exports. CI runs these gates on Ubuntu, macOS and Windows with Node 20 and 24. The Git regression suite requires real file symlinks on every platform, including Windows; missing privileges fail the test instead of skipping it. Parsed Markdown assertions cover LF/CRLF/CR, and publication tests inject filesystem errors after preflight. Vitest 4.1.11 and Vite 6.4.3 are pinned together to fix the mocker advisory while retaining Node 20 support.
+`npm pack` builds through `prepack`; only runtime build files, SQL migrations, schemas, examples and package documentation are distributed. `check:pack` installs the tarball into an isolated directory and checks the CLI, public exports and native SQLite creation. CI runs these gates on Ubuntu, macOS and Windows with Node 24. The Git regression suite requires real file symlinks on every platform, including Windows; missing privileges fail the test instead of skipping it. Parsed Markdown assertions cover LF/CRLF/CR, and publication tests inject filesystem errors after preflight. Vitest 4.1.11 and Vite 6.4.3 are pinned together to fix the mocker advisory without unrelated dependency upgrades.
 
 ## Safety boundary
 
 ThreadPort does not transfer hidden chain-of-thought, does not upload session data, and does not automatically run the next action. Consumers must validate the Capsule and ask for user confirmation before modifying a repository.
+
+### Editable tasks SDK
+
+The `threadport/tasks` entry supports manual task fields, revision conflicts, session associations and reversible lifecycle/archive changes. See [task management](docs/v0.2/09-task-management.md) for redaction preview, project boundaries and completion activity semantics. UI integration follows in the implementation plan.

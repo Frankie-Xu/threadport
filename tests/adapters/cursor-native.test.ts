@@ -20,6 +20,28 @@ const edit = (id: string, offset: number, fail = false) => ({
   tool: { name: 'edit_file_v2', toolCallId: id, status: fail ? 'error' : 'completed', params: { relativeWorkspacePath: 'src/client.mjs' }, result: fail ? null : { beforeContentId: 'before', afterContentId: 'after' }, error: fail ? 'Match not found.' : null }
 });
 const envelope = (bubbles: unknown[]) => ({ format: 'threadport.cursor-native.v1', sessionId, createdAt: epoch, bubbles });
+it('does not certify an exit from text markers and unreliable completion flags', async () => {
+  const tool = shell('marker-only', 10, 20, 0);
+  const capsule = await createCursorAdapter().extract({ project: await project(),
+    sessionText: JSON.stringify(envelope([text('u', 1, 'Review only.', 0), tool])) });
+  expect(capsule.commands[0]?.exit_code).toBeUndefined();
+  expect(capsule.completed).toEqual([]);
+  expect(capsule.status).toBe('paused');
+});
+it('never confirms a rejected native edit or an unknown tool', async () => {
+  for (const denied of [true, false]) {
+    const tool = edit('denied-edit', 10);
+    const native = { ...tool, tool: { ...tool.tool, name: denied ? 'edit_file_v2' : 'future_tool_v99',
+      result: denied ? { rejected: true } : null, error: null } };
+    const capsule = await createCursorAdapter().extract({ project: await project(),
+      sessionText: JSON.stringify(envelope([text('u', 1, 'Review.', 0), native])) });
+    expect(capsule.completed).toEqual([]);
+    if (denied) {
+      expect(capsule.files[0]?.summary).not.toBe('Confirmed in session.');
+      expect(capsule.failures.some(f => !f.resolution)).toBe(true);
+    } else expect(capsule.constraints.join('\n')).toContain('incomplete tool evidence');
+  }
+});
 async function project() {
   const root = await mkdtemp(join(tmpdir(), 'threadport-native-'));
   await exec('git', ['init', '-b', 'main', root]);
@@ -37,9 +59,10 @@ it('maps selected native results with failure recovery and final user instructio
     { ...text('hidden', 2, 'HIDDEN_MARKER', 5), omitted: true, thinking: 'SECRET_THINKING' }
   ]);
   const capsule = await createCursorAdapter().extract({ sessionText: JSON.stringify(input), project: await project() });
-  expect(capsule.tests.map(test => test.status)).toEqual(['failed', 'passed', 'failed']);
-  expect(capsule.commands.map(command => command.command)).toEqual(['node --test', 'node --test', 'node --test']);
-  expect(capsule.status).toBe('blocked');
+  expect(capsule.tests).toEqual([]);
+  expect(capsule.commands.map(command => command.command)).toEqual(Array(3).fill('node --test; echo "EXIT_CODE=$?"'));
+  expect(capsule.commands.every(command => command.exit_code === undefined)).toBe(true);
+  expect(capsule.status).toBe('paused');
   expect(capsule.files[0]?.summary).toBe('Confirmed in session.');
   expect(capsule.failures.some(failure => failure.summary.includes('Match not found') && failure.resolution)).toBe(true);
   expect(capsule.next_action).toContain('Review the README first');
@@ -54,7 +77,7 @@ it('orders concurrent results by completion rather than array or call order', ()
   expect(results.map(block => block.tool_use_id)).toEqual(['fast', 'slow']);
 });
 
-it('keeps same-command retries in different native working directories separate', async () => {
+it('preserves native working directories and never recovers failures from text markers', async () => {
   const withCwd = (id: string, start: number, exit: number, cwd: string) => {
     const bubble = shell(id, start, start + 1, exit);
     return { ...bubble, tool: { ...bubble.tool, params: { ...bubble.tool.params, cwd } } };
@@ -63,13 +86,14 @@ it('keeps same-command retries in different native working directories separate'
   const passedElsewhere = withCwd('passed-b', 20, 0, '/synthetic/b');
   const records = cursorNativeRecords(envelope([failed]));
   const call = records.flatMap(r => Array.isArray(r.content) ? r.content : []).find(b => b.type === 'tool_use');
-  expect(call?.input).toEqual({ command: 'node --test', cwd: '/synthetic/a' });
+  expect(call?.input).toEqual({ command: 'node --test; echo "EXIT_CODE=$?"', cwd: '/synthetic/a' });
   const input = { project: await project(), sessionText: JSON.stringify(envelope([text('u', 1, 'Fix.', 0), failed, passedElsewhere])) };
   const separate = await createCursorAdapter().extract(input);
-  expect(separate.status).toBe('blocked');
-  expect(separate.failures.some(f => !f.resolution)).toBe(true);
+  expect(separate.status).toBe('paused');
+  expect(separate.commands.every(c => c.exit_code === undefined)).toBe(true);
   const recovered = await createCursorAdapter().extract({ ...input, sessionText: JSON.stringify(envelope([text('u', 1, 'Fix.', 0), failed, withCwd('passed-a', 20, 0, '/synthetic/a')])) });
-  expect(recovered.failures.every(f => f.resolution)).toBe(true);
+  expect(recovered.failures).toEqual([]);
+  expect(recovered.commands.every(c => c.exit_code === undefined)).toBe(true);
 });
 
 it('preserves unknown exits for pending and misleading completed native commands', async () => {
@@ -142,7 +166,8 @@ it('exports only selected visible SQLite fields and refuses overwrite or unknown
   expect(await readFile(database)).toEqual(before);
   expect(cursorNativeRecords(JSON.parse(exported)).some(record => record.content === 'Selected visible task.')).toBe(true);
   const converted = cursorNativeRecords(JSON.parse(exported));
-  expect(JSON.stringify(converted)).toContain('"exit_code":1');
+  expect(JSON.stringify(converted)).toContain('"exit_code":null');
+  expect(JSON.stringify(converted)).not.toContain('"exit_code":1');
   await expect(exec(process.execPath, [script, database, sessionId, output])).rejects.toThrow();
   expect(await readFile(output, 'utf8')).toBe(exported);
   await expect(exec(process.execPath, [script, database, '22222222-2222-4222-8222-222222222222', join(root, 'absent.json')])).rejects.toThrow();

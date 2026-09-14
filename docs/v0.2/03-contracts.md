@@ -80,7 +80,7 @@ Task.projectId 指向本地用户绑定的项目身份。Project 有 id/name 与
 
 T04 按最后一条非空用户消息的首个非空行生成 derived 目标候选；这可能只是补充要求，必须由用户确认。assistant 计划仅是消息证据，不自动成为已采纳决策。历史消息保留引用。中文/英文禁止句逐行保留原文，识别是保守规则，不声称完整语义理解。
 
-Claim.updatedAt 缺失时保留 null，见 [ADR 0007](../adr/0007-unknown-claim-time.md)。Task 的修改时间仍必填。`resolveTaskState(task, derived)` 是不写入的呈现合成：已有 Task 的目标、约束（含空数组）、下一步、生命周期和归档优先；无 Task 时生命周期未知。T08 负责持久化与编辑界面。旧 Capsule.status 是兼容投影，不代表新 Task.lifecycle。
+Claim.updatedAt 缺失时保留 null，见 [ADR 0007](../adr/0007-unknown-claim-time.md)。Task 的修改时间仍必填。`resolveTaskState(task, derived)` 是不写入的呈现合成：已有 Task 的目标、约束（含空数组）、下一步、生命周期和归档优先；无 Task 时生命周期未知。T08 负责人工编辑用例与持久化，T15 接入编辑界面。旧 Capsule.status 是兼容投影，不代表新 Task.lifecycle。
 
 attention 使用稳定代码：OBJECTIVE_UNKNOWN、MULTIPLE_SESSION_OBJECTIVES、INCOMPLETE_EVIDENCE、EVIDENCE_TIME_UNKNOWN、COMMAND_RESULT_UNKNOWN、COMMAND_FAILED、COMMAND_IDENTITY_INCOMPLETE、COMMAND_CONTEXT_UNKNOWN、HISTORICAL_VALIDITY_UNKNOWN。任何历史运行均不证明当前工作区有效性。跨会话按 sessionId 字典序聚合并提示竞争候选，不声称全局时间顺序。
 
@@ -102,7 +102,8 @@ T03 的 `latestCommandRuns(runs: readonly CommandRun[]): CommandRun[]` 按 sessi
 | workspaces | id PK, project_id FK, canonical_root UNIQUE | 缺失只标记，不假改路径 |
 | sessions | id PK, source_id FK, vendor_id, source_path, metadata_json | 清除索引时留身份墓碑以便重关联 |
 | events | id PK, session_id FK, ordinal, body_json, search_text；UNIQUE(session_id, ordinal) | 随来源索引清除 |
-| source_cursors | session_id PK, file_identity, byte_offset, parser_version | 重建重置 |
+| source_cursors | session_id PK, file_identity, byte_offset, parser_version, cursor_json（schema v2） | 重建重置 |
+| index_leases | source_id PK/FK, owner, slot UNIQUE（0/1）, expires_at；schema v2 | 完成释放，崩溃后 30 秒回收 |
 | tasks | id PK, project_id FK, revision, body_json, updated_at | 用户明确删除全部数据才清除 |
 | task_sessions | session_id UNIQUE, task_id FK | 与人工任务一起保留，允许 source missing |
 | task_revisions | task_id FK, revision, changed_at, body_json；复合 PK | 人工历史不随重扫删除 |
@@ -127,6 +128,13 @@ interface ReadCursor {
   byteOffset: number;
   nextOrdinal: number;
   parserVersion: string;
+  // T06 private extensions; persist the entire cursor with the event batch.
+  checkpoint?: { headLength: number; headHash: string; tailHash: string };
+  blockOffset?: number;
+  pendingCalls?: { id: string; command: string; cwd: string | null; startedAt: ISODate | null }[];
+  recognized?: boolean;
+  warnings?: string[];
+  metadata?: { cwd?: string | null; sessionId?: Id; vendorSessionId: string | null; formatVersion: string | null; lastEventAt: ISODate | null };
 }
 interface SourceReadResult {
   session: SessionRecord;
@@ -136,6 +144,7 @@ interface SourceReadResult {
   hasMore: boolean;
 }
 interface SourceAdapter {
+  readonly diagnostics: readonly { sourceId: Id; rootIndex: number; code: string }[];
   readonly agent: Agent;
   readonly parserVersion: string;
   discover(roots: readonly string[], signal: AbortSignal): AsyncIterable<SourceCandidate>;
@@ -162,6 +171,8 @@ interface TaskService {
   detachSession(taskId: Id, sessionId: Id, expectedRevision: number): Promise<Task>;
 }
 ```
+
+T06 的原生 Claude 入口是 `threadport/sources`；createClaudeSource({sourceId, roots, onDiagnostic?}) 固定允许根目录，discover 请求只能选择这些根。每次 read 最多一个完整 JSONL 物理记录，maxEvents 取 1–1000；blockOffset 允许记录内继续。空 events 不表示结束，按 hasMore 与 warning 判断。SOURCE_RESET 要求 T07 清理该会话的旧索引并保留人工关联。pendingCalls 最多 128 条、每项字段限长且已脱敏；游标是私有数据，不应导出。来源状态和支持字段见 [兼容记录](../../compatibility/claude-source.md)。
 
 SourceAdapter 接受只读根目录，不能内部访问 process.env.HOME 扩大范围。项目绑定与任务关联在应用层完成。Store 是上述用例依赖的事务端口，其方法与具体用例对齐；不要发布泛型任意 SQL 或全局数据库句柄。
 
@@ -323,6 +334,8 @@ Source/Workspace 的本地路径在认证本地设置 UI 中可展示；不得�
 | UNAUTHORIZED / ORIGIN_REJECTED | 401 / 403 | false | 从当前 CLI 输出重新打开页面 |
 | NOT_FOUND | 404 | false | 刷新列表/重新关联来源 |
 | REVISION_CONFLICT | 409 | true | 比较最新 revision 后重交 |
+| PROJECT_MISMATCH | 409 | false | 选择同项目会话或先移出后显式改绑 |
+| REDACTION_REQUIRED | 422 | false | 展示脱敏预览并提交确认后的文本 |
 | WORKSPACE_MISMATCH | 409 | false | 选择正确目录或显式重新绑定 |
 | HANDOFF_EXPIRED / HANDOFF_CHANGED | 409 | true | 重新生成与预览 |
 | UNSUPPORTED_FORMAT / TARGET_UNSUPPORTED | 422 | false | 使用支持版本或导出 |
@@ -332,3 +345,7 @@ Source/Workspace 的本地路径在认证本地设置 UI 中可展示；不得�
 | MIGRATION_FAILED / IO_FAILED | 500 | false | 保留数据，查看脱敏诊断与恢复说明 |
 
 服务端保留 requestId 和结构化错误；默认不打印 request body、完整 prompt 或绝对 source path。程序员错误不吞掉；转成安全 INTERNAL_ERROR 并记录堆栈时也要脱敏路径。
+
+T07 的 Store 索引端口、占用记录与游标 CAS 提交语义见 [增量索引](08-indexing.md)。来源根以数组 JSON 保存；任务字段与会话关联不随索引提交覆盖。
+
+T08 的已实现 SDK、字段预算、关联事务与完成活动基线见 [人工任务](09-task-management.md)。

@@ -1,8 +1,8 @@
 /** Domain failures carry a safe message, never raw input or source paths. */
 export class DomainError extends Error {
-  readonly retryable = false;
+  get retryable(): boolean { return this.code === 'STORAGE_BUSY' || this.code === 'REVISION_CONFLICT'; }
 
-  constructor(readonly code: 'INVALID_INPUT', message: string) {
+  constructor(readonly code: 'INVALID_INPUT' | 'STORAGE_BUSY' | 'MIGRATION_FAILED' | 'IO_FAILED' | 'REVISION_CONFLICT' | 'INDEX_STALE' | 'INDEX_LIMIT' | 'NOT_FOUND' | 'PROJECT_MISMATCH' | 'REDACTION_REQUIRED', message: string) {
     super(message);
     this.name = 'DomainError';
   }

@@ -1,0 +1,15 @@
+CREATE TABLE sources(id TEXT PRIMARY KEY, agent TEXT NOT NULL, root TEXT NOT NULL, enabled INTEGER NOT NULL CHECK(enabled IN (0,1)), parser_version TEXT NOT NULL);
+CREATE TABLE projects(id TEXT PRIMARY KEY, name TEXT NOT NULL);
+CREATE TABLE workspaces(id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id), canonical_root TEXT NOT NULL UNIQUE, git_common_dir TEXT, head TEXT);
+CREATE TABLE sessions(id TEXT PRIMARY KEY, source_id TEXT REFERENCES sources(id) ON DELETE SET NULL, vendor_id TEXT, source_path TEXT, project_id TEXT REFERENCES projects(id), workspace_id TEXT REFERENCES workspaces(id), last_event_at TEXT, metadata_json TEXT NOT NULL CHECK(json_valid(metadata_json)));
+CREATE TABLE events(id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id), ordinal INTEGER NOT NULL CHECK(ordinal>=0), body_json TEXT NOT NULL CHECK(json_valid(body_json)), search_text TEXT NOT NULL, UNIQUE(session_id,ordinal));
+CREATE TABLE source_cursors(session_id TEXT PRIMARY KEY REFERENCES sessions(id), file_identity TEXT NOT NULL, byte_offset INTEGER NOT NULL CHECK(byte_offset>=0), parser_version TEXT NOT NULL);
+CREATE TABLE tasks(id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id), revision INTEGER NOT NULL CHECK(revision>=1), body_json TEXT NOT NULL CHECK(json_valid(body_json)), updated_at TEXT NOT NULL);
+CREATE TABLE task_sessions(session_id TEXT PRIMARY KEY REFERENCES sessions(id), task_id TEXT NOT NULL REFERENCES tasks(id));
+CREATE TABLE task_revisions(task_id TEXT NOT NULL REFERENCES tasks(id), revision INTEGER NOT NULL, changed_at TEXT NOT NULL, body_json TEXT NOT NULL CHECK(json_valid(body_json)), PRIMARY KEY(task_id,revision));
+CREATE TABLE snapshots(id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id), captured_at TEXT NOT NULL, body_json TEXT NOT NULL CHECK(json_valid(body_json)));
+CREATE TABLE handoffs(id TEXT PRIMARY KEY, task_id TEXT NOT NULL, task_revision INTEGER NOT NULL, digest TEXT NOT NULL, expires_at TEXT NOT NULL, body_json TEXT NOT NULL CHECK(json_valid(body_json)), state TEXT NOT NULL, FOREIGN KEY(task_id,task_revision) REFERENCES task_revisions(task_id,revision));
+CREATE TABLE launch_attempts(id TEXT PRIMARY KEY, handoff_id TEXT NOT NULL REFERENCES handoffs(id), status TEXT NOT NULL, started_at TEXT NOT NULL, ended_at TEXT, error_code TEXT);
+CREATE INDEX tasks_updated ON tasks(updated_at,id);
+CREATE INDEX sessions_project_updated ON sessions(project_id,last_event_at,id);
+CREATE INDEX task_sessions_task ON task_sessions(task_id);

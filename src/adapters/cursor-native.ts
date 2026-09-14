@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { SessionRecord } from './common.js';
 
 export const CURSOR_NATIVE_FORMAT = 'threadport.cursor-native.v1';
-export const CURSOR_NATIVE_NOTE = 'Experimental selected Cursor database evidence, not a vendor export contract. Tool completion alone does not establish success. Exact Node test exit-capture wrappers are normalized to their inner test command; other unreported exits remain unknown. Current Git state is not a historical test snapshot.';
+export const CURSOR_NATIVE_NOTE = 'Experimental selected Cursor database evidence, not a vendor export contract. Tool completion and output text markers do not establish a process exit code. Unreported exits remain unknown. Current Git state is not a historical test snapshot.';
 
 const optionalString = z.string().nullish();
 const toolSchema = z.object({
@@ -56,18 +56,9 @@ export function cursorNativeRecords(value: unknown): SessionRecord[] {
       input = { command: params?.command ?? '', cwd: params?.cwd ?? null };
       if (end != null && result?.rejected) output = { output: 'Cursor rejected this command request; it was not executed.' };
       else if (end != null && result?.notInterrupted === false) output = { output: 'Cursor command was interrupted; exit status is unknown.' };
-      // Only the exact source wrapper proves the last marker reports the inner
-      // test exit. It must NOT become the exit code of the whole shell wrapper.
-      if (finished && params?.command?.trim() === 'node --test; echo "EXIT_CODE=$?"') {
-        const marker = result?.output?.match(/(?:^|\n)EXIT_CODE=(-?\d+)\s*$/);
-        const exit = marker ? Number(marker[1]) : NaN;
-        if (Number.isSafeInteger(exit) && exit >= 0 && exit <= 255) {
-          input = { command: 'node --test', cwd: params?.cwd ?? null };
-          output = { exit_code: exit, output: result?.output ?? '' };
-        }
-      }
-      // No numeric exit in the observed native terminal format. Neither a
-      // completed shell nor arbitrary success prose is enough to infer exit 0.
+      else if (end != null && result) output = { exit_code: null, output: result.output ?? '' };
+      // Explicit null prevents the shared parser from deriving an exit from
+      // arbitrary output. Keep the result timestamp/text, not a fabricated exit.
     } else if (name === 'edit_file_v2') {
       name = 'edit'; input = { path: params?.relativeWorkspacePath ?? '' };
       if (end != null && (tool.status === 'error' || result?.rejected)) {

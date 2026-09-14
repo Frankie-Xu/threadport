@@ -1,5 +1,7 @@
 # Cursor selected native evidence verification
 
+Current behavior update (2026-09-14): [release-candidate verification](cursor-release-candidate.md) supersedes the historical text-marker mappings and delivery state below. Native terminal outputs no longer establish numeric exits, including the exact Node wrapper. Old fail/pass/fail observations are historical evidence, not outcomes certified by the current converter.
+
 Delivery note (2026-09-14): the user authorized committing and pushing this reviewed change on `fix/Frankie-Xu/cursor-transcript-import`. Historical checkpoints below describe the local/uncommitted state at their verification time. The delivery retains the verified `8a1a225` baseline; a fresh fetch found main at `0d00f6d` (PR #31–#33), which is not integrated or certified by this change. No direct main push, PR creation or release is included.
 
 ## Scope and workflow
@@ -21,7 +23,7 @@ The input envelope `threadport.cursor-native.v1` is a ThreadPort verification ar
 
 - Calls use native `toolCallId`; results use completion timestamps, not array order. Duplicate IDs and results preceding calls are rejected.
 - `edit_file_v2` with distinct before/after content references is an observed edit; a client-visible native error is a failed edit. A later successful operation can resolve that same-file operation error, not a separate test failure.
-- Native `status: completed` is not process exit 0. In the observed source, the command was exactly `node --test; echo "EXIT_CODE=$?"`. The adapter uses its final marker only to represent the **inner** `node --test` result. It never assigns that code to the shell wrapper. Arbitrary output, other wrappers, interrupted/rejected commands and missing markers do not establish an exit code.
+- Native `status: completed`, `notInterrupted: true` and terminal text markers do not establish a process exit. Original commands and cwd are preserved; all unreported numeric exits stay unknown. Numeric outcomes in explicit structured JSONL are a separate supported path.
 - Unsupported tools/results stay unknown with an evidence warning. No assistant success claim supplies a missing result.
 - Git is read at extraction time. Historical test success is not certification of the current workspace.
 
