@@ -7,6 +7,7 @@ import { registerSearchFunctions, searchHistory } from './search-store.js';
 import type { SearchInput, SearchPage } from '../search/contracts.js';
 import { bindingSchema, snapshotSchema, type WorkspaceBinding, type WorkspaceSnapshot } from '../workspace/contracts.js';
 import { IndexStore } from './index-store.js';
+import { BusinessStore } from './api-store.js';
 const id = z.string().min(1).max(512);
 const date = z.string().datetime();
 const claim = z.object({ text: z.string(), origin: z.enum(['observed', 'user-confirmed', 'derived', 'unknown']), evidence: z.array(z.object({ sessionId: id, eventId: id }).strict()), updatedAt: date.nullable() }).strict();
@@ -21,6 +22,7 @@ function page(limit: number, offset: number) {
 /** Infrastructure boundary. Callers supply already redacted task fields; Store validates shape and atomicity. */
 export class SqliteStore extends IndexStore {
   constructor(db:Database.Database){super(db);registerSearchFunctions(db);}
+  apiStore():BusinessStore{return new BusinessStore(this.db);}
   searchHistory(input:SearchInput={}):SearchPage{return this.run(()=>searchHistory(this.db,input));}
   getWorkspace(workspaceId:string):WorkspaceBinding|null {
     return this.run(()=>{const row=this.db.prepare('SELECT id,project_id AS projectId,canonical_root AS canonicalRoot FROM workspaces WHERE id=?').get(validate(id,workspaceId));return row?validate(bindingSchema,row):null;});

@@ -354,7 +354,7 @@ npm test -- tests/workspace tests/git.test.ts tests/cli.test.ts
 
 ### T11 · 本地认证 API 与服务生命周期
 
-**执行拆分：** 按 [A 服务基础 / B 业务路由 / C CLI 工作包计划](2026-09-14-t11-work-packages.md) 独立交付；本次 A，不代表全部 T11 完成。
+**执行拆分：** 按 [A 服务基础 / B 业务路由 / C CLI 工作包计划](2026-09-14-t11-work-packages.md) 独立交付；A 已合并，B 已实现；不代表全部 T11 完成。
 
 **阶段 / 工时 / 依赖：** P3 / 10–16 小时 / T07,T08,T09,T10\
 **覆盖：** F01,F03,F04 / Q19
@@ -733,7 +733,7 @@ npm run test:package
 | T08 | done | L2（任务集成） | 未单独计时 | [验收与回归](../../verification/t08-task-management.md)；241 测试，PR #34 / 7c13034，三平台 CI 通过 |
 | T09 | done | L2（搜索集成） | 未单独计时 | [验收与回归](../../verification/t09-history-search.md)；249 测试，PR #35 / ff32547，三平台 CI 通过 |
 | T10 | done | L1（A/B/C SDK 与 CLI） | 未单独计时 | [T10-A 证据](../../verification/t10-a-snapshot.md)、[T10-B 证据](../../verification/t10-b-verify.md)、[T10-C 证据](../../verification/t10-c-cli.md)；C 已合并 PR #39（6512975）；UI/真实接续后续验收 |
-| T11 | in_progress | L1（仅 A；B/C 未实现） | 未单独计时 | [T11 包计划](2026-09-14-t11-work-packages.md)、[A 证据](../../verification/t11-a-server.md) |
+| T11 | in_progress | L1（A/B；C 未实现） | 未单独计时 | [T11 包计划](2026-09-14-t11-work-packages.md)、[A 证据](../../verification/t11-a-server.md) |
 | T12 | pending | L0 | 尚未实施 | 尚未实施 |
 | T13 | pending | L0 | 尚未实施 | 尚未实施 |
 | T14 | pending | L0 | 尚未实施 | 尚未实施 |
