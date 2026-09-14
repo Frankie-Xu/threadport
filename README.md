@@ -100,3 +100,7 @@ ThreadPort does not transfer hidden chain-of-thought, does not upload session da
 ### Editable tasks SDK
 
 The `threadport/tasks` entry supports manual task fields, revision conflicts, session associations and reversible lifecycle/archive changes. See [task management](docs/v0.2/09-task-management.md) for redaction preview, project boundaries and completion activity semantics. UI integration follows in the implementation plan.
+
+### History search SDK
+
+Use `threadport/search` to find Chinese substrings, English text, relative paths and manual task titles/objectives with project, agent and UTC date filters. [History search](docs/v0.2/10-history-search.md) documents bounded snippets, keyset pagination and explicit refresh when indexed data changes.
