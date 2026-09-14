@@ -9,6 +9,9 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   test: {
+    // Native SQLite/Git/ACL fixtures must not oversubscribe shared runners.
+    maxWorkers: 2,
+    testTimeout: process.platform === "win32" ? 30000 : 5000,
     include: ["tests/**/*.test.ts"],
     exclude: ["dist/**", "node_modules/**"]
   }
