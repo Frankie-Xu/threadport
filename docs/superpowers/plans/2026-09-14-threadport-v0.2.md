@@ -737,7 +737,7 @@ npm run test:package
 | T12 | done | L1（A/B 已合并，#44/#45） | 未单独计时 | [T12 工作包](2026-09-15-t12-work-packages.md)、[B 证据](../../verification/t12-b-handoff.md) |
 | T13 | done | L1（参数实测，#46 已合并） | 未单独计时 | [T13 计划](2026-09-15-t13-target-runners.md)、[版本矩阵](../../compatibility.md) |
 | T14 | in_progress | L1（A 已合并 PR #47，真实 gate 未满足） | 未单独计时 | [T14 工作包](2026-09-15-t14-terminal-launch.md)、[验证记录](../../verification/t14-terminal-launch.md) |
-| T15 | in_progress | L1（A 本地通过，B 待实施） | 未单独计时 | [工作包](2026-09-15-t15-workbench.md)、[验证](../../verification/t15-workbench.md) |
+| T15 | in_progress | L2（A/B 合成流程通过，待最终 CI/合并） | 未单独计时 | [工作包](2026-09-15-t15-workbench.md)、[验证](../../verification/t15-workbench.md) |
 | T16 | pending | L0 | 尚未实施 | 尚未实施 |
 | T17 | pending | L0 | 尚未实施 | 尚未实施 |
 | T18 | pending | L0 | 尚未实施 | 尚未实施 |

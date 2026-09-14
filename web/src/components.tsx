@@ -52,7 +52,7 @@ export function Modal({
 }: {
   title: string;
   children: ReactNode;
-  onClose: () => void;
+  onClose: () => void | boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -61,7 +61,13 @@ export function Modal({
     return () => dialog.close();
   }, []);
   return (
-    <dialog ref={ref} onClose={onClose} aria-label={title}>
+    <dialog
+      ref={ref}
+      onClose={() => {
+        if (onClose() === false) ref.current?.showModal();
+      }}
+      aria-label={title}
+    >
       <div className="modal-heading">
         <h2>{title}</h2>
         <button

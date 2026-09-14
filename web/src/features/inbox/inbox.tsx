@@ -1,6 +1,7 @@
 import {
   type ApiClient,
-  type Task,
+  type TaskSummary,
+  attentionLabel,
   type SessionSummary,
   usePage,
   query,
@@ -20,7 +21,7 @@ export function Inbox({
   navigate: (values: Record<string, string | null>) => void;
   onCreate: (session?: SessionSummary) => void;
 }) {
-  const tasks = usePage<Task>(
+  const tasks = usePage<TaskSummary>(
     api,
     "/tasks?" +
       query({
@@ -83,12 +84,21 @@ export function Inbox({
           >
             <StatusBadge>{task.lifecycle}</StatusBadge>
             <h2>{task.title}</h2>
+            {task.attention.map((code) => (
+              <p className="attention" key={code}>
+                {attentionLabel(code)}
+              </p>
+            ))}
             <p>
               {task.nextAction.text ||
                 task.objective.text ||
                 "No next action recorded."}
             </p>
-            <small>Edited {dateLabel(task.updatedAt)}</small>
+            <small>
+              Observed {dateLabel(task.lastActivityAt)}
+              <br />
+              Edited {dateLabel(task.updatedAt)}
+            </small>
           </a>
         ))}
       </div>

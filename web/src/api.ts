@@ -6,6 +6,22 @@ import type {
 } from "../../src/domain/models.js";
 import type { SearchItem } from "../../src/search/contracts.js";
 export type { Task, SearchItem };
+export type TaskSummary = Task & {
+  attention: string[];
+  lastActivityAt: string | null;
+};
+export const attentionLabel = (code: string) =>
+  ({
+    OBJECTIVE_UNKNOWN: "Objective unknown",
+    MULTIPLE_SESSION_OBJECTIVES: "Multiple source objectives",
+    COMMAND_FAILED: "Observed command failure",
+    COMMAND_RESULT_UNKNOWN: "Command result unknown",
+    COMMAND_CONTEXT_UNKNOWN: "Command context unknown",
+    COMMAND_IDENTITY_INCOMPLETE: "Incomplete command identity",
+    HISTORICAL_VALIDITY_UNKNOWN: "Historical result needs verification",
+    EVIDENCE_TIME_UNKNOWN: "Evidence time unknown",
+    ACTIVITY_AFTER_COMPLETION: "New activity after completion",
+  })[code] ?? "Review source evidence";
 export interface Project {
   id: string;
   name: string;
@@ -33,6 +49,11 @@ export interface SessionSummary {
 export interface TaskDetail {
   task: Task;
   sessionIds: string[];
+  sessions: (SessionSummary & { nativeSessionAvailable: boolean })[];
+  files: {
+    items: { eventId: string; sessionId: string; path: string }[];
+    hasMore: boolean;
+  };
   derived: DerivedTaskState;
   resolved: ResolvedTaskState;
 }
@@ -68,6 +89,7 @@ export class ApiError extends Error {
 }
 export interface ApiClient {
   onExpired?: () => void;
+  exportText(id: string, format: "json" | "markdown"): Promise<string>;
   request<T>(
     path: string,
     method?: string,
@@ -77,6 +99,28 @@ export interface ApiClient {
 }
 function createApi(token: string): ApiClient {
   const api: ApiClient = {
+    async exportText(id, format) {
+      const response = await fetch(
+        "/api/v1/handoffs/" + encodeURIComponent(id) + "/export",
+        {
+          method: "POST",
+          headers: {
+            authorization: "Bearer " + token,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ format }),
+          cache: "no-store",
+        },
+      );
+      if (!response.ok) {
+        if (response.status === 401) api.onExpired?.();
+        throw new ApiError(
+          response.status === 401 ? "UNAUTHORIZED" : "REQUEST_FAILED",
+          response.status,
+        );
+      }
+      return response.text();
+    },
     async request<T>(
       path: string,
       method = "GET",
@@ -204,7 +248,15 @@ export function usePage<T>(api: ApiClient, path: string, revision = 0) {
   const cursor = current.cursors[current.index];
   const load = useLoad<Page<T>>(
     api,
-    path + (cursor ? "&cursor=" + encodeURIComponent(cursor) : ""),
+    cursor
+      ? (() => {
+          const [base, raw] = path.split("?");
+          const params = new URLSearchParams(raw);
+          params.delete("eventId");
+          params.set("cursor", cursor);
+          return base + "?" + params;
+        })()
+      : path,
     revision,
   );
   return {
