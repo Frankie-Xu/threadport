@@ -28,8 +28,9 @@ it('rolls back events, session and cursor together on injected SQL failure, then
 });
 it('resumes after cancellation and reopening the database without duplicate records',async()=>{
  const {store,path,dataDir}=await setup();await writeFile(path,Array.from({length:150},(_,i)=>row(String(i))).join(''));
- const service=new IndexService(store,{onProgress:p=>{if(p.events>=100)service.cancel('source');}});services.push(service);
- expect((await service.refresh('source')).state).toBe('cancelled');const session=store.listIndexedSessions('source')[0];const count=store.listEvents(session.id,1000).length;expect(count).toBeGreaterThanOrEqual(100);expect(count).toBeLessThan(150);
+ // Cancel the first committed batch: time-based flushes need not land on 100 events.
+ const service=new IndexService(store,{onProgress:p=>{if(p.events>0)service.cancel('source');}});services.push(service);
+ expect((await service.refresh('source')).state).toBe('cancelled');const session=store.listIndexedSessions('source')[0];const count=store.listEvents(session.id,1000).length;expect(count).toBeGreaterThan(0);expect(count).toBeLessThan(150);
  await service.stop();store.close();stores.splice(stores.indexOf(store),1);const reopened=await openStore({dataDir});stores.push(reopened);const next=new IndexService(reopened);services.push(next);await next.refreshAll();expect(reopened.listEvents(session.id,1000)).toHaveLength(150);
 });
 it('isolates a bad source and limits simultaneous reads across queued sources to two',async()=>{

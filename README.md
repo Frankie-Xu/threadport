@@ -96,3 +96,7 @@ npm audit
 ## Safety boundary
 
 ThreadPort does not transfer hidden chain-of-thought, does not upload session data, and does not automatically run the next action. Consumers must validate the Capsule and ask for user confirmation before modifying a repository.
+
+### Editable tasks SDK
+
+The `threadport/tasks` entry supports manual task fields, revision conflicts, session associations and reversible lifecycle/archive changes. See [task management](docs/v0.2/09-task-management.md) for redaction preview, project boundaries and completion activity semantics. UI integration follows in the implementation plan.

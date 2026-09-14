@@ -80,7 +80,7 @@ Task.projectId 指向本地用户绑定的项目身份。Project 有 id/name 与
 
 T04 按最后一条非空用户消息的首个非空行生成 derived 目标候选；这可能只是补充要求，必须由用户确认。assistant 计划仅是消息证据，不自动成为已采纳决策。历史消息保留引用。中文/英文禁止句逐行保留原文，识别是保守规则，不声称完整语义理解。
 
-Claim.updatedAt 缺失时保留 null，见 [ADR 0007](../adr/0007-unknown-claim-time.md)。Task 的修改时间仍必填。`resolveTaskState(task, derived)` 是不写入的呈现合成：已有 Task 的目标、约束（含空数组）、下一步、生命周期和归档优先；无 Task 时生命周期未知。T08 负责持久化与编辑界面。旧 Capsule.status 是兼容投影，不代表新 Task.lifecycle。
+Claim.updatedAt 缺失时保留 null，见 [ADR 0007](../adr/0007-unknown-claim-time.md)。Task 的修改时间仍必填。`resolveTaskState(task, derived)` 是不写入的呈现合成：已有 Task 的目标、约束（含空数组）、下一步、生命周期和归档优先；无 Task 时生命周期未知。T08 负责人工编辑用例与持久化，T15 接入编辑界面。旧 Capsule.status 是兼容投影，不代表新 Task.lifecycle。
 
 attention 使用稳定代码：OBJECTIVE_UNKNOWN、MULTIPLE_SESSION_OBJECTIVES、INCOMPLETE_EVIDENCE、EVIDENCE_TIME_UNKNOWN、COMMAND_RESULT_UNKNOWN、COMMAND_FAILED、COMMAND_IDENTITY_INCOMPLETE、COMMAND_CONTEXT_UNKNOWN、HISTORICAL_VALIDITY_UNKNOWN。任何历史运行均不证明当前工作区有效性。跨会话按 sessionId 字典序聚合并提示竞争候选，不声称全局时间顺序。
 
@@ -334,6 +334,8 @@ Source/Workspace 的本地路径在认证本地设置 UI 中可展示；不得�
 | UNAUTHORIZED / ORIGIN_REJECTED | 401 / 403 | false | 从当前 CLI 输出重新打开页面 |
 | NOT_FOUND | 404 | false | 刷新列表/重新关联来源 |
 | REVISION_CONFLICT | 409 | true | 比较最新 revision 后重交 |
+| PROJECT_MISMATCH | 409 | false | 选择同项目会话或先移出后显式改绑 |
+| REDACTION_REQUIRED | 422 | false | 展示脱敏预览并提交确认后的文本 |
 | WORKSPACE_MISMATCH | 409 | false | 选择正确目录或显式重新绑定 |
 | HANDOFF_EXPIRED / HANDOFF_CHANGED | 409 | true | 重新生成与预览 |
 | UNSUPPORTED_FORMAT / TARGET_UNSUPPORTED | 422 | false | 使用支持版本或导出 |
@@ -345,3 +347,5 @@ Source/Workspace 的本地路径在认证本地设置 UI 中可展示；不得�
 服务端保留 requestId 和结构化错误；默认不打印 request body、完整 prompt 或绝对 source path。程序员错误不吞掉；转成安全 INTERNAL_ERROR 并记录堆栈时也要脱敏路径。
 
 T07 的 Store 索引端口、占用记录与游标 CAS 提交语义见 [增量索引](08-indexing.md)。来源根以数组 JSON 保存；任务字段与会话关联不随索引提交覆盖。
+
+T08 的已实现 SDK、字段预算、关联事务与完成活动基线见 [人工任务](09-task-management.md)。
