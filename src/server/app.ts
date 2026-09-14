@@ -1,3 +1,5 @@
+import {registerDataRoutes} from './data-routes.js';
+import {applicationDataDir} from '../platform/paths.js';
 import Fastify, { type FastifyError } from 'fastify';
 import { randomBytes,randomUUID } from 'node:crypto';
 import { openStore, type SqliteStore } from '../storage/sqlite-store.js';
@@ -44,6 +46,7 @@ export async function startLocalServer(options:{dataDir?:string;demo?:boolean}={
  const app=createLocalApp(store,indexer,token,()=>({running:running.size,lastRefreshAt}));
  registerBusinessRoutes(app,store,indexer);
  registerHandoffRoutes(app,store);
+ registerDataRoutes(app,store,applicationDataDir(options));
  try{
   await registerBootstrap(app,options.demo??false);
   const origin=await app.listen({host:'127.0.0.1',port:0});indexer.start();

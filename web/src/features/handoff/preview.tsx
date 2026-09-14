@@ -1,3 +1,4 @@
+import {ExportReview} from "../settings/export.js";
 import { useEffect, useState } from "react";
 import {
   type ApiClient,
@@ -40,6 +41,7 @@ export function HandoffPreview({
     [notice, setNotice] = useState(""),
     [now, setNow] = useState(Date.now());
   const action = useAction();
+  const [exporting,setExporting]=useState(false);
   const capability = targets.data?.data.find((c) => c.agent === target),
     session = detail.sessions.find((s) => s.id === source);
   const native =
@@ -60,6 +62,7 @@ export function HandoffPreview({
   }, [handoff]);
   const reset = () => {
     setHandoff(null);
+    setExporting(false);
     setCommand("");
     setAck(false);
     setNotice("");
@@ -320,7 +323,7 @@ export function HandoffPreview({
               onClick={() => download("json")}
             >
               Download JSON
-            </button>
+            </button><button className="quiet" disabled={action.busy} onClick={()=>setExporting(true)}>Save export to directory</button>
           </div>
           {command && (
             <div className="terminal-command">
@@ -354,6 +357,7 @@ export function HandoffPreview({
           {notice && <p role="status">{notice}</p>}
         </section>
       )}
+      {exporting&&handoff&&<ExportReview api={api} kind="handoff" id={handoff.id} onClose={()=>setExporting(false)}/>}
     </>
   );
 }
