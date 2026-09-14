@@ -17,3 +17,12 @@ export interface CaptureOptions {limits?:{maxFiles?:number;maxBytes?:number};sig
 export function workspaceInput<T extends z.ZodTypeAny>(schema:T,input:unknown):z.output<T>{
  const result=schema.safeParse(input);if(!result.success)throw new DomainError('INVALID_INPUT','Invalid workspace snapshot input.');return result.data;
 }
+export type VerificationReasonCode=SnapshotReason|'HEAD_CHANGED'|'CONTENT_CHANGED';
+export interface VerificationReport {
+ status:'matched'|'drifted'|'unverifiable';
+ snapshotId:string;
+ workspaceId:string;
+ verifiedAt:string;
+ scope:WorkspaceSnapshot['scope'];
+ reasons:Array<{code:VerificationReasonCode;message:string;path?:string}>;
+}
