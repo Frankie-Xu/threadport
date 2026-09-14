@@ -1,5 +1,8 @@
+import {pathToFileURL} from 'node:url';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {constants} from 'node:fs';
+import { mkdtemp, mkdir, rm, readFile, writeFile, copyFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import assert from 'node:assert/strict';
@@ -13,16 +16,22 @@ const npm = (args, cwd) => execFileSync(process.execPath, [npmCli, ...args], { c
 try {
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', temporary], root))[0];
   assert(packed.files.some(file => file.path === 'dist/src/cli.js'));
+  assert(packed.files.some(file => file.path === 'THIRD_PARTY_NOTICES.md'));
   assert(packed.files.some(file => file.path === 'dist/src/index.js'));
   assert(packed.files.some(file => file.path === 'dist/web/index.html'));
   assert(packed.files.some(file => file.path.startsWith('dist/web/assets/') && file.path.endsWith('.js')));
   assert(packed.files.some(file => file.path.startsWith('dist/web/assets/') && file.path.endsWith('.css')));
-  assert(!packed.files.some(file => file.path.startsWith('dist/tests/')));
+  assert(!packed.files.some(file => /^(?:dist\/tests\/|research\/|tests\/|output\/|node_modules\/|\.env)/.test(file.path)));
+  const archive=await readFile(join(temporary,packed.filename));
+  const sha256=createHash('sha256').update(archive).digest('hex');
   const installRoot = join(temporary, 'consumer'); await mkdir(installRoot);
   npm(['install', '--no-audit', '--no-fund', '--prefix', installRoot, join(temporary, packed.filename)], installRoot);
   const entry = join(installRoot, 'node_modules/threadport/dist/src/cli.js');
   const help = execFileSync(process.execPath, [entry, '--help'], { encoding: 'utf8', timeout: 10_000 });
   assert(help.includes('threadport handoff'));
+  const doctor=execFileSync(process.execPath,[entry,'doctor','--json','--data-dir',join(temporary,'doctor-data')],{encoding:'utf8',timeout:15000});
+  const report=JSON.parse(doctor);assert.equal(report.protocol,'threadport.diagnostics.v1');assert.equal(report.version,packed.version);assert.equal(report.counts.tasks,0);assert.equal(doctor.includes(temporary),false);
+  const missingSource=spawnSync(process.execPath,[entry,'index','--source','unknown','--data-dir',join(temporary,'doctor-data')],{encoding:'utf8',timeout:15000});assert.equal(missingSource.status,2);
   // Resolve the public export as an installed package, not by a source-tree import.
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const m = await import("threadport"); if (typeof m.parseHandoff !== "function") process.exit(1);'], { cwd: installRoot, timeout: 10_000 });
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore} = await import("threadport/storage"); const s = await openStore({dataDir:"./data"}); s.createProject("smoke", "Smoke"); s.close();'], { cwd: installRoot, timeout: 15_000 });
@@ -31,6 +40,8 @@ try {
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore}=await import("threadport/storage"); const {TaskService}=await import("threadport/tasks"); const s=await openStore({dataDir:"./data"}); const tasks=new TaskService(s); const t=await tasks.create({projectId:"smoke",title:"SDK task"}); const saved=await tasks.update(t.id,1,{objective:"Manual objective"}); if(saved.revision!==2)throw new Error("Task smoke failed"); s.close();'], { cwd: installRoot, timeout: 15000 });
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore}=await import("threadport/storage"); const {SearchService}=await import("threadport/search"); const s=await openStore({dataDir:"./data"}); const page=await new SearchService(s).search({q:"Manual objective"}); if(page.items.length!==1)throw new Error("Search smoke failed"); s.close();'], { cwd: installRoot, timeout: 15000 });
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore}=await import("threadport/storage"); const {SnapshotService,verifyWorkspace}=await import("threadport/workspace"); const {resolve}=await import("node:path"); const s=await openStore({dataDir:"./data"}); s.createWorkspace("snapshot-smoke","smoke",resolve("./data")); const snapshot=await new SnapshotService(s).capture("snapshot-smoke"); if(snapshot.digest!==null||!snapshot.incompleteReasons.includes("NO_GIT")||!s.getSnapshot(snapshot.id))throw new Error("Snapshot smoke failed"); const report=await verifyWorkspace(snapshot,s.getWorkspace("snapshot-smoke")); if(report.status!=="unverifiable"||report.reasons[0].code!=="NO_GIT")throw new Error("Verify smoke failed");s.close();'], { cwd: installRoot, timeout: 15000 });
+  await writeFile(join(installRoot,'consumer.mts'), 'import {parseHandoff} from "threadport"; import {openStore} from "threadport/storage"; import {startLocalServer} from "threadport/server"; void parseHandoff; void openStore; void startLocalServer;\n');
+  execFileSync(process.execPath,[join(root,'node_modules/typescript/lib/tsc.js'),'--noEmit','--strict','--target','ES2023','--module','NodeNext','--moduleResolution','NodeNext','consumer.mts'],{cwd:installRoot,timeout:30000,encoding:'utf8'});
   // Exercise the installed CLI, not source imports, with all Cursor input paths.
   const project = join(temporary, 'synthetic-project'); await mkdir(project);
   const git = args => execFileSync('git', ['-C', project, ...args], { timeout: 10000 });
@@ -111,9 +122,23 @@ try {
       const url=await new Promise((done,reject)=>{let text='';const timer=setTimeout(()=>reject(new Error('UI startup timeout')),15000);child.once('error',reject);child.once('exit',()=>reject(new Error('UI exited early')));child.stdout.on('data',chunk=>{text+=chunk;if(text.includes('\\n')){clearTimeout(timer);done(text.trim().split('\\n')[0]);}});});
       const parsed=new URL(url);assert.equal(parsed.search,'');assert.match(parsed.hash,/^#token=[a-f0-9]{64}$/);
       const page=await fetch(parsed.origin);assert.equal(page.status,200);const html=await page.text();const asset=html.match(/src="([^"]+[.]js)"/)[1];assert.equal((await fetch(parsed.origin+asset)).status,200);assert.equal((await fetch(parsed.origin+'/api/v1/status')).status,401);
+      ${process.argv.includes('--browser') ? `
+      const {chromium}=await import(${JSON.stringify(pathToFileURL(join(root,'node_modules/playwright/index.mjs')).href)});
+      const browser=await chromium.launch({headless:true,...(process.env.THREADPORT_TEST_CHROME?{channel:'chrome'}:{})});
+      try{const page=await browser.newPage();page.setDefaultTimeout(15000);let external=0;await page.route('**/*',route=>{if(new URL(route.request().url()).origin===parsed.origin)return route.continue();external++;return route.abort();});
+       await page.goto(url);await page.getByText('SDK task',{exact:true}).click();await page.getByRole('button',{name:'Edit task',exact:true}).click();await page.getByLabel('Objective',{exact:true}).fill('Installed package objective');await page.getByRole('button',{name:'Save changes'}).click();await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByText('Installed package objective',{exact:true}).waitFor();
+       await page.reload();await page.getByLabel('Current terminal link').fill(url);await page.getByRole('button',{name:'Reconnect',exact:true}).click();await page.getByText('Installed package objective',{exact:true}).waitFor();assert.equal(external,0);
+      }finally{await browser.close();}
+      ` : ''}
       const exited=once(child,'exit');child.kill('SIGTERM');await exited;
     } finally {child.kill('SIGKILL');}
-  `], {cwd:installRoot,timeout:30000});
+  `], {cwd:installRoot,timeout:90000});
+  const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8',timeout:10000}).trim();assert.match(sourceCommit,/^[0-9a-f]{40}$/);
+  const dirty=spawnSync('git',['diff','--quiet','HEAD','--'],{cwd:root}).status!==0;
+  const manifest={sourceCommit,trackedChanges:dirty,installedBrowser:process.argv.includes('--browser'),protocol:'threadport.package-evidence.v1',version:packed.version,filename:packed.filename,sha256,integrity:packed.integrity,node:process.version,platform:process.platform,arch:process.arch,files:packed.files.map(file=>file.path),checks:'isolated-install,public-imports,doctor,storage,search,workspace,UI,legacy-Cursor',certification:'synthetic package checks only; real Agent and user gates are separate'};
+  if(process.env.THREADPORT_PACKAGE_OUTPUT){const destination=resolve(process.env.THREADPORT_PACKAGE_OUTPUT);await mkdir(destination,{recursive:true});await copyFile(join(temporary,packed.filename),join(destination,packed.filename),constants.COPYFILE_EXCL);await writeFile(join(destination,packed.filename+'.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});}
+  if(process.argv.includes('--browser'))console.log('Installed browser smoke passed: task edit, persisted reload, and loopback-only access.');
+  console.log(`Verified archive SHA-256: ${sha256}`);
   console.log(`Package smoke passed: ${packed.files.length} files; public exports, UI/continue CLI, workspace verification, local server and 3 Cursor roundtrips pass from an isolated install.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });

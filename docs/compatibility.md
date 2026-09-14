@@ -21,3 +21,5 @@ T13 核对 CLI 版本和参数接口，不把命令存在、help 匹配或进程
 探测仅搜索绝对 PATH 目录并以 shell:false 执行固定参数；每次子进程上限 5 秒/256 KiB，失败只返回常量原因。Windows .cmd/.bat 不启动，.exe/.com 才可探测。Windows 启动规格使用保守 30,000 UTF-16 字符（含参数转义）上限，超限要求缩短/导出，不能转成 shell 绕过。跨平台 CI 是合成 argv 验证，Windows/Linux 实机 CLI 认证仍属 T18。
 
 `threadport targets` 保持旧的纯 PATH 发现输出；`threadport targets --capabilities` 和认证 API `GET /api/v1/targets` 返回 Claude/Codex 新能力 DTO，不含 executable 路径。T14-A 已接入 continue 执行器，仍必须完整预览、有效审批、终端再次确认和工作区复验；真实跨 Agent 认证仍待 T14-B/T18。
+
+T18 的 [24 格真实验证矩阵](verification/agent-matrix-beta.md) 单独记录未完成项；参数核对与 CI 合成流程不计入该矩阵。

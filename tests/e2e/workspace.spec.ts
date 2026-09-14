@@ -39,6 +39,8 @@ test.afterAll(async () => {
 test("configures only explicit sources, creates a task, finds Unicode history and recovers after refresh", async ({
   page,
 }) => {
+  let externalRequests=0;
+  await page.route("**/*",route=>{if(new URL(route.request().url()).origin===server.origin)return route.continue();externalRequests++;return route.abort();});
   await page.goto(server.origin);
   await page.evaluate((token) => {
     history.replaceState(null, "", "#token=" + token);
@@ -124,4 +126,5 @@ test("configures only explicit sources, creates a task, finds Unicode history an
   await expect(
     page.getByRole("searchbox", { name: "Search history" }),
   ).toBeFocused();
+  expect(externalRequests).toBe(0);
 });

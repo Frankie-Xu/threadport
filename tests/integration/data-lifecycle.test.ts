@@ -83,4 +83,5 @@ it("previews safe diagnostics and exports exactly reviewed task metadata without
   expect(stderr).toBe("");
   expect(await runCli(["doctor", "--source", "x"], io)).toBe(2);
   expect(await runCli(["index"], io)).toBe(2);
+  expect(await runCli(["index","--source","unknown","--data-dir",dataDir],io)).toBe(2);
 }, 30000);
