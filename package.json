@@ -50,7 +50,8 @@
     "schema",
     "examples",
     "migrations",
-    "dist/web"
+    "dist/web",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && vite build --config web/vite.config.ts --logLevel warn",

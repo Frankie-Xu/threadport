@@ -147,3 +147,5 @@ Start the local entry page with `threadport ui --no-open`, or use `threadport ui
 
 
 Prepare a task continuation with `threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id>`, then run `threadport continue --handoff <uuid>` in your terminal (use the same optional `--data-dir` for both). Continue displays the complete context, target and workspace, requires typing `CONTINUE`, verifies again, and claims the handoff once before inheriting the terminal. Non-TTY use and `--yes` are rejected. Target nonzero exits are recorded separately and return CLI exit 5; a clean process exit does not mark the task complete. See the [version matrix](docs/compatibility.md) and [local workflows](docs/v0.2/13-local-server.md). Real cross-Agent certification is still pending; the workbench uses synthetic browser acceptance; actual vendor certification remains separate.
+
+Bundled browser dependency notices are included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

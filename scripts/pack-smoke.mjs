@@ -16,6 +16,7 @@ const npm = (args, cwd) => execFileSync(process.execPath, [npmCli, ...args], { c
 try {
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', temporary], root))[0];
   assert(packed.files.some(file => file.path === 'dist/src/cli.js'));
+  assert(packed.files.some(file => file.path === 'THIRD_PARTY_NOTICES.md'));
   assert(packed.files.some(file => file.path === 'dist/src/index.js'));
   assert(packed.files.some(file => file.path === 'dist/web/index.html'));
   assert(packed.files.some(file => file.path.startsWith('dist/web/assets/') && file.path.endsWith('.js')));
