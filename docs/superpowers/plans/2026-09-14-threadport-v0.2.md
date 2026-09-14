@@ -739,7 +739,7 @@ npm run test:package
 | T14 | in_progress | L1（A 已合并 PR #47，真实 gate 未满足） | 未单独计时 | [T14 工作包](2026-09-15-t14-terminal-launch.md)、[验证记录](../../verification/t14-terminal-launch.md) |
 | T15 | in_progress | L2（A/B 合成流程通过，待最终 CI/合并） | 未单独计时 | [工作包](2026-09-15-t15-workbench.md)、[验证](../../verification/t15-workbench.md) |
 | T16 | pending | L0 | 尚未实施 | 尚未实施 |
-| T17 | pending | L0 | 尚未实施 | 尚未实施 |
+| T17 | in_progress | L1 | T17-A 诊断、预览摘要和原子导出；[分包](2026-09-15-t17-data-lifecycle.md) | 清索引、寿命与全部数据删除待 T17-B；[证据](../../verification/t17-data-lifecycle.md) |
 | T18 | pending | L0 | 尚未实施 | 尚未实施 |
 | T19 | pending | L0 | 尚未实施 | 尚未实施 |
 | T20 | pending | L0 | 尚未实施 | 尚未实施 |

@@ -1,3 +1,4 @@
+import {ExportReview} from "../settings/export.js";
 import { useState } from "react";
 import {
   type ApiClient,
@@ -40,6 +41,7 @@ export function Detail({
     } | null>(null),
     [continuing, setContinuing] = useState(false);
   const action = useAction();
+  const [exporting,setExporting]=useState(false);
   const refresh = () => {
     setEditing(false);
     setAttaching(false);
@@ -97,6 +99,7 @@ export function Detail({
               >
                 Edit task
               </button>
+              <button className="quiet" onClick={()=>setExporting(true)}>Export task</button>
               <button
                 disabled={
                   detail.loading || action.busy || !value.sessions.length
@@ -359,6 +362,7 @@ export function Detail({
           )}
         </>
       )}
+      {exporting&&<ExportReview api={api} id={id} kind="task" onClose={()=>setExporting(false)}/>}
       {evidence && (
         <Evidence api={api} {...evidence} onClose={() => setEvidence(null)} />
       )}
