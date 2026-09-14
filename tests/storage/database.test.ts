@@ -51,10 +51,11 @@ it('bounds write lock waits and returns STORAGE_BUSY without changing rows', asy
     lock.exec('BEGIN IMMEDIATE'); const start = performance.now();
     expect(() => store.createProject('blocked', 'Blocked')).toThrowError(expect.objectContaining({ code: 'STORAGE_BUSY', retryable: true }));
     const elapsed = performance.now() - start;
-    expect(elapsed).toBeGreaterThanOrEqual(4500); expect(elapsed).toBeLessThan(6500);
+    // SQLite's timeout is accumulated wait time; shared runners may be descheduled.
+    expect(elapsed).toBeGreaterThanOrEqual(4500); expect(elapsed).toBeLessThan(15000);
     lock.exec('ROLLBACK'); store.createProject('blocked', 'Retry succeeds');
   } finally { if (lock.inTransaction) lock.exec('ROLLBACK'); lock.close(); store.close(); }
-}, 10000);
+}, 20000);
 it('uses safe platform data directory defaults and refuses a symlink database', async () => {
   const { applicationDataDir } = await import('../../src/platform/paths.js');
   const { symlink, writeFile } = await import('node:fs/promises');

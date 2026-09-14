@@ -17,7 +17,7 @@ try {
 }
 ```
 
-默认目录：macOS ~/Library/Application Support/ThreadPort；Linux 使用绝对 XDG_DATA_HOME，否则 ~/.local/share/threadport；Windows LOCALAPPDATA/ThreadPort。显式 dataDir 为应用数据目录，不应指向源日志或项目代码。POSIX 目录/库文件为 0700/0600，拒绝符号链接数据库及非当前用户所有的目录。Windows 检查目录 owner 是当前用户且 Everyone/Authenticated Users/Users 没有宽泛写权限；使用继承 ACL，不把 chmod 当作 ACL。
+默认目录：macOS ~/Library/Application Support/ThreadPort；Linux 使用绝对 XDG_DATA_HOME，否则 ~/.local/share/threadport；Windows LOCALAPPDATA/ThreadPort。显式 dataDir 为应用数据目录，不应指向源日志或项目代码。POSIX 目录/库文件为 0700/0600，拒绝符号链接数据库及非当前用户所有的目录。Windows 检查目录 owner 是当前用户或系统管理员/SYSTEM、当前用户具有写权限且 Everyone/Authenticated Users/Users 没有宽泛写权限；使用继承 ACL，不把 chmod 当作 ACL。
 
 Store 提供项目创建/删除、session 墓碑保留、任务读取/分页/revision 历史以及 saveTask。saveTask(task, expectedRevision, sessionIds?) 要求 revision 递增 1；expectedRevision=0 创建；关联省略时保留，[] 明确清空。任务/历史/关联在同一短事务中写入。其他任务已占用 session 时返回 REVISION_CONFLICT；不隐式抢占。手工字段在应用层脱敏并经用户确认后再交 Store，Store 验证 JSON 结构；T08 实现这层用例。
 

@@ -11,7 +11,7 @@ T05 / P1 / F10 / Q21，依赖 T04 PR #30（8a1a22569cfc9f4b8454ba66fd6b962cc47fe
 - [x] SQLite backup API 一致备份，包含 WAL 已提交的中文人工数据；迁移故障回滚 DDL/数据/user_version。
 - [x] 备份目录不可写时不执行迁移；高版本拒绝打开；成功迁移单调且重复执行不重复建表。
 - [x] 完整性检查后恢复到新目录；已有目标不覆盖。源库与备份保留。
-- [x] 私有应用目录、POSIX 0700/0600、数据库 symlink 拒绝；Windows owner/宽泛写 ACL 检查进入 CI。
+- [x] 私有应用目录、POSIX 0700/0600、数据库 symlink 拒绝；Windows owner/当前用户有效写权限/宽泛写 ACL 检查进入 CI。
 - [x] Node >=24.0.0、better-sqlite3 13.0.3 精确锁定；.nvmrc 原本就是 24，无需无意义修改。
 
 ## 验证
@@ -33,3 +33,5 @@ AI self-review 按范围→正确性→数据边界→设计→可维护性→�
 ## 交接
 
 下一项 T06：Claude 来源发现与有界读取。原有 .gitignore、research 和两个 HTML 实验文件不纳入本任务提交。远端结果在 PR 中更新。
+
+首轮 CI：Ubuntu 全部通过；macOS 锁等待的墙钟断言观察到 7.1 秒（SQLite timeout 仍为 5000ms）。测试补充直接检查 PRAGMA=5000，墙钟仅作 15 秒挂起守卫，避免将共享 runner 调度时间当作 SQLite 等待配置。Windows 暴露管理员拥有目录的兼容问题；ACL 检查允许受信任的 Administrators/SYSTEM owner，同时检查当前身份有效写权限并继续拒绝宽泛写授权，错误只返回安全分类码。

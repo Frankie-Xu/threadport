@@ -10,6 +10,7 @@ afterEach(async () => { for (const dir of dirs.splice(0)) await rm(dir, { recurs
 async function dir() { const d = await mkdtemp(join(tmpdir(), 'tp-migrate-')); dirs.push(d); return d; }
 it('rolls back injected migration failure and restores consistent WAL-backed user data without overwrite', async () => {
  const dataDir = await dir(); const db = await openDatabase({ dataDir });
+ expect(db.pragma('busy_timeout', { simple: true })).toBe(5000);
  db.exec("CREATE TABLE manual(value TEXT); INSERT INTO manual VALUES ('中文人工数据')");
  await expect(migrate(db, dataDir, [{ version: 2, sql: "DELETE FROM manual; CREATE TABLE partial(x); SELECT * FROM nonexistent;" }])).rejects.toMatchObject({ code: 'MIGRATION_FAILED' });
  expect(db.prepare('SELECT value FROM manual').pluck().get()).toBe('中文人工数据');
