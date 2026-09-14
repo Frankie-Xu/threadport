@@ -321,7 +321,7 @@ npm test -- tests/search/service.test.ts
 
 ### T10 · 工作区快照与显式验证
 
-**执行拆分：** 按 [T10-A 捕获 / T10-B 比较 / T10-C CLI 工作包计划](2026-09-14-t10-work-packages.md) 逐包提交、推送、PR、CI 与合并；以下仍是总任务验收，尚未开始实现。
+**执行拆分：** 按 [T10-A 捕获 / T10-B 比较 / T10-C CLI 工作包计划](2026-09-14-t10-work-packages.md) 逐包提交、推送、PR、CI 与合并；以下仍是总任务验收；A 已合并，B 的实现与验证见包计划，C 尚未开始。
 
 **阶段 / 工时 / 依赖：** P2 / 12–18 小时 / T02,T05,T08\
 **覆盖：** F06 / Q12,Q13,Q14,Q15
@@ -717,7 +717,7 @@ npm run test:package
 
 ## 4. 进度表
 
-以下按实际证据更新；未实施任务仍保持 L0。T01/T02/T03/T04/T05/T06/T07/T08/T09 已合并；T10 已按工作包拆分但尚未实现，按其验证记录与 PR 跟进，不代表整体产品或真实接续认证完成。
+以下按实际证据更新；未实施任务仍保持 L0。T01/T02/T03/T04/T05/T06/T07/T08/T09 已合并；T10-A 已合并，T10-B 已实现，T10-C 尚未实施，按其验证记录与 PR 跟进，不代表整体产品或真实接续认证完成。
 
 | 任务 | 状态 | 完成等级 | 实际工时 | PR / SHA / 证据 |
 | --- | --- | --- | --- | --- |
@@ -730,7 +730,7 @@ npm run test:package
 | T07 | done | L2（索引集成） | 未单独计时 | [验收与回归](../../verification/t07-incremental-index.md)；233 测试，PR #33 / 0d00f6d，三平台 CI 通过 |
 | T08 | done | L2（任务集成） | 未单独计时 | [验收与回归](../../verification/t08-task-management.md)；241 测试，PR #34 / 7c13034，三平台 CI 通过 |
 | T09 | done | L2（搜索集成） | 未单独计时 | [验收与回归](../../verification/t09-history-search.md)；249 测试，PR #35 / ff32547，三平台 CI 通过 |
-| T10 | pending | L0 | 尚未实施 | 尚未实施 |
+| T10 | in_progress | L1（A/B；C 未实现） | 未单独计时 | [T10-A 证据](../../verification/t10-a-snapshot.md)、[T10-B 证据](../../verification/t10-b-verify.md)；总任务验收尚未完成 |
 | T11 | pending | L0 | 尚未实施 | 尚未实施 |
 | T12 | pending | L0 | 尚未实施 | 尚未实施 |
 | T13 | pending | L0 | 尚未实施 | 尚未实施 |
