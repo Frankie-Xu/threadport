@@ -14,7 +14,7 @@ import { CURSOR_NATIVE_NOTE } from './adapters/cursor-native.js';
 import { createGeminiAdapter } from './adapters/gemini.js';
 import { parseCapsule, serializeCapsule } from './capsule.js';
 import { renderCapsuleMarkdown } from './markdown.js';
-import { detectTargets } from './targets.js';
+import { detectTargets,detectTargetCapabilities } from './targets.js';
 import { assertDestination, writeArtifact } from './storage.js';
 import { createHandoff, parseHandoff } from './handoff.js';
 import { ZodError } from 'zod';
@@ -77,7 +77,7 @@ function usage(): string {
     'threadport render <capsule.json>',
     'threadport verify <capsule.json> --project <root> [--json] [--data-dir <path>]',
     'threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--format markdown|json] [--out <file>] [--force]',
-    'threadport targets',
+    'threadport targets [--capabilities]',
     'threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id> [--mode native-resume|new-session] [--data-dir <path>]',
     'threadport ui [--data-dir <path>] [--no-open] [--demo]'
   ].join('\n');
@@ -110,8 +110,8 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
     }
     if (command === 'verify') return runVerify(rest, io);
     if (command === 'targets') {
-      if (rest.length) throw new Error('targets accepts no arguments.');
-      io.stdout.write(`${JSON.stringify(await detectTargets(), null, 2)}\n`); return 0;
+      if (rest.length&&(rest.length!==1||rest[0]!=='--capabilities')) throw new Error('targets accepts only --capabilities.');
+      io.stdout.write(`${JSON.stringify(rest.length?await detectTargetCapabilities():await detectTargets(), null, 2)}\n`); return 0;
     }
     if (command === 'validate' || command === 'render') {
       const parsed = options(rest, [], command === 'validate' ? ['handoff'] : []);
