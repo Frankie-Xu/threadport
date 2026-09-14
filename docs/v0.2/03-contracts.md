@@ -303,9 +303,15 @@ handoff 状态：prepared → confirmed → launching → exited / failed / canc
 | GET /api/v1/handoffs/:id | 无 | 当前包与过期/消费状态；不包含 bearer token |
 | POST /api/v1/handoffs/:id/confirm | promptDigest, acknowledgeUncertainty | 固定格式终端命令 |
 | POST /api/v1/handoffs/:id/export | format: markdown/json | 下载 bytes；不由浏览器指定任意服务端写路径 |
-| GET /api/v1/diagnostics | 无 | 可预览的脱敏诊断 |
-| POST /api/v1/data/clear-index | confirmation: true | 清索引保留人工数据 |
+| GET /api/v1/diagnostics | 无 | 白名单诊断、计数、支持的 parser 版本与有限错误码 |
+| GET /api/v1/settings | 无 | 当前应用数据目录，仅认证本地 UI |
+| POST /api/v1/exports/preview | kind: task/handoff, id, format: markdown/json | 完整 text、固定 fileName、SHA-256 digest；Task 仅 Markdown |
+| POST /api/v1/exports | 同上 + directory, expectedDigest | 在已有物理绝对目录原子发布；文件名由服务生成，不覆盖；摘要变化返回 409 |
+| POST /api/v1/data/prune | confirmation: true | 立即应用 7/30 天保留期；活动包和引用快照保留 |
+| POST /api/v1/data/clear-index | confirmation: true | 清 events/cursors、暂停来源；保留人工修订/关联/会话身份，可显式重建 |
 | POST /api/v1/data/delete-all | confirmation: "DELETE LOCAL DATA" | 停扫描、清应用数据，终止服务 |
+
+T17 的导出预览、保留期、全部删除范围和失败恢复详见 [生命周期记录](../verification/t17-data-lifecycle.md)。删除只处理已知应用数据库及已核验迁移备份，保留未知文件与空进程协调库，成功后终止服务；代码回滚不能恢复已删数据。
 
 Source/Workspace 的本地路径在认证本地设置 UI 中可展示；不得混入可导出的通用 Task/Session DTO 或诊断。API 层显式构造 DTO，不把整个 DB 行序列化。
 
