@@ -40,6 +40,12 @@ The unchanged default-worker **`npm run check` passed 311 tests in 40 files**, t
 
 Delivery at this documentation checkpoint: PR publication and CI are now authorized and are the next step. Their actual results belong to the PR check run, not this local gate. Independent review, main merge and release are not complete. Support remains **experimental / partially verified manual import**, not full Cursor certification.
 
+### PR #41 — Windows CI assertion follow-up
+
+The package is published as [draft PR #41](https://github.com/Frankie-Xu/threadport/pull/41), not merged. Initial [CI run 34866919537](https://github.com/Frankie-Xu/threadport/actions/runs/34866919537) passed Linux and macOS but failed one Windows assertion: a local-mode summary contains a JSON-quoted directory, while the test searched for the unescaped raw Windows path. The observed summary correctly retained the directory; changing production output to satisfy the assertion would break the intended quoting contract.
+
+`tests/adapters/cursor.test.ts` now checks the complete `JSON.stringify(cwd)` label in both command and direct-test summaries, retaining unknown-outcome assertions. It exercises the host-native path and a fixed synthetic Windows path containing spaces on every platform. No production code, timeout, worker count or skip condition changes. The tested runtime artifact above remains valid; the CI correction is test/documentation only. The first Windows run passed 307 tests, failed one and skipped three optional-SQLite-CLI exporter tests. Those skips are a stated coverage limit, not real Windows exporter certification. Final rerun status must be read from the PR's check results; no green result is assumed here.
+
 ## Historical follow-up — requested directory identity and handoff visibility
 
 The permission-pending and delivery statements in this section describe the earlier checkpoint; the live comparison above supersedes them.

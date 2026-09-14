@@ -183,6 +183,14 @@ const cwd = 'workdir' in args ? asString(args.workdir) ?? null
 
 执行证据：源码已提交 `cd8d1b2`；该历史检查点为 307 tests / 39 files、111 文件包和 13 组真实样例重放。最新 `0e065e4` 已整合 #39 并通过 311 tests / 40 files、113 文件包及三条新真实输入往返。只读实测已执行并复现 vendor 限制，未修改审批或项目文件；不把执行偏差标成通过。上述最后一项的代码/ADR/报告部分已完成，PR 创建与 CI 已获授权但在本记录时尚待执行，故组合项不勾选；结果应以对应 PR 的实际检查为准。
 
+## Task 7: PR #41 的 Windows CI 断言修复
+
+首轮 CI run `34866919537`：Linux/macOS 通过；Windows 在 `tests/adapters/cursor.test.ts` 的 local-cwd 断言失败。摘要按契约使用 `JSON.stringify(cwd)`，测试却查找未转义的 Windows 原始路径；此处不应改变产品路径格式。Windows 另有 3 项依赖可选 SQLite CLI 的测试跳过，不能算已验证导出器。
+
+- [x] 仅修改上述测试：用完整的 JSON 编码目录标签断言，同时验证命令和测试摘要；加入固定 Windows 反斜杠/空格路径，使 macOS/Linux 也覆盖该格式。
+- [x] 保留目录身份、null 优先级、unknown、portable 隐私等原断言，重跑本地标准 check/pack；不放宽超时、不新增跳过。定向 28 tests、标准 311 tests / 40 files 和 113 文件安装包全部通过。
+- [ ] 更新同一 PR 的 head、证据和实际 CI 结果；检查三平台以及汇总 check，不合并或发布。
+
 ## 3. 本轮不应顺手建设的功能
 
 - Cursor CLI、Cloud、其他桌面模式和 Windows/Linux 实机：独立扩展矩阵，先有目标用户/设备/许可再开工，不要求本机现在下载所有软件。

@@ -69,8 +69,16 @@ describe("Cursor session adapter", () => {
     expect(capsule.commands[0]?.exit_code).toBeUndefined();
     expect(capsule.tests[0]?.status).toBe('unknown');
     expect(capsule.completed).toEqual([]);
-    const local = await createCursorAdapter().extract({ ...input, privacy: 'local' });
-    expect(local.commands[0]?.summary).toContain(root);
+    // Summaries quote cwd as JSON; native Windows backslashes are escaped.
+    // Exercise that contract on every host, not only a Windows runner.
+    for (const cwd of [join(root, 'client with spaces'), String.raw`C:\Synthetic User\project\client with spaces`]) {
+      const local = await createCursorAdapter().extract({ ...input, sessionText: make({ working_directory: cwd }), privacy: 'local' });
+      const label = `Requested cwd (execution unverified): ${JSON.stringify(cwd)}.`;
+      expect(local.commands[0]?.summary).toContain(label);
+      expect(local.tests[0]?.summary).toContain(label);
+      expect(local.commands[0]?.exit_code).toBeUndefined();
+      expect(local.tests[0]?.status).toBe('unknown');
+    }
     for (const aliases of [{ working_directory: null }, { cwd: null, working_directory: '/wrong' }, { workdir: null, cwd: '/wrong' }]) {
       const unknown = await createCursorAdapter().extract({ ...input, sessionText: make(aliases) });
       expect(unknown.commands[0]?.summary ?? '').not.toContain('Requested cwd');
