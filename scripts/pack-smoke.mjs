@@ -1,5 +1,5 @@
-import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, rm } from 'node:fs/promises';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtemp, mkdir, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import assert from 'node:assert/strict';
@@ -28,6 +28,39 @@ try {
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore}=await import("threadport/storage"); const {TaskService}=await import("threadport/tasks"); const s=await openStore({dataDir:"./data"}); const tasks=new TaskService(s); const t=await tasks.create({projectId:"smoke",title:"SDK task"}); const saved=await tasks.update(t.id,1,{objective:"Manual objective"}); if(saved.revision!==2)throw new Error("Task smoke failed"); s.close();'], { cwd: installRoot, timeout: 15000 });
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore}=await import("threadport/storage"); const {SearchService}=await import("threadport/search"); const s=await openStore({dataDir:"./data"}); const page=await new SearchService(s).search({q:"Manual objective"}); if(page.items.length!==1)throw new Error("Search smoke failed"); s.close();'], { cwd: installRoot, timeout: 15000 });
   execFileSync(process.execPath, ['--input-type=module', '-e', 'const {openStore}=await import("threadport/storage"); const {SnapshotService,verifyWorkspace}=await import("threadport/workspace"); const {resolve}=await import("node:path"); const s=await openStore({dataDir:"./data"}); s.createWorkspace("snapshot-smoke","smoke",resolve("./data")); const snapshot=await new SnapshotService(s).capture("snapshot-smoke"); if(snapshot.digest!==null||!snapshot.incompleteReasons.includes("NO_GIT")||!s.getSnapshot(snapshot.id))throw new Error("Snapshot smoke failed"); const report=await verifyWorkspace(snapshot,s.getWorkspace("snapshot-smoke")); if(report.status!=="unverifiable"||report.reasons[0].code!=="NO_GIT")throw new Error("Verify smoke failed");s.close();'], { cwd: installRoot, timeout: 15000 });
+  // Exercise the installed CLI, not source imports, with all Cursor input paths.
+  const project = join(temporary, 'synthetic-project'); await mkdir(project);
+  const git = args => execFileSync('git', ['-C', project, ...args], { timeout: 10000 });
+  git(['init', '-b', 'main']); await writeFile(join(project, 'README.md'), 'Synthetic package acceptance.\n');
+  git(['add', 'README.md']); git(['-c', 'user.name=Package Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'fixture']);
+  const time = '2026-09-14T00:00:00.000Z';
+  const samples = {
+    markdown: '# Synthetic\n## User\nReview only.\n## Assistant\nAll passed.\n',
+    sparse: JSON.stringify([{ role: 'user', content: 'Review only.' }, { role: 'assistant', content: [{ type: 'tool_use', name: 'Shell', input: { command: 'node --test' } }] }]),
+    native: JSON.stringify({ format: 'threadport.cursor-native.v1', sessionId: '11111111-1111-4111-8111-111111111111', createdAt: Date.parse(time), bubbles: [
+      { bubbleId: 'u', type: 1, createdAt: time, text: 'Review only.' },
+      { bubbleId: 't', type: 2, createdAt: time, completedAtMs: Date.parse(time) + 1, tool: { name: 'run_terminal_command_v2', toolCallId: 't', status: 'completed', params: { command: 'node --test; echo "EXIT_CODE=$?"' }, result: { output: 'EXIT_CODE=0\n', notInterrupted: true } } }
+    ] })
+  };
+  const cli = args => {
+    const run = spawnSync(process.execPath, [entry, ...args], { cwd: installRoot, encoding: 'utf8', timeout: 15000 });
+    assert.equal(run.status, 0, run.stderr || String(run.error)); return run;
+  };
+  for (const [name, sample] of Object.entries(samples)) {
+    const source = join(temporary, `${name}.txt`); const out = join(temporary, `${name}-capsule.json`);
+    await writeFile(source, sample);
+    const run = cli(['extract', '--from', 'cursor', '--session', source, '--project', project, '--out', out]);
+    assert.equal(run.stdout.trim().split('\n').length, 2); assert.match(run.stderr, /Warning:/);
+    const capsule = JSON.parse(await readFile(out, 'utf8'));
+    assert.equal(capsule.status, 'paused'); assert.deepEqual(capsule.completed, []);
+    assert(capsule.commands.every(command => command.exit_code === undefined));
+    cli(['validate', out]);
+    const handoff = join(temporary, `${name}-handoff.md`);
+    cli(['handoff', '--to', 'cursor', out, '--out', handoff]);
+    assert.match(await readFile(handoff, 'utf8'), /transcript-only|incomplete tool evidence/);
+  }
+  assert.equal(await readFile(join(project, 'README.md'), 'utf8'), 'Synthetic package acceptance.\n');
+  assert.equal(git(['status', '--porcelain']).toString(), '');
   execFileSync(process.execPath, ['--input-type=module', '-e', `
     import assert from 'node:assert/strict';
     import {execFileSync,spawnSync} from 'node:child_process';
@@ -63,7 +96,7 @@ try {
       const tasks=await fetch(server.origin+'/api/v1/tasks',{headers:{authorization:'Bearer '+server.token}});assert.equal(tasks.status,200);assert.equal((await tasks.json()).data.length,1);
     } finally {await server.close();await server.close();}
   `], {cwd:installRoot,timeout:30000});
-  console.log(`Package smoke passed: ${packed.files.length} files; CLI and public exports load from an isolated install.`);
+  console.log(`Package smoke passed: ${packed.files.length} files; public exports, workspace verification, local server and 3 Cursor extract/validate/handoff roundtrips pass from an isolated install.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
 }
