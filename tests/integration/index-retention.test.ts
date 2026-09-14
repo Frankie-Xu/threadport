@@ -109,7 +109,8 @@ it("ages payloads and finished summaries separately, protects active packages, a
         "digest",
         old,
         JSON.stringify({
-          handoff: { createdAt: created },
+          handoff: { createdAt: created, ...(id === "active" ? {verification:{snapshotId:"keep-historical"}} : {}) },
+          ...(id === "active" ? {reviewSnapshot:{id:"keep-review"}} : {}),
           approval: { secret: "private" },
         }),
         state,
@@ -120,10 +121,16 @@ it("ages payloads and finished summaries separately, protects active packages, a
     attempt.run("a", "old", "exited", old, old, null);
     attempt.run("b", "summary", "exited", eightDays, eightDays, null);
     attempt.run("c", "active", "launching", old, null, null);
+    store.createWorkspace('workspace','project',dataDir);
+    const snapshot=db.prepare('INSERT INTO snapshots VALUES(?,?,?,?)');
+    for(const id of ['keep-review','keep-historical','keep-event','unreferenced'])snapshot.run(id,'workspace',old,'{}');
+    store.saveSession('event-session');
+    db.prepare('INSERT INTO events VALUES(?,?,?,?,?)').run('event','event-session',0,JSON.stringify({commandRun:{snapshotId:'keep-event'}}),'');
     expect(store.maintenance().prune(now)).toMatchObject({
       attemptsRemoved: 1,
       payloadsRemoved: 2,
       handoffsRemoved: 1,
+      snapshotsRemoved: 1,
     });
     expect(
       db
@@ -138,6 +145,7 @@ it("ages payloads and finished summaries separately, protects active packages, a
       expect.objectContaining({ code: "NOT_FOUND" }),
     );
     expect(store.launchStore().attempts("summary")).toHaveLength(1);
+    expect(db.prepare("SELECT id FROM snapshots ORDER BY id").pluck().all()).toEqual(["keep-event","keep-historical","keep-review"]);
     expect(
       db.prepare("SELECT state FROM handoffs WHERE id=?").pluck().get("active"),
     ).toBe("launching");
