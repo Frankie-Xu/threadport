@@ -20,7 +20,7 @@ import { createHandoff, parseHandoff } from './handoff.js';
 import { ZodError } from 'zod';
 import { DomainError } from './domain/errors.js';
 
-/** Local artifact export only: never launches an agent or executes next_action. */
+/** Local artifacts and explicitly confirmed terminal continuation; never execute next_action. */
 export interface CliIo {
   stdout: { write(text: string): void };
   stderr: { write(text: string): void };
@@ -78,6 +78,7 @@ function usage(): string {
     'threadport verify <capsule.json> --project <root> [--json] [--data-dir <path>]',
     'threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--format markdown|json] [--out <file>] [--force]',
     'threadport targets [--capabilities]',
+    'threadport continue --handoff <uuid> [--data-dir <path>]',
     'threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id> [--mode native-resume|new-session] [--data-dir <path>]',
     'threadport ui [--data-dir <path>] [--no-open] [--demo]'
   ].join('\n');
@@ -95,6 +96,12 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
       catch(error){io.stderr.write(`${message(error)}\n`);return 2;}
       const {runUi}=await import('./cli-ui.js');
       return runUi({dataDir:parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined,noOpen:parsed.enabled.has('no-open'),demo:parsed.enabled.has('demo')},io);
+    }
+    if (command === 'continue') {
+      let parsed:ReturnType<typeof options>;
+      try{parsed=options(rest,['handoff','data-dir']);if(parsed.positional.length||!parsed.named.handoff||!/^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i.test(parsed.named.handoff))throw new Error();}
+      catch{io.stderr.write('continue requires --handoff <uuid> and accepts only optional --data-dir.\n');return 2;}
+      const {runContinue}=await import('./cli-continue.js');return runContinue({handoffId:parsed.named.handoff,dataDir:parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined},io);
     }
     if (command === 'prepare') {
       let parsed:ReturnType<typeof options>;

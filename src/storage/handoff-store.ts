@@ -4,7 +4,7 @@ import { canonical,sha256,type TaskHandoff } from '../handoff/contracts.js';
 import { validateExport } from '../handoff/export.js';
 import type { WorkspaceBinding,WorkspaceSnapshot } from '../workspace/contracts.js';
 export interface HandoffSource {id:string;agent:'claude'|'codex';vendorSessionId:string|null;status:string;projectId:string|null;workspaceId:string|null}
-export interface HandoffRecord {handoff:TaskHandoff;workspace:WorkspaceBinding;reviewSnapshot:WorkspaceSnapshot;source:HandoffSource;approval:null|{digest:string;confirmedAt:string;acknowledgeUncertainty:boolean}}
+export interface HandoffRecord {handoff:TaskHandoff;workspace:WorkspaceBinding;reviewSnapshot:WorkspaceSnapshot;source:HandoffSource;approval:null|{digest:string;confirmedAt:string;acknowledgeUncertainty:boolean;launch?:{attemptId:string;ownerPid:number}}}
 export const recordDigest=(record:HandoffRecord)=>sha256(canonical({...record,approval:null}));
 export class HandoffStore {
  constructor(private readonly db:Database.Database){}
