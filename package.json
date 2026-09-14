@@ -39,6 +39,10 @@
     "./indexing": {
       "types": "./dist/src/indexing/service.d.ts",
       "import": "./dist/src/indexing/service.js"
+    },
+    "./server": {
+      "types": "./dist/src/server/index.d.ts",
+      "import": "./dist/src/server/index.js"
     }
   },
   "files": [
@@ -58,6 +62,7 @@
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",
+    "fastify": "5.12.4",
     "zod": "^3.25.76"
   },
   "devDependencies": {
