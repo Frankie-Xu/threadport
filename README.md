@@ -26,7 +26,7 @@ npm ci
 npm run check
 ```
 
-Requires Node `>=20`. CI runs that gate on Node 20 and Node 24. Session adapters and the handoff CLI are available. Processing is local-only: source sessions and project contents are read, while exported artifacts are written to explicit or temporary destinations. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
+Requires Node `>=24.0.0` for this v0.2 development checkout. CI runs Node 24. See [runtime and storage migration](docs/v0.2/07-storage-migration.md). Session adapters and the handoff CLI are available. Processing is local-only: source sessions and project contents are read, while exported artifacts are written to explicit or temporary destinations. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
 
 ```ts
 import { createClaudeAdapter, createCodexAdapter, createCursorAdapter, createGeminiAdapter } from "threadport";
@@ -83,7 +83,7 @@ npm run check:pack
 npm audit
 ```
 
-`npm pack` builds through `prepack`; only runtime build files, schemas, examples and package documentation are distributed. `check:pack` installs the tarball into an isolated directory and checks the CLI and public exports. CI runs these gates on Ubuntu, macOS and Windows with Node 20 and 24. The Git regression suite requires real file symlinks on every platform, including Windows; missing privileges fail the test instead of skipping it. Parsed Markdown assertions cover LF/CRLF/CR, and publication tests inject filesystem errors after preflight. Vitest 4.1.11 and Vite 6.4.3 are pinned together to fix the mocker advisory while retaining Node 20 support.
+`npm pack` builds through `prepack`; only runtime build files, SQL migrations, schemas, examples and package documentation are distributed. `check:pack` installs the tarball into an isolated directory and checks the CLI, public exports and native SQLite creation. CI runs these gates on Ubuntu, macOS and Windows with Node 24. The Git regression suite requires real file symlinks on every platform, including Windows; missing privileges fail the test instead of skipping it. Parsed Markdown assertions cover LF/CRLF/CR, and publication tests inject filesystem errors after preflight. Vitest 4.1.11 and Vite 6.4.3 are pinned together to fix the mocker advisory without unrelated dependency upgrades.
 
 ## Safety boundary
 

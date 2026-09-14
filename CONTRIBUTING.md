@@ -17,11 +17,11 @@ npm run check
 
 The current gate runs TypeScript typechecking and compilation, Vitest, and local Markdown link checks. Run the link check separately with `npm run check:docs`. It checks file destinations in repository-root Markdown files, `docs/`, and `.github/`; it does not validate remote URLs or heading anchors. Follow existing formatting and review the diff with `git diff --check`; automated format/lint gates are not yet installed. Web, E2E, and benchmark checks are introduced by their implementation tasks and must not be reported as passed before they exist.
 
-CI runs the same gate on Ubuntu, macOS and Windows with Node 20 (the `engines` floor) and Node 24, plus `npm run check:pack` to verify an isolated package installation. Vitest is configured in `vitest.config.ts` to run `tests/**/*.test.ts` only. `tsconfig.build.json` excludes tests from the runtime build. Keep Vitest and Vite pins compatible with the declared Node floor.
+CI runs the same gate on Ubuntu, macOS and Windows with Node 24 (the `engines` floor), plus `npm run check:pack` to verify an isolated package installation. Vitest is configured in `vitest.config.ts` to run `tests/**/*.test.ts` only. `tsconfig.build.json` excludes tests from the runtime build. Keep Vitest and Vite pins compatible with the declared Node floor.
 
 Tests use synthetic fixtures and temporary directories only. Never commit real agent sessions, API keys, or `.env` files. Vitest collects only `tests/**/*.test.ts`, so building `dist/` does not duplicate tests.
 
-Use Node 24 for v0.2 development (`.nvmrc`). The current 0.1.0 package still declares Node `>=20`, and CI retains Node 20 and 24 regression jobs. v0.2 will raise the runtime floor to `>=24.0.0` with coordinated package, CI, and migration documentation changes. Its workspace certification targets are macOS arm64 and Ubuntu x64 on Node 24; configured CI jobs alone do not certify platforms or real Agent continuation. Windows retains the legacy CLI regression scope until separately verified.
+Use Node 24 for v0.2 development (`.nvmrc`, `engines >=24.0.0`). T05 adds pinned better-sqlite3 and changes CI to Node 24 on Ubuntu, macOS and Windows. Each job performs a clean locked install plus isolated tarball SQLite creation. Windows checks data-directory ownership and broad write ACLs; it is not yet a certified Agent continuation platform. See [storage migration](docs/v0.2/07-storage-migration.md).
 
 Dependabot may propose patch/minor updates. Major updates to Vitest, Zod, TypeScript, and `@types/node` require deliberate compatibility review. Explain new dependency purpose, license, and installation impact.
 
