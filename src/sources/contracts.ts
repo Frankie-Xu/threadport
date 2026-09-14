@@ -8,7 +8,7 @@ export interface ReadCursor {
   recognized?: boolean;
   warnings?: string[];
   pendingCalls?: PendingCall[];
-  metadata?: { sessionId?: string; vendorSessionId: string | null; formatVersion: string | null; lastEventAt: string | null };
+  metadata?: { cwd?: string | null; sessionId?: string; vendorSessionId: string | null; formatVersion: string | null; lastEventAt: string | null };
 }
 export interface SourceSession {
   id: string; sourceId: string; agent: 'claude' | 'codex'; vendorSessionId: string | null;

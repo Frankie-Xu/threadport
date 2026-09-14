@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { Task } from '../domain/models.js';
 import { DomainError } from '../domain/errors.js';
 import { openDatabase, type DatabaseOptions } from './database.js';
-import { storageError } from './migrations.js';
+import { IndexStore } from './index-store.js';
 const id = z.string().min(1).max(512);
 const date = z.string().datetime();
 const claim = z.object({ text: z.string(), origin: z.enum(['observed', 'user-confirmed', 'derived', 'unknown']), evidence: z.array(z.object({ sessionId: id, eventId: id }).strict()), updatedAt: date.nullable() }).strict();
@@ -15,10 +15,8 @@ function page(limit: number, offset: number) {
   validate(z.number().int().min(1).max(1000), limit); validate(z.number().int().nonnegative().safe(), offset);
 }
 /** Infrastructure boundary. Callers supply already redacted task fields; Store validates shape and atomicity. */
-export class SqliteStore {
-  constructor(private readonly db: Database.Database) {}
+export class SqliteStore extends IndexStore {
   close(): void { this.db.close(); }
-  private run<T>(fn: () => T): T { try { return fn(); } catch (error) { throw storageError(error); } }
   createProject(projectId: string, name: string): void {
     validate(id, projectId); validate(z.string().min(1), name);
     this.run(() => this.db.prepare('INSERT INTO projects(id,name) VALUES (?,?)').run(projectId, name));

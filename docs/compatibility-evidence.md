@@ -5,7 +5,7 @@ This is an evidence register, not a promise that an adapter supports all release
 | Adapter | Committed evidence | Live version certification |
 | --- | --- | --- |
 | Claude | [Native source boundary and limits](../compatibility/claude-source.md); Synthetic `tests/fixtures/claude/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
-| Codex | Synthetic `tests/fixtures/codex/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
+| Codex | [Native source boundary and limits](../compatibility/codex-source.md); Synthetic `tests/fixtures/codex/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
 | Cursor | Synthetic `tests/fixtures/cursor/session-basic.jsonl` and regression records | Not certified — no permitted, versioned live sample supplied |
 | Gemini | Synthetic `tests/fixtures/gemini/session-basic.json` and regression records | Not certified — no permitted, versioned live sample supplied |
 

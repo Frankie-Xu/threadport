@@ -1,0 +1,4 @@
+{"type":"session_meta","payload":{"id":"synthetic-codex-source","cwd":"/synthetic/project","cli_version":"synthetic-1"}}
+{"timestamp":"2026-09-14T00:00:00Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"修复测试。禁止上传日志。"}]}}
+{"type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"synthetic-call","arguments":"{\"cmd\":\"npm test\"}"}}
+{"type":"response_item","payload":{"type":"function_call_output","call_id":"synthetic-call","output":{"output":"Synthetic test result","exit_code":0}}}

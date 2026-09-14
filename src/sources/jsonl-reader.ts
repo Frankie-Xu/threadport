@@ -19,7 +19,7 @@ export const cursorSchema = z.object({
   checkpoint: z.object({headLength:natural.max(4096),headHash:hash,tailHash:hash}).strict().optional(),
   blockOffset:natural.max(256).optional(), recognized:z.boolean().optional(), warnings:z.array(z.string().regex(/^[A-Z_]+$/)).max(32).optional(),
   pendingCalls:z.array(z.object({id:z.string().max(512),command:z.string().max(4096),cwd:z.string().max(4096).nullable(),startedAt:z.string().datetime().nullable()}).strict()).max(128).optional(),
-  metadata:z.object({sessionId:z.string().uuid().optional(),vendorSessionId:z.string().max(512).nullable(),formatVersion:z.string().max(128).nullable(),lastEventAt:z.string().datetime().nullable()}).strict().optional(),
+  metadata:z.object({cwd:z.string().max(4096).nullable().optional(),sessionId:z.string().uuid().optional(),vendorSessionId:z.string().max(512).nullable(),formatVersion:z.string().max(128).nullable(),lastEventAt:z.string().datetime().nullable()}).strict().optional(),
 }).strict();
 export function validateCursor(cursor: ReadCursor | null): ReadCursor | null {
   if (cursor === null) return null;
@@ -35,7 +35,8 @@ export async function checkpoint(file:FileHandle, offset:number, size:number):Pr
 }
 export interface JsonlLine { start:number; end:number; text:string|null; issue?:string }
 export interface JsonlPage { lines:JsonlLine[]; cursor:ReadCursor; warnings:string[]; hasMore:boolean }
-export async function readJsonl(input:{path:string;root:string;cursor:ReadCursor|null;maxRecords:number;signal:AbortSignal;maxLineBytes?:number;maxFileBytes?:number}):Promise<JsonlPage>{
+export async function readJsonl(input:{path:string;root:string;cursor:ReadCursor|null;maxRecords:number;signal:AbortSignal;maxLineBytes?:number;maxFileBytes?:number;parserVersion?:string}):Promise<JsonlPage>{
+ const parserVersion=input.parserVersion??PARSER_VERSION;
  input.signal.throwIfAborted();const prior=validateCursor(input.cursor);
  const maxLine=input.maxLineBytes??LINE_BYTES, maxFile=input.maxFileBytes??FILE_BYTES;
  if(!Number.isSafeInteger(input.maxRecords)||input.maxRecords<1||input.maxRecords>1000||!Number.isSafeInteger(maxLine)||maxLine<1||maxLine>LINE_BYTES||!Number.isSafeInteger(maxFile)||maxFile<1||maxFile>FILE_BYTES) throw new DomainError('INVALID_INPUT','Invalid source read budget.');
@@ -50,9 +51,9 @@ export async function readJsonl(input:{path:string;root:string;cursor:ReadCursor
   let offset=prior?.byteOffset??0; const warnings:string[]=[];
   const headMatches=!prior?.checkpoint||digest(await bytes(file,0,prior.checkpoint.headLength))===prior.checkpoint.headHash;
   const tailMatches=!prior?.checkpoint||digest(await bytes(file,Math.max(0,offset-4096),Math.min(offset,4096)))===prior.checkpoint.tailHash;
-  const reset=!!prior&&(prior.fileIdentity!==identity||prior.parserVersion!==PARSER_VERSION||offset>stat.size||!headMatches||!tailMatches);
+  const reset=!!prior&&(prior.fileIdentity!==identity||prior.parserVersion!==parserVersion||offset>stat.size||!headMatches||!tailMatches);
   if(reset){offset=0;warnings.push('SOURCE_RESET');}
-  const cursor:ReadCursor={fileIdentity:identity,byteOffset:offset,nextOrdinal:reset?0:prior?.nextOrdinal??0,parserVersion:PARSER_VERSION};
+  const cursor:ReadCursor={fileIdentity:identity,byteOffset:offset,nextOrdinal:reset?0:prior?.nextOrdinal??0,parserVersion};
   if(stat.size>maxFile)return {lines:[],cursor,warnings:[...warnings,'FILE_TOO_LARGE'],hasMore:false};
   const lines:JsonlLine[]=[];let position=offset,start=offset,total=0,oversized=false;let fragments:Buffer[]=[];
   const chunk=Buffer.alloc(64*1024);let stop=false;

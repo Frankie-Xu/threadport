@@ -2,7 +2,7 @@
 export class DomainError extends Error {
   get retryable(): boolean { return this.code === 'STORAGE_BUSY' || this.code === 'REVISION_CONFLICT'; }
 
-  constructor(readonly code: 'INVALID_INPUT' | 'STORAGE_BUSY' | 'MIGRATION_FAILED' | 'IO_FAILED' | 'REVISION_CONFLICT', message: string) {
+  constructor(readonly code: 'INVALID_INPUT' | 'STORAGE_BUSY' | 'MIGRATION_FAILED' | 'IO_FAILED' | 'REVISION_CONFLICT' | 'INDEX_STALE' | 'INDEX_LIMIT', message: string) {
     super(message);
     this.name = 'DomainError';
   }

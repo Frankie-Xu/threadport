@@ -66,7 +66,11 @@ The CLI validates before writing and does not run `next_action`. `--from` accept
 
 ### Allowed Claude source discovery
 
-The v0.2 `threadport/sources` SDK exposes `createSourceRegistry` and `createClaudeSource`. Configure explicit `roots` and a `sourceId`; the adapter never discovers roots from HOME. Iterate `discover(roots, signal)`, then call `read({candidate, cursor, maxEvents, signal})`, persisting its whole cursor. Continue while `hasMore` is true, including pages with zero events. Inspect warnings for partial lines, limits and reset requirements. The old extract API is unchanged. See [native source compatibility and limits](compatibility/claude-source.md); automatic indexing and UI integration follow in later tasks.
+The v0.2 `threadport/sources` SDK exposes `createSourceRegistry` and `createClaudeSource`. Configure explicit `roots` and a `sourceId`; the adapter never discovers roots from HOME. Iterate `discover(roots, signal)`, then call `read({candidate, cursor, maxEvents, signal})`, persisting its whole cursor. Continue while `hasMore` is true, including pages with zero events. Inspect warnings for partial lines, limits and reset requirements. The old extract API is unchanged. See [native source compatibility and limits](compatibility/claude-source.md); indexing is available through IndexService; UI integration follows in later tasks.
+
+### Incremental indexing
+
+`threadport/sources` now registers Claude and Codex. `threadport/indexing` provides `IndexService` for manual refresh, cancellation and optional 15-second refresh while a local service runs. Full cursors and event batches commit atomically; rescans preserve manual tasks and links. Database schema v2 adds durable cursor state and two scan lease slots. See [indexing and recovery](docs/v0.2/08-indexing.md) and [Codex format evidence](compatibility/codex-source.md).
 
 ### Git fingerprints and handoff boundary
 
