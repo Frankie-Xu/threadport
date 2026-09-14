@@ -14,6 +14,8 @@ The resulting `threadport.cursor-native.v1` envelope is a ThreadPort verificatio
 
 This supersedes the initial exact-wrapper marker inference. The observed stopped command in Cursor 3.20.17 still reported `notInterrupted: true`; child-controlled text cannot supply independent exit evidence. Existing numeric structured-JSONL outcomes remain supported. Any future native numeric mapping requires a version-sourced fixture and a new decision, not a guessed field.
 
+The fresh 3.20.17 parallel probe also recorded different requested `cwd` values while both command outputs reported module lookup at the repository root. Retain requested cwd for source fidelity and pairing, but explicitly warn that it is not a verified execution location. Do not substitute paths guessed from output text or claim this fixes the vendor's execution behavior.
+
 Capsule v1 and handoff formats stay unchanged. Database access is read-only; no source mutation, account access, network transmission or Agent launch is added to the core.
 
 ## Alternatives and costs

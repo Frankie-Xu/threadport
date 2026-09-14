@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { SessionRecord } from './common.js';
 
 export const CURSOR_NATIVE_FORMAT = 'threadport.cursor-native.v1';
-export const CURSOR_NATIVE_NOTE = 'Experimental selected Cursor database evidence, not a vendor export contract. Tool completion and output text markers do not establish a process exit code. Unreported exits remain unknown. Current Git state is not a historical test snapshot.';
+export const CURSOR_NATIVE_NOTE = 'Experimental selected Cursor database evidence, not a vendor export contract. Tool completion and output text markers do not establish a process exit code. Unreported exits remain unknown. Recorded cwd is requested context, not a verified execution location. Current Git state is not a historical test snapshot.';
 
 const optionalString = z.string().nullish();
 const toolSchema = z.object({

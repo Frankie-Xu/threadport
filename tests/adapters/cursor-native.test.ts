@@ -89,6 +89,7 @@ it('preserves native working directories and never recovers failures from text m
   expect(call?.input).toEqual({ command: 'node --test; echo "EXIT_CODE=$?"', cwd: '/synthetic/a' });
   const input = { project: await project(), sessionText: JSON.stringify(envelope([text('u', 1, 'Fix.', 0), failed, passedElsewhere])) };
   const separate = await createCursorAdapter().extract(input);
+  expect(separate.constraints.join('\n')).toContain('Recorded cwd is requested context, not a verified execution location.');
   expect(separate.status).toBe('paused');
   expect(separate.commands.every(c => c.exit_code === undefined)).toBe(true);
   const recovered = await createCursorAdapter().extract({ ...input, sessionText: JSON.stringify(envelope([text('u', 1, 'Fix.', 0), failed, withCwd('passed-a', 20, 0, '/synthetic/a')])) });
