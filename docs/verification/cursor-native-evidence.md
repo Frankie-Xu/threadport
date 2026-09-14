@@ -2,7 +2,7 @@
 
 Current behavior update (2026-09-14): [release-candidate verification](cursor-release-candidate.md) supersedes the historical text-marker mappings and delivery state below. Native terminal outputs no longer establish numeric exits, including the exact Node wrapper. Old fail/pass/fail observations are historical evidence, not outcomes certified by the current converter.
 
-Delivery note (2026-09-14): the user authorized committing and pushing this reviewed change on `fix/Frankie-Xu/cursor-transcript-import`. Historical checkpoints below describe the local/uncommitted state at their verification time. The [latest candidate](cursor-release-candidate.md) integrates main through `d3c439d` (PR #38) and supersedes earlier integration and live-gate gaps. Fresh 3.20.17 native edit rejection and same-cwd overlap/reverse completion were exercised; effective cross-cwd execution remains unverified. No direct main push, PR creation or release is included.
+Delivery note (2026-09-15): the user authorized committing/pushing on `fix/Frankie-Xu/cursor-transcript-import`, fresh read-only testing and PR creation/CI inspection. Historical checkpoints below describe the local/uncommitted state at their verification time. The [latest candidate](cursor-release-candidate.md) integrates main through `6512975` (PR #39). Fresh 3.20.17 native edit rejection and same-cwd overlap/reverse completion were exercised; a further sequential/parallel comparison reproduced four child-directory requests executing at the root. Effective cross-cwd execution remains uncertified. Main merge, independent review and release are not included in this completed local checkpoint.
 
 ## Scope and workflow
 

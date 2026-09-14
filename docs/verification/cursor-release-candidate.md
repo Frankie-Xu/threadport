@@ -2,7 +2,7 @@
 
 ## Active follow-up work package: CURSOR-CERT-01
 
-User-visible result: conservative manual Cursor import with version-specific evidence and explicit unknown outcomes. Related T03/T04, F05, Q03/Q04/Q05/Q15/Q24. Existing feature branch is retained by request. Final integration baseline is `d3c439d` (through PR #38); latest runtime candidate `cd8d1b2` follows `3404a90` and includes fixes `e162fde`, `519e36f` and requested-directory context, retaining upstream search, workspace capture/verification and all three Cursor package roundtrips. No public schema or automatic Cursor source is added. No downstream package is known to require this manual Cursor converter; recheck consumers before any rollback.
+User-visible result: conservative manual Cursor import with version-specific evidence and explicit unknown outcomes. Related T03/T04, F05, Q03/Q04/Q05/Q15/Q24. Existing feature branch is retained by request. Latest integration baseline is `6512975` (through PR #39); runtime candidate `0e065e4` includes fixes `e162fde`, `519e36f`, requested-directory context from `cd8d1b2` and upstream explicit workspace verification CLI, retaining search, workspace capture/verification and all three Cursor package roundtrips. No public schema or automatic Cursor source is added. No downstream package is known to require this manual Cursor converter; recheck consumers before any rollback.
 
 Follow-up file allowlist: modify `src/adapters/cursor-native.ts` (requested-cwd warning and cancelled-edit reason), `src/adapters/message-events.ts` (Cursor directory alias and visible context), `tests/adapters/cursor-native.test.ts`, `tests/adapters/cursor.test.ts`, `tests/cli.test.ts` (outcome, directory identity, privacy and handoff regressions), `docs/adr/0008-cursor-selected-evidence.md` (evidence boundary), this file, `docs/compatibility-evidence.md`, `docs/verification/cursor-native-evidence.md` and `docs/superpowers/plans/2026-09-14-cursor-certification-closure.md` (acceptance/delivery records). The resolved integration conflict in `scripts/pack-smoke.mjs` retains upstream search/workspace and Cursor checks. Other merge files are unchanged upstream integration, not new Cursor features. Private synthetic projects/evidence are outside the commit scope.
 
@@ -12,7 +12,37 @@ Checks required: targeted native regression, unchanged standard `npm run check`,
 
 Date: 2026-09-14. Self-review, not an independent audit. Scope: legacy manual extraction (T03/T04, F05, Q03/Q05/Q15); not automatic discovery, indexing or native continuation.
 
-## Latest follow-up — requested directory identity and handoff visibility
+## Latest live checkpoint — sequential and parallel cwd comparison
+
+Executed **2026-09-14, 23:56–23:58 Asia/Singapore**; recorded and final checks completed September 15. The user authorized fresh read-only Cursor operations and PR creation/CI inspection, not main merge or release. About was rechecked: **Cursor 3.20.17**, build **September 12, 2026, 11:16 displayed local time**, **Agents / This Mac**, macOS **26.6.2 (25G83), arm64**. Only the previously authorized synthetic project and selected test session were used. No approval or protection settings changed. Final UI recheck confirmed **Auto-Review (with Sandbox)**, **External-File Protection on**, **File-Deletion Protection off**; the test conversation is stopped.
+
+Three sequential native Shell calls used the identical command `node -e "console.log('TP_CWD_SEQUENTIAL', process.cwd())"`, requesting the synthetic repository root, `client` and `server` in that order. A separate batch used two independent native Shell calls requesting `client` and `server`, with the identical command `node -e "console.log('TP_CWD_PARALLEL_START', process.cwd()); setTimeout(() => console.log('TP_CWD_PARALLEL_END', process.cwd()), 2000)"`.
+
+| Probe | Requested cwd | Actual process.cwd() | Timing evidence |
+| --- | --- | --- | --- |
+| Sequential control | Repository root | Repository root | Non-overlapping native intervals |
+| Sequential child 1 | client | Repository root | Non-overlapping native intervals |
+| Sequential child 2 | server | Repository root | Non-overlapping native intervals |
+| Parallel child 1 | client | Repository root, at start and end | Distinct call ID; overlaps its peer |
+| Parallel child 2 | server | Repository root, at start and end | Distinct call ID; overlaps its peer |
+
+All five requested arguments, unchanged command strings, raw output and native start/end timestamps were cross-checked against the selected read-only export. **Four of five requested directories differ from actual execution; the root control matches.** This reproduces the limitation in both sequential and parallel calls, not only concurrent execution. It does not identify Cursor's internal implementation cause or certify other modes. No shell `cd`, retry, background-process simulation or application patch was used to turn it into a pass. Effective cross-cwd execution and the planned cross-cwd fail/pass recovery remain uncertified; this is not an importer defect that ThreadPort can repair.
+
+Independent before/after hashes and Git status confirm the synthetic project is unchanged, including its two pre-existing untracked probe files. The final read-only README instruction is preserved as the next action, and the conversation stopped without further commands, edits, commits or pushes. No external test file was accessed in this follow-up.
+
+### Installed artifact and standard gates
+
+Runtime **`0e065e44bfbfb17228bbae68310723f79939ea30`**, based on main **`6512975f7ee4fc4fdd1e936ab1eddcca211e3207`** (PR #39), was normally packed and installed into a fresh private consumer under **Node 24.18.1**. The **113-file** tarball SHA-256 is **`32ef3493ecf21b47eab0167602cd2bd1d9b40e2166842f2841ce553a61dd0d6c`**. Integration preserves the new workspace verification CLI smoke alongside the three Cursor installed-package roundtrips. Later documentation-only commits do not change this tested runtime.
+
+Fresh genuine UI Copy Transcript, project JSONL and selected SQLite inputs each passed installed CLI **extract → validate → handoff** plus semantic checks. Native and sparse inputs each retain 18 command attempts; the five new commands show requested-directory labels `.`, `client`, `server`, `client`, `server`. Unreported numeric exits and test results remain unknown. Native status remains blocked by the previously observed unresolved edit rejection; sparse status is paused. Markdown remains dialogue-only with zero commands and paused status. All three retain the final README/review instruction, expected warnings and portable paths without the local home prefix. Input hashes and source project bytes remain unchanged. Raw evidence, identifiers and per-input hashes stay private outside Git.
+
+The unchanged default-worker **`npm run check` passed 311 tests in 40 files**, typecheck/build and **105 local destinations in 47 Markdown files**. **`npm run check:pack` passed 113 files**, public exports, workspace verification and three synthetic installed-CLI roundtrips. `npm ci` succeeded with zero reported audit vulnerabilities. An earlier run during live Cursor activity timed out in two five-second tests (309 passed); a host load sample was 115.94 / 47.58 / 21.73. The standard rerun after the conversation stopped passed without increasing timeouts or changing workers; contention is a plausible contributor, not a proven sole cause.
+
+Delivery at this documentation checkpoint: PR publication and CI are now authorized and are the next step. Their actual results belong to the PR check run, not this local gate. Independent review, main merge and release are not complete. Support remains **experimental / partially verified manual import**, not full Cursor certification.
+
+## Historical follow-up — requested directory identity and handoff visibility
+
+The permission-pending and delivery statements in this section describe the earlier checkpoint; the live comparison above supersedes them.
 
 Source commit **`cd8d1b28c24c2c05a3207714d1bd3aef275ea958`**, retaining main `d3c439d`; remote main was rechecked and unchanged. No new live Cursor operation or setting change was performed in this follow-up: permission to resume occupying the window and to create a PR was requested separately and is still pending.
 
@@ -29,7 +59,7 @@ Retained tarball SHA-256: **`5aa6960ea6a016eae7e06c04f0e39e1b8b82721f7cb08819856
 
 Remaining: fresh read-only single-call/parallel `process.cwd()` comparison in Cursor after window permission; actual cross-cwd execution remains unverified until then. PR creation/CI and independent review/main delivery are not complete. No direct application-binary patch, approval weakening, shell-cd workaround presented as certification, PR publication or release was performed. The handoff fix can ship as experimental manual-import behavior without representing the vendor limitation as solved.
 
-## Latest same-version live checkpoint
+## Earlier same-version live checkpoint
 
 The authorized normal Cursor restart recovered the UI; no force quit was used. About was rechecked: **Cursor 3.20.17**, build **12 September 2026, 11:16 displayed local time**, Agents / **This Mac**, macOS **26.6.2 (25G83), arm64**. The tests below used one fresh isolated synthetic project and one explicitly selected session. The historical host/UI blockage below is superseded, not a current blocker.
 

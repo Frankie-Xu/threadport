@@ -24,7 +24,7 @@
 
 2026-09-14 已在本窗口执行：正常重启恢复 Cursor 后，使用新建合成项目重跑 **3.20.17 / build 2026-09-12 11:16（界面本地时间）/ Agents This Mac / macOS 26.6.2 arm64**。真实原生文件编辑拒绝、同 cwd 并发/单路 Stop/结果反序、三条输入路径均已采集；跨 cwd 请求没有被 Cursor 正确执行，不能勾成完整认证。用户确认后已恢复并复核 Auto-Review（with Sandbox），外部文件保护保持开启。
 
-最终整合截止 main `d3c439d`（PR #38），runtime candidate `3404a90`。默认 worker 的 `npm run check` 已通过 **303 tests / 39 files**，`check:pack` 通过 **111 文件包及三条合成往返**；原生取消编辑原因和 requested-cwd 警告均有先失败后通过的回归。最新产物哈希与真实重放结果见[候选验收记录](../../verification/cursor-release-candidate.md)。下节是计划编写时的缺口，不能当成最新未完成清单。PR CI/独立审核/main 交付仍未完成，不能以功能分支推送替代。
+2026-09-15 更新：整合截止 main `6512975`（PR #39），runtime candidate `0e065e4`。默认 worker 的 `npm run check` 已通过 **311 tests / 40 files**，`check:pack` 通过 **113 文件包、workspace verify 和三条合成往返**。用户再次授权后，9 月 14 日 23:56–23:58 完成 3 次顺序和 2 次并发原生调用；4 次子目录请求均实际运行于根目录，说明偏差不只发生在并发场景。三条新真实输入经同一安装包提取、校验、交接通过，合成项目未变，审批设置未变且结束后已复核。原生取消编辑原因和 requested-cwd 警告均有先失败后通过的回归。最新产物哈希与真实重放结果见[候选验收记录](../../verification/cursor-release-candidate.md)。下节是计划编写时的缺口，不能当成最新未完成清单。PR 创建与 CI 检查已获授权、待执行；独立审核/main 交付仍未完成，不能以功能分支推送替代。
 
 ## 1. 已做与未做的准确划分
 
@@ -178,10 +178,10 @@ const cwd = 'workdir' in args ? asString(args.workdir) ?? null
 
 - [x] 在 `tracesFromEvents` 后按同序的 `commandRuns` 为 Cursor 命令摘要加请求目录前缀；直接测试命令对应的 tests 摘要也加同一前缀。先 `portablePath(cwd, resolve(input.project.root))`（local 模式保留原值），再拼入摘要，最终仍走 `assembleCapsule` 的隐私保护。不得改 command 字段、exit_code 或从输出中猜 cwd。
 - [x] 重跑 `npm run check`、`npm run check:pack` 和最终安装包真实样例 extract → validate → handoff；检查原生和 sparse 两路目录标签、未知结果以及源文件不变。
-- [ ] 用户让出 Cursor 窗口后，仅在现有合成项目做只读 `process.cwd()` 单次/并发对照，保持审批与保护不变。若参数仍未生效，保留 vendor 限制，不能依靠 `cd` 改写命令伪装通过。
+- [x] 用户让出 Cursor 窗口后，仅在现有合成项目做只读 `process.cwd()` 单次/并发对照，保持审批与保护不变。若参数仍未生效，保留 vendor 限制，不能依靠 `cd` 改写命令伪装通过。
 - [ ] 更新 ADR 和验收报告，提交 `fix(CURSOR-CERT-01): preserve requested directory context in handoffs`。得到 PR 授权后按仓库模板创建 PR、检查三平台 CI；不自动合并。回滚沿用本包的前向修复优先策略，不动上游存储和迁移。
 
-执行证据：源码已提交 `cd8d1b2`；307 tests / 39 files、111 文件包、同一安装产物的 13 组真实样例重放通过。上述最后一项的代码/ADR/报告部分已完成，PR 授权与 CI 未完成，故组合项不勾选。当前未操作 Cursor 窗口或修改审批，等待用户确认补测占用窗口及创建 PR。
+执行证据：源码已提交 `cd8d1b2`；该历史检查点为 307 tests / 39 files、111 文件包和 13 组真实样例重放。最新 `0e065e4` 已整合 #39 并通过 311 tests / 40 files、113 文件包及三条新真实输入往返。只读实测已执行并复现 vendor 限制，未修改审批或项目文件；不把执行偏差标成通过。上述最后一项的代码/ADR/报告部分已完成，PR 创建与 CI 已获授权但在本记录时尚待执行，故组合项不勾选；结果应以对应 PR 的实际检查为准。
 
 ## 3. 本轮不应顺手建设的功能
 
