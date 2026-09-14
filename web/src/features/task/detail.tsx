@@ -156,27 +156,37 @@ export function Detail({
               Lifecycle is your decision. Agent output and successful exits do
               not complete a task automatically.
             </p>
-            <label>
-              Lifecycle
-              <select
-                disabled={detail.loading || action.busy}
-                value={value.task.lifecycle}
-                onChange={(e) => {
-                  const lifecycle = e.target.value;
-                  void action.run(async () => {
-                    await api.request("/tasks/" + id, "PATCH", {
-                      expectedRevision: value.task.revision,
-                      patch: { lifecycle },
-                    });
-                    detail.reload();
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const lifecycle = new FormData(event.currentTarget).get(
+                  "lifecycle",
+                );
+                void action.run(async () => {
+                  await api.request("/tasks/" + id, "PATCH", {
+                    expectedRevision: value.task.revision,
+                    patch: { lifecycle },
                   });
-                }}
+                  detail.reload();
+                });
+              }}
+            >
+              <label htmlFor="task-lifecycle">Lifecycle</label>
+              <select
+                id="task-lifecycle"
+                name="lifecycle"
+                key={value.task.revision}
+                defaultValue={value.task.lifecycle}
+                disabled={detail.loading || action.busy}
               >
                 <option value="active">active</option>
                 <option value="paused">paused</option>
                 <option value="completed">completed</option>
               </select>
-            </label>
+              <button disabled={detail.loading || action.busy}>
+                Save status
+              </button>
+            </form>
             <div className="actions">
               <button
                 className="quiet"

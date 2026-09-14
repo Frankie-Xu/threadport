@@ -39,3 +39,5 @@ T15-A 已合并 PR #49，squash 66185ecc3c7c2a3ab2b34d687ad2f866702f5952，最�
 浏览器新增真实文件变更后的确认冲突、16 分钟后 UI 过期禁用，以及凭据脱敏后第二次显式保存。最终本地 358 项核心回归、3 项浏览器 E2E、169 文件隔离安装包通过；新增 UUIDv7 原生能力投影与执行器同用 Zod UUID 判定。截图中遮盖合成临时目录。
 
 ![完整接续预览](assets/t15-handoff.png)
+
+CI Chromium 的立即选择状态用例暴露不同于本机 Chrome 的行为：选择后服务仍 active。生命周期改为明确的表单提交，直接读取被选择的字段，并保持 revision CAS；浏览器测试显式保存状态再验证。固定 Chromium 本机下载仍被 storage.googleapis.com TLS 断连阻断，最终兼容结果以 CI 的锁定 Chromium 为准。

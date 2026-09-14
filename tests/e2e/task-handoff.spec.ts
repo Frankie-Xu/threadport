@@ -141,6 +141,7 @@ test("preserves conflict drafts and reviews the exact immutable prompt before a 
   await page
     .getByRole("combobox", { name: "Lifecycle", exact: true })
     .selectOption("completed");
+  await page.getByRole("button", { name: "Save status", exact: true }).click();
   await expect
     .poll(async () => (await api("/tasks/" + taskId)).data.task.lifecycle)
     .toBe("completed");
