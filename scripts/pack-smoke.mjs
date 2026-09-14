@@ -51,6 +51,17 @@ try {
     result=run('node_modules/threadport/examples/capsule-v1.json');assert.equal(result.status,6);assert.equal(JSON.parse(result.stdout).scope,null);
     await writeFile('bad.json','{');assert.equal(run('bad.json').status,2);assert.equal(run('missing.json').status,5);
   `], {cwd:installRoot,timeout:90000});
+  execFileSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import {startLocalServer} from 'threadport/server';
+    const server=await startLocalServer({dataDir:'./data'});
+    try {
+      assert.match(server.origin,/^http:\\/\\/127\\.0\\.0\\.1:/);
+      assert.equal((await fetch(server.origin+'/api/v1/status')).status,401);
+      const response=await fetch(server.origin+'/api/v1/status',{headers:{authorization:'Bearer '+server.token}});
+      assert.equal(response.status,200);assert.equal((await response.json()).data.counts.tasks,1);
+    } finally {await server.close();await server.close();}
+  `], {cwd:installRoot,timeout:30000});
   console.log(`Package smoke passed: ${packed.files.length} files; CLI and public exports load from an isolated install.`);
 } finally {
   await rm(temporary, { recursive: true, force: true });
