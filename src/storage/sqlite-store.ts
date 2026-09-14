@@ -7,6 +7,7 @@ import { registerSearchFunctions, searchHistory } from './search-store.js';
 import type { SearchInput, SearchPage } from '../search/contracts.js';
 import { bindingSchema, snapshotSchema, type WorkspaceBinding, type WorkspaceSnapshot } from '../workspace/contracts.js';
 import { IndexStore } from './index-store.js';
+import { HandoffStore } from './handoff-store.js';
 import { BusinessStore } from './api-store.js';
 const id = z.string().min(1).max(512);
 const date = z.string().datetime();
@@ -22,6 +23,7 @@ function page(limit: number, offset: number) {
 /** Infrastructure boundary. Callers supply already redacted task fields; Store validates shape and atomicity. */
 export class SqliteStore extends IndexStore {
   constructor(db:Database.Database){super(db);registerSearchFunctions(db);}
+  handoffStore():HandoffStore{return new HandoffStore(this.db);}
   apiStore():BusinessStore{return new BusinessStore(this.db);}
   searchHistory(input:SearchInput={}):SearchPage{return this.run(()=>searchHistory(this.db,input));}
   getWorkspace(workspaceId:string):WorkspaceBinding|null {

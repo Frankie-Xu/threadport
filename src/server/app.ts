@@ -7,6 +7,7 @@ import { registerStatus,type IndexStatus } from './routes.js';
 import { registerBusinessRoutes } from './business-routes.js';
 import { DomainError } from '../domain/errors.js';
 import { ZodError } from 'zod';
+import { registerHandoffRoutes } from './handoff-routes.js';
 import { registerBootstrap } from './bootstrap.js';
 /** Internal composition point for later routes and lifecycle tests. Owns these resources. */
 export function createLocalApp(store:Pick<SqliteStore,'statusCounts'|'close'>,indexer:Pick<IndexService,'stop'>,token:string,indexStatus:()=>IndexStatus){
@@ -42,6 +43,7 @@ export async function startLocalServer(options:{dataDir?:string;demo?:boolean}={
  const token=randomBytes(32).toString('hex');
  const app=createLocalApp(store,indexer,token,()=>({running:running.size,lastRefreshAt}));
  registerBusinessRoutes(app,store,indexer);
+ registerHandoffRoutes(app,store);
  registerBootstrap(app,options.demo??false);
  try{
   const origin=await app.listen({host:'127.0.0.1',port:0});indexer.start();
