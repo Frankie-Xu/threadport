@@ -44,3 +44,8 @@ export async function detectTargets(options: TargetDetectionOptions = {}): Promi
 export function suggestedLaunch(_agent: TargetAgent, _handoffFile: string): never {
   throw new Error('Automatic launch is not supported. Review and import the handoff file manually.');
 }
+
+/** Explicit capability probing; the legacy discovery-only API above remains unchanged. */
+export async function detectTargetCapabilities(options:import('./targets/detect.js').ProbeOptions={}){
+ return (await import('./targets/registry.js')).detectTargetCapabilities(options);
+}

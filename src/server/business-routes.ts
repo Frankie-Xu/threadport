@@ -9,7 +9,7 @@ import { TaskService } from '../tasks/service.js';
 import { createTaskSchema,taskPatchSchema } from '../tasks/contracts.js';
 import { SearchService } from '../search/service.js';
 import { DomainError } from '../domain/errors.js';
-import { detectTargets } from '../targets.js';
+import { detectTargetCapabilities } from '../targets.js';
 import { taskDto,eventDto,claimDto,runDto } from './dto.js';
 import { publicText } from '../privacy.js';
 const id=z.string().min(1).max(512).regex(/^[A-Za-z0-9][A-Za-z0-9:._-]*$/);
@@ -51,5 +51,5 @@ export function registerBusinessRoutes(app:FastifyInstance,store:SqliteStore,ind
   if(q.cursor){try{const value=JSON.parse(Buffer.from(q.cursor,'base64url').toString('utf8'));if(value.generation!==generation)throw new DomainError('SEARCH_STALE','Events changed; restart pagination.');if(value.sessionId!==sessionId||value.limit!==q.limit||!Number.isSafeInteger(value.offset)||value.offset<0)throw new Error();offset=value.offset;}catch(error){if(error instanceof DomainError)throw error;throw new DomainError('INVALID_INPUT','Invalid event cursor.');}}
   const rows=store.listEvents(sessionId,q.limit+1,offset);return{data:rows.slice(0,q.limit).map(eventDto),nextCursor:rows.length>q.limit?Buffer.from(JSON.stringify({generation,sessionId,limit:q.limit,offset:offset+q.limit})).toString('base64url'):null};
  });
- app.get('/api/v1/targets',async request=>{empty.parse(request.query);return{data:(await detectTargets()).map(target=>({agent:target.agent,available:target.available,launch_supported:target.launch_supported,reason:target.reason}))};});
+ app.get('/api/v1/targets',async request=>{empty.parse(request.query);return{data:await detectTargetCapabilities()};});
 }

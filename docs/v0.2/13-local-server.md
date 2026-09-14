@@ -63,3 +63,7 @@ GET / 是无需 bearer 的静态 bootstrap，但仍校验 Host/Origin；所有 A
 `GET /api/v1/handoffs/:id` 返回 handoff/state/expired。`POST .../confirm` 接受 promptDigest/acknowledgeUncertainty，只返回 `threadport continue --handoff <uuid>`。本包不启动进程；T14 将在终端重新验证和确认。`POST .../export` 接受 format=json/markdown，返回下载字节，不接受服务端输出路径。过期包仍可作为只读 metadata 导出，不能确认执行。
 
 CLI：`threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id> [--mode native-resume|new-session] [--data-dir <path>]` 输出完整 JSON，默认 new-session。参数/不可准备输入=2，修订冲突=4，I/O=5。自定义数据目录后续使用 continue 时仍须由用户显式提供 --data-dir，不把路径拼入 UI 固定命令。
+
+## T13 目标端能力
+
+GET /api/v1/targets 现返回 Claude/Codex 的 TargetCapability，显式区分 installed、version、auth=unknown、nativeResume、newSessionWithContext 和 reason；不返回 executable。命中明确版本与帮助参数才启用该接口能力，未知版本 export-only。该请求会用固定帮助参数探测本机 CLI，单次子进程 5 秒/256 KiB 上限，不创建 Agent 会话。旧 `threadport targets` 保持纯发现输出；新增 --capabilities 读取新能力。参数证据和实机认证缺口见[兼容性矩阵](../compatibility.md)。

@@ -7,6 +7,7 @@ import { runCli } from '../../src/cli.js';
 it('connects authenticated API prepare/get/confirm/export and CLI prepare without launching',async()=>{
  const f=await fixture();f.store.close();const server=await startLocalServer({dataDir:f.dataDir});try{
  const request=async(path:string,body?:unknown)=>fetch(server.origin+'/api/v1'+path,{method:body?'POST':'GET',headers:{authorization:`Bearer ${server.token}`,'content-type':'application/json'},body:body?JSON.stringify(body):undefined});
+ const capabilities=(await (await request('/targets')).json()).data;expect(capabilities).toHaveLength(2);expect(capabilities.every((item:{auth:string})=>item.auth==='unknown')).toBe(true);expect(JSON.stringify(capabilities)).not.toContain('executable');
  const response=await request('/handoffs',f.input);expect(response.status).toBe(201);const h=(await response.json()).data;
  expect((await (await request('/handoffs/'+h.id)).json()).data.state).toBe('prepared');
  expect((await (await request('/handoffs/'+h.id+'/confirm',{promptDigest:h.promptDigest,acknowledgeUncertainty:true})).json()).data.command).toBe(`threadport continue --handoff ${h.id}`);
