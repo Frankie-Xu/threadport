@@ -6,6 +6,7 @@ import {
   type SessionSummary,
   useLoad,
   reconnectClient,
+  dateLabel,
 } from "./api.js";
 import { ErrorNotice, useAction } from "./components.js";
 import { WorkspaceForm } from "./features/onboarding/workspace.js";
@@ -167,6 +168,7 @@ function Shell({
         <div className="local-note">
           <span className="dot" />
           Stored on this device
+          <ServiceStatus api={api} />
           {document.documentElement.dataset.demo === "true" && (
             <p>DEMO · Synthetic data</p>
           )}
@@ -226,7 +228,12 @@ function Shell({
           ) : view === "history" ? (
             <History api={api} params={params} navigate={navigate} />
           ) : params.get("t") ? (
-            <Detail api={api} id={params.get("t")!} navigate={navigate} />
+            <Detail
+              key={params.get("t")}
+              api={api}
+              id={params.get("t")!}
+              navigate={navigate}
+            />
           ) : (
             <Inbox
               api={api}
@@ -251,6 +258,36 @@ function Shell({
           }}
         />
       )}
+    </div>
+  );
+}
+
+function ServiceStatus({ api }: { api: ApiClient }) {
+  const [revision, setRevision] = useState(0);
+  const status = useLoad<
+    Envelope<{
+      version: string;
+      index: { running: number; lastRefreshAt: string | null };
+    }>
+  >(api, "/status", revision);
+  useEffect(() => {
+    const timer = setInterval(() => setRevision((n) => n + 1), 15000);
+    return () => clearInterval(timer);
+  }, []);
+  return (
+    <div className="service-status">
+      {status.data && (
+        <>
+          <p>Version {status.data.data.version}</p>
+          <p>
+            {status.data.data.index.running
+              ? "Indexing sources…"
+              : "Last refresh: " +
+                dateLabel(status.data.data.index.lastRefreshAt)}
+          </p>
+        </>
+      )}
+      {status.error && <p>Service status unavailable</p>}
     </div>
   );
 }

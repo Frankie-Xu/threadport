@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Evidence } from "../task/evidence.js";
 import {
   type ApiClient,
   type SearchItem,
@@ -46,6 +48,10 @@ export function History({
   params: URLSearchParams;
   navigate: (values: Record<string, string | null>) => void;
 }) {
+  const [evidence, setEvidence] = useState<{
+    sessionId: string;
+    eventId?: string;
+  } | null>(null);
   const results = usePage<SearchItem>(
     api,
     "/sessions?" +
@@ -124,6 +130,19 @@ export function History({
           {item.matches.map((match, index) => (
             <div key={index}>
               <small>{match.field}</small>
+              {item.sessionId && match.eventId && (
+                <button
+                  className="quiet"
+                  onClick={() =>
+                    setEvidence({
+                      sessionId: item.sessionId!,
+                      eventId: match.eventId!,
+                    })
+                  }
+                >
+                  Open matching evidence
+                </button>
+              )}
               <pre className="evidence">
                 <Highlight text={match.text} ranges={match.highlights} />
               </pre>
@@ -138,6 +157,9 @@ export function History({
         </Empty>
       )}
       <Pager load={results} />
+      {evidence && (
+        <Evidence api={api} {...evidence} onClose={() => setEvidence(null)} />
+      )}
     </>
   );
 }

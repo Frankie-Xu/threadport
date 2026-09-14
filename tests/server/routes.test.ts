@@ -76,3 +76,14 @@ it('paginates unassigned sessions independently of task history and invalidates 
  expect((await api('/sessions/unassigned?cursor=invalid')).status).toBe(400);
  expect((await api('/sessions/unassigned?limit=101')).status).toBe(400);
 },30000);
+it('locates evidence by ID and exposes safe session capabilities and attention',async()=>{
+ const {api}=await setup();const root=await temporary(),vendor='11111111-1111-7111-8111-111111111111';
+ const lines=Array.from({length:25},(_,i)=>JSON.stringify({type:'user',sessionId:vendor,message:{role:'user',content:'Synthetic evidence '+i}}));lines.push(JSON.stringify({type:'assistant',sessionId:vendor,cwd:'/Users/private/project',message:{role:'assistant',content:[{type:'tool_use',id:'write',name:'Write',input:{file_path:'/Users/private/project/src/file.ts',content:'synthetic'}}]}}));await writeFile(join(root,'session.jsonl'),lines.join('\n')+'\n');
+ const source=await api('/sources','POST',{agent:'claude',root}),job=await api('/index-jobs','POST',{sourceIds:[source.body.data.id]});
+ for(let i=0;i<100;i++){const state=(await api('/index-jobs/'+job.body.data.jobId)).body.data.progress[0].state;if(!['queued','running'].includes(state))break;await new Promise(resolve=>setTimeout(resolve,10));}
+ const sessions=(await api('/sessions/unassigned')).body.data;expect(sessions[0].status).toBe('ready');const sessionId=sessions[0].id,events=(await api('/sessions/'+sessionId+'/events')).body.data;
+ const located=await api('/sessions/'+sessionId+'/events?eventId='+events[23].id+'&limit=1');expect(located.body.data[0].id).toBe(events[23].id);expect(located.body.nextCursor).toBeTruthy();expect((await api('/sessions/'+sessionId+'/events?limit=1&cursor='+located.body.nextCursor)).body.data[0].id).toBe(events[24].id);
+ expect((await api('/sessions/'+sessionId+'/events?eventId=missing')).status).toBe(404);expect((await api('/sessions/'+sessionId+'/events?eventId='+events[23].id+'&cursor='+located.body.nextCursor)).status).toBe(400);
+ const projectId=(await api('/workspaces','POST',{root:await temporary(),confirmBinding:true})).body.data.projectId;const task=(await api('/tasks','POST',{projectId,title:'Evidence',sessionId})).body.data;
+ const detail=(await api('/tasks/'+task.id)).body.data;expect(detail.sessions[0]).toMatchObject({agent:'claude',status:'ready',nativeSessionAvailable:true});expect(detail.sessions[0]).not.toHaveProperty('vendorId');expect(JSON.stringify(detail)).not.toContain('/Users/private');expect(detail.files.items.length).toBeGreaterThan(0);expect((await api('/tasks')).body.data[0].attention).toContain('EVIDENCE_TIME_UNKNOWN');
+},30000);

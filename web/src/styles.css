@@ -521,3 +521,36 @@ dialog::backdrop {
     transition: none !important;
   }
 }
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.terminal-command {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #dce2d7;
+}
+.terminal-command p {
+  margin-top: 16px;
+}
+.complete-prompt {
+  max-height: none;
+  overflow: visible;
+}
+.event {
+  border-top: 1px solid #dce2d7;
+  padding-top: 20px;
+}
+textarea {
+  resize: vertical;
+}
+.checkbox {
+  align-items: flex-start;
+}
+.checkbox input {
+  flex-shrink: 0;
+  margin-top: 4px;
+}

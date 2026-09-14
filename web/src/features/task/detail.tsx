@@ -1,11 +1,22 @@
+import { useState } from "react";
 import {
   type ApiClient,
   type Envelope,
   type TaskDetail,
   useLoad,
   dateLabel,
+  attentionLabel,
 } from "../../api.js";
-import { ErrorNotice, StatusBadge } from "../../components.js";
+import type { Claim } from "../../../../src/domain/models.js";
+import {
+  ErrorNotice,
+  Modal,
+  StatusBadge,
+  useAction,
+} from "../../components.js";
+import { Editor } from "./editor.js";
+import { Evidence, AttachSession } from "./evidence.js";
+import { HandoffPreview } from "../handoff/preview.js";
 export function Detail({
   api,
   id,
@@ -20,6 +31,45 @@ export function Detail({
     "/tasks/" + encodeURIComponent(id),
   );
   const value = detail.data?.data;
+  const [editing, setEditing] = useState(false),
+    [attaching, setAttaching] = useState(false),
+    [removing, setRemoving] = useState<string | null>(null),
+    [evidence, setEvidence] = useState<{
+      sessionId: string;
+      eventId?: string;
+    } | null>(null),
+    [continuing, setContinuing] = useState(false);
+  const action = useAction();
+  const refresh = () => {
+    setEditing(false);
+    setAttaching(false);
+    setRemoving(null);
+    detail.reload();
+  };
+  const claim = (heading: string, value: Claim | null) => (
+    <div>
+      <h2>{heading}</h2>
+      <StatusBadge>{value?.origin ?? "unknown"}</StatusBadge>
+      <p className="preserve">{value?.text || "No value recorded."}</p>
+      {value?.evidence.map((ref, index) => (
+        <button key={index} className="quiet" onClick={() => setEvidence(ref)}>
+          View {heading.toLowerCase()} evidence
+        </button>
+      ))}
+    </div>
+  );
+  if (continuing && value)
+    return (
+      <HandoffPreview
+        key={value.task.id + ":" + value.task.revision}
+        api={api}
+        detail={value}
+        onBack={() => {
+          setContinuing(false);
+          detail.reload();
+        }}
+      />
+    );
   return (
     <>
       <button className="quiet" onClick={() => navigate({ t: null })}>
@@ -32,32 +82,207 @@ export function Detail({
           <div className="page-heading">
             <div>
               <StatusBadge>{value.task.lifecycle}</StatusBadge>
+              {value.task.archived && <StatusBadge>archived</StatusBadge>}
               <h1>{value.task.title}</h1>
               <p>
                 Revision {value.task.revision} · Edited{" "}
                 {dateLabel(value.task.updatedAt)}
               </p>
             </div>
+            <div className="actions">
+              <button
+                className="quiet"
+                disabled={detail.loading || action.busy}
+                onClick={() => setEditing(true)}
+              >
+                Edit task
+              </button>
+              <button
+                disabled={
+                  detail.loading || action.busy || !value.sessions.length
+                }
+                onClick={() => setContinuing(true)}
+              >
+                Continue task
+              </button>
+            </div>
           </div>
+          {value.resolved.attention.map((item, i) => (
+            <p className="notice" key={i}>
+              {attentionLabel(item)}
+            </p>
+          ))}
           <section className="panel">
-            <h2>Objective</h2>
-            <p className="preserve">
-              {value.resolved.objective?.text || "No objective recorded."}
-            </p>
-            <h2>Next action</h2>
-            <p className="preserve">
-              {value.resolved.nextAction?.text || "No next action recorded."}
-            </p>
+            {claim("Objective", value.resolved.objective)}
+            {claim("Next action", value.resolved.nextAction)}
             <h2>Constraints</h2>
             {value.resolved.constraints.length ? (
-              value.resolved.constraints.map((claim, i) => (
-                <p key={i}>{claim.text}</p>
+              value.resolved.constraints.map((item, i) => (
+                <div key={i}>
+                  <StatusBadge>{item.origin}</StatusBadge>
+                  <p className="preserve">{item.text}</p>
+                  {item.evidence.map((ref, n) => (
+                    <button
+                      className="quiet"
+                      key={n}
+                      onClick={() => setEvidence(ref)}
+                    >
+                      View constraint evidence
+                    </button>
+                  ))}
+                </div>
               ))
             ) : (
               <p>No constraints recorded.</p>
             )}
           </section>
           <section className="panel">
+            <h2>Source suggestions</h2>
+            <p>
+              These are derived from session evidence and do not replace your
+              saved fields.
+            </p>
+            {claim("Suggested objective", value.derived.objective)}
+            {value.derived.constraints.map((item, i) => (
+              <div key={i}>
+                <StatusBadge>{item.origin}</StatusBadge>
+                <p>{item.text}</p>
+              </div>
+            ))}
+          </section>
+          <section className="panel">
+            <h2>Task status</h2>
+            <p>
+              Lifecycle is your decision. Agent output and successful exits do
+              not complete a task automatically.
+            </p>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                const lifecycle = new FormData(event.currentTarget).get(
+                  "lifecycle",
+                );
+                void action.run(async () => {
+                  await api.request("/tasks/" + id, "PATCH", {
+                    expectedRevision: value.task.revision,
+                    patch: { lifecycle },
+                  });
+                  detail.reload();
+                });
+              }}
+            >
+              <label htmlFor="task-lifecycle">Lifecycle</label>
+              <select
+                id="task-lifecycle"
+                name="lifecycle"
+                key={value.task.revision}
+                defaultValue={value.task.lifecycle}
+                disabled={detail.loading || action.busy}
+              >
+                <option value="active">active</option>
+                <option value="paused">paused</option>
+                <option value="completed">completed</option>
+              </select>
+              <button disabled={detail.loading || action.busy}>
+                Save status
+              </button>
+            </form>
+            <div className="actions">
+              <button
+                className="quiet"
+                disabled={detail.loading || action.busy}
+                onClick={() =>
+                  void action.run(async () => {
+                    await api.request("/tasks/" + id, "PATCH", {
+                      expectedRevision: value.task.revision,
+                      patch: { archived: !value.task.archived },
+                    });
+                    detail.reload();
+                  })
+                }
+              >
+                {value.task.archived ? "Unarchive task" : "Archive task"}
+              </button>
+              <button
+                className="quiet"
+                disabled={detail.loading || action.busy}
+                onClick={() => {
+                  action.setError(null);
+                  detail.reload();
+                }}
+              >
+                Refresh task
+              </button>
+            </div>
+            <ErrorNotice error={action.error} focus />
+          </section>
+          <section className="panel">
+            <div className="page-heading">
+              <h2>Linked sessions</h2>
+              <button
+                className="quiet"
+                disabled={detail.loading || action.busy}
+                onClick={() => setAttaching(true)}
+              >
+                Attach a session
+              </button>
+            </div>
+            {value.sessions.map((session) => (
+              <div className="source-row" key={session.id}>
+                <div>
+                  <strong>
+                    {session.agent ?? "Unknown Agent"} · {session.status}
+                  </strong>
+                  <p>{dateLabel(session.lastEventAt)}</p>
+                </div>
+                <div className="actions">
+                  <button
+                    className="quiet"
+                    onClick={() => setEvidence({ sessionId: session.id })}
+                  >
+                    View evidence
+                  </button>
+                  <button
+                    className="quiet"
+                    disabled={detail.loading || action.busy}
+                    onClick={() => setRemoving(session.id)}
+                  >
+                    Detach session
+                  </button>
+                </div>
+              </div>
+            ))}
+            {!value.sessions.length && (
+              <p>
+                No linked sessions. Attach a source session before preparing a
+                continuation.
+              </p>
+            )}
+          </section>
+          <section className="panel">
+            <h2>Observed file paths</h2>
+            {value.files.items.map((item, i) => (
+              <p key={i}>
+                <button
+                  className="quiet"
+                  onClick={() =>
+                    setEvidence({
+                      sessionId: item.sessionId,
+                      eventId: item.eventId,
+                    })
+                  }
+                >
+                  {item.path}
+                </button>
+              </p>
+            ))}
+            {value.files.hasMore && (
+              <p>
+                Showing the first 200 file references. Open session evidence for
+                more.
+              </p>
+            )}
+            {!value.files.items.length && <p>No file evidence available.</p>}
             <h2>Observed commands</h2>
             <p>Historical evidence does not verify the current workspace.</p>
             {value.derived.latestRuns.map((run) => (
@@ -67,13 +292,75 @@ export function Detail({
                   Exit code: {run.exitCode ?? "unknown"} ·{" "}
                   {dateLabel(run.completedAt)}
                 </p>
+                <button
+                  className="quiet"
+                  onClick={() =>
+                    setEvidence({
+                      sessionId: run.sessionId,
+                      eventId: run.eventId,
+                    })
+                  }
+                >
+                  View command evidence
+                </button>
               </div>
             ))}
             {!value.derived.latestRuns.length && (
               <p>No command evidence available.</p>
             )}
           </section>
+          {editing && (
+            <Editor
+              api={api}
+              task={value.task}
+              onClose={() => setEditing(false)}
+              onSaved={refresh}
+            />
+          )}{" "}
+          {attaching && (
+            <AttachSession
+              api={api}
+              projectId={value.task.projectId}
+              taskId={id}
+              revision={value.task.revision}
+              onClose={() => setAttaching(false)}
+              onSaved={refresh}
+            />
+          )}{" "}
+          {removing && (
+            <Modal
+              title="Detach this session?"
+              onClose={() => setRemoving(null)}
+            >
+              <p>
+                Manual fields remain. Derived evidence from this session will
+                leave the task.
+              </p>
+              <ErrorNotice error={action.error} focus />
+              <button
+                disabled={action.busy}
+                onClick={() =>
+                  void action.run(async () => {
+                    await api.request(
+                      "/tasks/" +
+                        id +
+                        "/sessions/" +
+                        encodeURIComponent(removing),
+                      "DELETE",
+                      { expectedRevision: value.task.revision },
+                    );
+                    refresh();
+                  })
+                }
+              >
+                Confirm detach
+              </button>
+            </Modal>
+          )}
         </>
+      )}
+      {evidence && (
+        <Evidence api={api} {...evidence} onClose={() => setEvidence(null)} />
       )}
     </>
   );
