@@ -25,6 +25,15 @@ export class BusinessStore {
    return{data:rows.slice(0,input.limit).map(body=>JSON.parse(body) as Task),nextCursor:rows.length>input.limit?Buffer.from(JSON.stringify({key,generation,offset:offset+input.limit})).toString('base64url'):null};
   })();
  }
+ unassignedPage(input:{projectId?:string;limit:number;cursor?:string}){
+  const {cursor,...filters}=input,key=createHash('sha256').update(JSON.stringify(filters)).digest('hex');
+  return this.db.transaction(()=>{
+   const generation=this.generation();let offset=0;
+   if(cursor){try{const value=JSON.parse(Buffer.from(cursor,'base64url').toString('utf8'));if(value.key!==key||value.generation!==generation)throw new DomainError('SEARCH_STALE','Sessions changed; restart pagination.');if(!Number.isSafeInteger(value.offset)||value.offset<0)throw new Error();offset=value.offset;}catch(error){if(error instanceof DomainError)throw error;throw new DomainError('INVALID_INPUT','Invalid session cursor.');}}
+   const rows=this.db.prepare("SELECT s.id,src.agent,s.project_id AS projectId,s.workspace_id AS workspaceId,s.last_event_at AS lastEventAt,json_extract(s.metadata_json,'$.status') AS status FROM sessions s JOIN sources src ON src.id=s.source_id WHERE src.enabled=1 AND NOT EXISTS(SELECT 1 FROM task_sessions ts WHERE ts.session_id=s.id) AND (? IS NULL OR s.project_id=? OR s.project_id IS NULL) ORDER BY s.last_event_at DESC,s.id LIMIT ? OFFSET ?").all(input.projectId??null,input.projectId??null,input.limit+1,offset) as {id:string;agent:string;projectId:string|null;workspaceId:string|null;lastEventAt:string|null;status:string|null}[];
+   return{data:rows.slice(0,input.limit).map(row=>({...row,title:'Imported session',status:row.status??'unknown'})),nextCursor:rows.length>input.limit?Buffer.from(JSON.stringify({key,generation,offset:offset+input.limit})).toString('base64url'):null};
+  })();
+ }
  revokeSource(id:string){this.db.transaction(()=>{
   if(!this.db.prepare('SELECT 1 FROM sources WHERE id=?').get(id))throw new DomainError('NOT_FOUND','Source does not exist.');
   if(this.db.prepare('SELECT 1 FROM index_leases WHERE source_id=? AND expires_at>?').get(id,Date.now()))throw new DomainError('STORAGE_BUSY','Source is being indexed.');

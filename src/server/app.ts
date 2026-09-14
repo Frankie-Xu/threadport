@@ -44,8 +44,8 @@ export async function startLocalServer(options:{dataDir?:string;demo?:boolean}={
  const app=createLocalApp(store,indexer,token,()=>({running:running.size,lastRefreshAt}));
  registerBusinessRoutes(app,store,indexer);
  registerHandoffRoutes(app,store);
- registerBootstrap(app,options.demo??false);
  try{
+  await registerBootstrap(app,options.demo??false);
   const origin=await app.listen({host:'127.0.0.1',port:0});indexer.start();
   let closing:Promise<void>|undefined;
   return{origin,token,close:()=>closing??=app.close()};

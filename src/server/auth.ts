@@ -15,7 +15,7 @@ export function installAuth(app:FastifyInstance,token:string):void{
   if(['host','origin','authorization'].some(key=>(counts.get(key)??0)>1))return fail(reply,request,400,'INVALID_INPUT','Duplicate security header.');
   if(request.headers.host!==host)return fail(reply,request,403,'FORBIDDEN','Invalid request host.');
   if(request.headers.origin!==undefined&&request.headers.origin!==`http://${host}`)return fail(reply,request,403,'FORBIDDEN','Invalid request origin.');
-  if(request.method==='GET'&&request.raw.url?.split('?')[0]==='/')return;
+  if(request.method==='GET'&&(request.raw.url?.split('?')[0]==='/'||/^\/assets\/[A-Za-z0-9_-]+\.(js|css)$/.test(request.raw.url?.split('?')[0]??'')))return;
   const provided=Buffer.from(request.headers.authorization??'');
   if(provided.length!==expected.length||!timingSafeEqual(provided,expected))return fail(reply,request,401,'UNAUTHORIZED','Bearer authentication required.');
   if(['POST','PATCH','PUT','DELETE'].includes(request.method)&&request.headers['content-type']?.split(';')[0].trim().toLowerCase()!=='application/json')return fail(reply,request,415,'INVALID_INPUT','JSON content type required.');

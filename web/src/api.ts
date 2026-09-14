@@ -1,0 +1,238 @@
+import { useEffect, useState } from "react";
+import type {
+  Task,
+  DerivedTaskState,
+  ResolvedTaskState,
+} from "../../src/domain/models.js";
+import type { SearchItem } from "../../src/search/contracts.js";
+export type { Task, SearchItem };
+export interface Project {
+  id: string;
+  name: string;
+}
+export interface Workspace {
+  id: string;
+  projectId: string;
+  canonicalRoot: string;
+}
+export interface Source {
+  id: string;
+  agent: "claude" | "codex";
+  roots: string[];
+  enabled: boolean;
+}
+export interface SessionSummary {
+  id: string;
+  agent: "claude" | "codex" | null;
+  projectId: string | null;
+  workspaceId: string | null;
+  title: string;
+  lastEventAt: string | null;
+  status: string;
+}
+export interface TaskDetail {
+  task: Task;
+  sessionIds: string[];
+  derived: DerivedTaskState;
+  resolved: ResolvedTaskState;
+}
+export interface Envelope<T> {
+  data: T;
+}
+export interface Page<T> {
+  data: T[];
+  nextCursor: string | null;
+}
+const messages: Record<string, string> = {
+  NETWORK_ERROR:
+    "The local service is unavailable. Check your terminal and try again.",
+  UNAUTHORIZED: "Reopen the current terminal link to reconnect.",
+  INVALID_INPUT: "Check the fields and try again.",
+  PROJECT_MISMATCH:
+    "This item belongs to another project. Choose its project or a different item.",
+  REVISION_CONFLICT: "This item changed. Refresh before trying again.",
+  SEARCH_STALE: "The results changed. Reset pagination to continue.",
+  REDACTION_REQUIRED: "Review and remove credentials before saving.",
+  NOT_FOUND: "This item is no longer available. Refresh the list.",
+  IO_FAILED:
+    "The directory or local data could not be read. Check its path and permissions.",
+  STORAGE_BUSY: "Another operation is writing local data. Try again shortly.",
+};
+export class ApiError extends Error {
+  constructor(
+    readonly code: string,
+    readonly status = 0,
+  ) {
+    super(messages[code] ?? "The operation could not be completed. Try again.");
+  }
+}
+export interface ApiClient {
+  onExpired?: () => void;
+  request<T>(
+    path: string,
+    method?: string,
+    body?: unknown,
+    signal?: AbortSignal,
+  ): Promise<T>;
+}
+function createApi(token: string): ApiClient {
+  const api: ApiClient = {
+    async request<T>(
+      path: string,
+      method = "GET",
+      body?: unknown,
+      signal?: AbortSignal,
+    ) {
+      let response: Response;
+      try {
+        response = await fetch("/api/v1" + path, {
+          method,
+          headers: {
+            authorization: "Bearer " + token,
+            ...(method === "GET" ? {} : { "content-type": "application/json" }),
+          },
+          body: body === undefined ? undefined : JSON.stringify(body),
+          signal,
+          cache: "no-store",
+        });
+      } catch (error) {
+        if (signal?.aborted) throw error;
+        throw new ApiError("NETWORK_ERROR");
+      }
+      if (!response.ok) {
+        let code = "REQUEST_FAILED";
+        try {
+          const value = await response.json();
+          if (typeof value?.error?.code === "string") code = value.error.code;
+        } catch {
+          /* Safe fallback. */
+        }
+        if (response.status === 401) api.onExpired?.();
+        throw new ApiError(code, response.status);
+      }
+      return response.json() as Promise<T>;
+    },
+  };
+  return api;
+}
+export function initialClient(): ApiClient | null {
+  const tokens = new URLSearchParams(location.hash.slice(1)).getAll("token");
+  history.replaceState(null, "", location.pathname + location.search);
+  return tokens.length === 1 && /^[a-f0-9]{64}$/.test(tokens[0])
+    ? createApi(tokens[0])
+    : null;
+}
+export function reconnectClient(link: string): ApiClient | null {
+  let url: URL;
+  try {
+    url = new URL(link);
+  } catch {
+    throw new Error(
+      "Paste the complete link from your running ThreadPort terminal.",
+    );
+  }
+  const tokens = new URLSearchParams(url.hash.slice(1)).getAll("token");
+  if (
+    url.protocol !== "http:" ||
+    url.hostname !== "127.0.0.1" ||
+    url.username ||
+    url.password ||
+    url.pathname !== "/" ||
+    tokens.length !== 1 ||
+    !/^[a-f0-9]{64}$/.test(tokens[0])
+  )
+    throw new Error("Use a valid local ThreadPort terminal link.");
+  if (url.origin !== location.origin) {
+    url.search = location.search;
+    location.assign(url.href);
+    return null;
+  }
+  return createApi(tokens[0]);
+}
+export function query(
+  values: Record<string, string | number | boolean | undefined | null>,
+): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(values))
+    if (value !== undefined && value !== null && value !== "")
+      params.set(key, String(value));
+  return params.toString();
+}
+export function useLoad<T>(api: ApiClient, path: string, revision = 0) {
+  const [tick, setTick] = useState(0);
+  const [state, setState] = useState<{
+    path: string;
+    data?: T;
+    error?: Error;
+    loading: boolean;
+  }>({ path, loading: true });
+  useEffect(() => {
+    const controller = new AbortController();
+    setState((previous) => ({
+      path,
+      data: previous.path === path ? previous.data : undefined,
+      loading: true,
+    }));
+    api
+      .request<T>(path, "GET", undefined, controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted)
+          setState({ path, data, loading: false });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted)
+          setState({ path, error, loading: false });
+      });
+    return () => controller.abort();
+  }, [api, path, revision, tick]);
+  return {
+    ...(state.path === path ? state : { path, loading: true }),
+    reload: () => setTick((value) => value + 1),
+  };
+}
+export function usePage<T>(api: ApiClient, path: string, revision = 0) {
+  const [position, setPosition] = useState({
+    key: path,
+    revision,
+    cursors: [null] as (string | null)[],
+    index: 0,
+  });
+  const current =
+    position.key === path && position.revision === revision
+      ? position
+      : { key: path, revision, cursors: [null], index: 0 };
+  const cursor = current.cursors[current.index];
+  const load = useLoad<Page<T>>(
+    api,
+    path + (cursor ? "&cursor=" + encodeURIComponent(cursor) : ""),
+    revision,
+  );
+  return {
+    ...load,
+    page: current.index + 1,
+    previous: () =>
+      setPosition({ ...current, index: Math.max(0, current.index - 1) }),
+    next: () => {
+      if (load.data?.nextCursor)
+        setPosition({
+          ...current,
+          cursors: [
+            ...current.cursors.slice(0, current.index + 1),
+            load.data.nextCursor,
+          ],
+          index: current.index + 1,
+        });
+    },
+    reset: () => {
+      setPosition({ key: path, revision, cursors: [null], index: 0 });
+      load.reload();
+    },
+  };
+}
+export const dateLabel = (value: string | null) =>
+  value
+    ? new Date(value).toLocaleString(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "Time unknown";

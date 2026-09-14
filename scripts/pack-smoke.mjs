@@ -14,6 +14,9 @@ try {
   const packed = JSON.parse(npm(['pack', '--json', '--pack-destination', temporary], root))[0];
   assert(packed.files.some(file => file.path === 'dist/src/cli.js'));
   assert(packed.files.some(file => file.path === 'dist/src/index.js'));
+  assert(packed.files.some(file => file.path === 'dist/web/index.html'));
+  assert(packed.files.some(file => file.path.startsWith('dist/web/assets/') && file.path.endsWith('.js')));
+  assert(packed.files.some(file => file.path.startsWith('dist/web/assets/') && file.path.endsWith('.css')));
   assert(!packed.files.some(file => file.path.startsWith('dist/tests/')));
   const installRoot = join(temporary, 'consumer'); await mkdir(installRoot);
   npm(['install', '--no-audit', '--no-fund', '--prefix', installRoot, join(temporary, packed.filename)], installRoot);
@@ -107,7 +110,7 @@ try {
     try {
       const url=await new Promise((done,reject)=>{let text='';const timer=setTimeout(()=>reject(new Error('UI startup timeout')),15000);child.once('error',reject);child.once('exit',()=>reject(new Error('UI exited early')));child.stdout.on('data',chunk=>{text+=chunk;if(text.includes('\\n')){clearTimeout(timer);done(text.trim().split('\\n')[0]);}});});
       const parsed=new URL(url);assert.equal(parsed.search,'');assert.match(parsed.hash,/^#token=[a-f0-9]{64}$/);
-      assert.equal((await fetch(parsed.origin)).status,200);assert.equal((await fetch(parsed.origin+'/api/v1/status')).status,401);
+      const page=await fetch(parsed.origin);assert.equal(page.status,200);const html=await page.text();const asset=html.match(/src="([^"]+[.]js)"/)[1];assert.equal((await fetch(parsed.origin+asset)).status,200);assert.equal((await fetch(parsed.origin+'/api/v1/status')).status,401);
       const exited=once(child,'exit');child.kill('SIGTERM');await exited;
     } finally {child.kill('SIGKILL');}
   `], {cwd:installRoot,timeout:30000});

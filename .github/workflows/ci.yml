@@ -16,7 +16,7 @@ jobs:
   test:
     name: test (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     env:
       THREADPORT_REQUIRE_SQLITE: '1'
     strategy:
@@ -49,6 +49,10 @@ jobs:
         run: npm ci
       - name: Check types, build, tests, and documentation links
         run: npm run check
+      - name: Install Chromium for browser acceptance
+        run: npx playwright install --with-deps chromium
+      - name: Check browser workflows
+        run: npm run test:e2e
       - name: Verify isolated package installation
         run: npm run check:pack
 
