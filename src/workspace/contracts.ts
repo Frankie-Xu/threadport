@@ -1,0 +1,19 @@
+import { z } from 'zod';
+import { DomainError } from '../domain/errors.js';
+const id=z.string().min(1).max(512);
+export const bindingSchema=z.object({id,projectId:id,canonicalRoot:z.string().min(1).max(32768)}).strict();
+export type WorkspaceBinding=z.infer<typeof bindingSchema>;
+export const snapshotReasonSchema=z.enum(['WORKSPACE_UNBOUND','SOURCE_MISSING','READ_FAILED','LIMIT_EXCEEDED','RACED','NO_GIT','NO_COMMIT']);
+export type SnapshotReason=z.infer<typeof snapshotReasonSchema>;
+const digest=z.string().regex(/^[a-f0-9]{64}$/).nullable();
+export const snapshotSchema=z.object({
+ id,workspaceId:id,capturedAt:z.string().datetime(),head:z.string().regex(/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/).nullable(),
+ digest,bindingDigest:digest,algorithm:z.literal('threadport.workspace.raw.v1'),scope:z.literal('head-tracked-diff-untracked'),
+ incompleteReasons:z.array(snapshotReasonSchema).max(7),
+}).strict().refine(value=>value.incompleteReasons.length ? value.digest===null : value.digest!==null&&value.head!==null&&value.bindingDigest!==null);
+export type WorkspaceSnapshot=z.infer<typeof snapshotSchema>;
+export const limitSchema=z.object({maxFiles:z.number().int().min(1).max(10000).default(10000),maxBytes:z.number().int().min(1).max(64*1024*1024).default(64*1024*1024)}).strict();
+export interface CaptureOptions {limits?:{maxFiles?:number;maxBytes?:number};signal?:AbortSignal}
+export function workspaceInput<T extends z.ZodTypeAny>(schema:T,input:unknown):z.output<T>{
+ const result=schema.safeParse(input);if(!result.success)throw new DomainError('INVALID_INPUT','Invalid workspace snapshot input.');return result.data;
+}

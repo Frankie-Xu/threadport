@@ -185,6 +185,8 @@ interface WorkspaceSnapshot {
   capturedAt: ISODate;
   head: string | null;
   digest: string | null;
+  bindingDigest: string | null; // T10-A private workspace/Git directory identity digest
+  algorithm: "threadport.workspace.raw.v1";
   scope: "head-tracked-diff-untracked";
   incompleteReasons: string[];
 }
@@ -352,3 +354,5 @@ T07 的 Store 索引端口、占用记录与游标 CAS 提交语义见 [增量�
 T08 的已实现 SDK、字段预算、关联事务与完成活动基线见 [人工任务](09-task-management.md)。
 
 T09 已实现的搜索 SDK、返回字段、字面量 AND 与游标失效语义见 [历史搜索](10-history-search.md)。schema v4 增加搜索 generation，与可见数据同事务变更。
+
+T10-A 的捕获预算、原始内容摘要、不可变存储与不完整原因见 [当前工作区快照](12-workspace-verification.md)。本包尚不提供 verify 报告或 CLI。

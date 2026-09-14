@@ -24,6 +24,10 @@
       "types": "./dist/src/sources/registry.d.ts",
       "import": "./dist/src/sources/registry.js"
     },
+    "./workspace": {
+      "types": "./dist/src/workspace/index.d.ts",
+      "import": "./dist/src/workspace/index.js"
+    },
     "./search": {
       "types": "./dist/src/search/service.d.ts",
       "import": "./dist/src/search/service.js"
