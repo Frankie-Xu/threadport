@@ -4,7 +4,7 @@
 
 一名维护者也使用 Issue → 小分支 → PR → CI → 自审 → squash merge → Release 的流程。一个主实现任务在进行，最多再保留一个等待评审的 PR。采用周计划，避免为一个人建立每日站会、复杂审批和多层 release train。
 
-GitHub Project 只需 Backlog / Ready / In progress / Review / Done。Issue 记录 type、priority、phase、size 和关联 F/AC/T；优先级用 P0–P3，尺寸用 S（≤半天）、M（≤2天）、L（需拆分）。首版任务计划中的大任务是交付单元，实施时可拆成保持同一验收边界的几个小 PR。
+GitHub Project 只需 Backlog / Ready / In progress / Review / Done。Issue 记录 type、priority、phase、size 和关联 F/AC/T；优先级用 P0–P3，尺寸用 S（≤半天）、M（≤2天）、L（需拆分）。首版任务计划中的大任务是交付单元，实施时拆成可独立验证、按依赖合并的工作包，每包一个 PR。固定交付映射为 **工作包 → 提交 → 文件 → 测试 → 回滚**，见 [工作包交付规则](11-work-package-delivery.md)。
 
 ## 2. Issue 模板
 
@@ -28,6 +28,12 @@ Dependencies:
 - [ ] 对应测试及人工验证证据
 - [ ] 用户文档和兼容说明
 
+## Work packages
+包 ID / 交付行为 / 上下游依赖：
+拟定提交与分支 / 精确文件：
+测试命令与通过标准：
+回滚单元、数据兼容、逆序依赖及回滚后检查：
+
 ## Delivery
 Owner:
 Target milestone:
@@ -45,28 +51,9 @@ Issue 不贴私人 session。bug 报告需要版本、OS、脱敏诊断、复现
 
 PR 通常控制在 150–400 行手写逻辑的可审查范围；超过约 500 行说明为何不可拆，fixture/generated/lockfile 单独看。不要为满足行数机械拆到相互不能运行。重构与行为变化可拆时分开，修复先给失败回归再改实现。
 
-PR 模板建议替换为：
+PR 使用当前 [仓库模板](../../.github/pull_request_template.md)，填写包 ID、base/head SHA、文件职责、实际测试、回滚触发条件与依赖关系。需要独立回滚的包使用独立 PR；本仓库 squash-only，不能依靠 PR 内多条提交保留 main 的回滚粒度。
 
-```markdown
-## Change
-问题是什么，触发条件是什么，用户现在得到什么行为。
-Closes #...
-Task / acceptance IDs:
-
-## Scope and compatibility
-公开 API、CLI、存储或支持平台有何变化？
-若无变化，写 none。
-
-## Validation
-- [ ] npm run check
-- [ ] 受影响的集成 / E2E（列命令和结果）
-- [ ] 对应 AC 已逐项检查
-- [ ] 没有真实日志、密钥或私人路径被提交
-
-## Review notes
-关键设计选择、失败恢复、迁移/回退、已知限制。
-UI 变更附截图；runner 变更附版本和真实路径证据。
-```
+下一项 T10 的实际文件、提交标题、目标测试和 A/B/C 回滚关系见 [T10 工作包计划](../superpowers/plans/2026-09-14-t10-work-packages.md)。计划中“未开始”不能当作已实施或已验证。
 
 ## 4. 自审与协作
 
@@ -103,10 +90,13 @@ UI 变更附截图；runner 变更附版本和真实路径证据。
 每次工作结束交接：
 
 ```markdown
-Task / branch / HEAD:
+Task / work package / branch / base SHA / head SHA:
+PR / pushed status / CI link / merged squash SHA:
+Upstream and downstream packages:
 Completed behavior:
 Changed files:
 Checks run and results:
+Rollback unit / dependency order / data compatibility / post-rollback checks:
 Uncommitted changes owned by this task:
 Known failures / blocked reason:
 Next smallest action:

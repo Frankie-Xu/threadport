@@ -24,6 +24,10 @@
       "types": "./dist/src/sources/registry.d.ts",
       "import": "./dist/src/sources/registry.js"
     },
+    "./search": {
+      "types": "./dist/src/search/service.d.ts",
+      "import": "./dist/src/search/service.js"
+    },
     "./tasks": {
       "types": "./dist/src/tasks/service.d.ts",
       "import": "./dist/src/tasks/service.js"
