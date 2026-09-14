@@ -122,7 +122,9 @@ try {
       const exited=once(child,'exit');child.kill('SIGTERM');await exited;
     } finally {child.kill('SIGKILL');}
   `], {cwd:installRoot,timeout:30000});
-  const manifest={protocol:'threadport.package-evidence.v1',version:packed.version,filename:packed.filename,sha256,integrity:packed.integrity,node:process.version,platform:process.platform,arch:process.arch,files:packed.files.map(file=>file.path),checks:'isolated-install,public-imports,doctor,storage,search,workspace,UI,legacy-Cursor',certification:'synthetic package checks only; real Agent and user gates are separate'};
+  const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8',timeout:10000}).trim();assert.match(sourceCommit,/^[0-9a-f]{40}$/);
+  const dirty=spawnSync('git',['diff','--quiet','HEAD','--'],{cwd:root}).status!==0;
+  const manifest={sourceCommit,trackedChanges:dirty,protocol:'threadport.package-evidence.v1',version:packed.version,filename:packed.filename,sha256,integrity:packed.integrity,node:process.version,platform:process.platform,arch:process.arch,files:packed.files.map(file=>file.path),checks:'isolated-install,public-imports,doctor,storage,search,workspace,UI,legacy-Cursor',certification:'synthetic package checks only; real Agent and user gates are separate'};
   if(process.env.THREADPORT_PACKAGE_OUTPUT){const destination=resolve(process.env.THREADPORT_PACKAGE_OUTPUT);await mkdir(destination,{recursive:true});await copyFile(join(temporary,packed.filename),join(destination,packed.filename),constants.COPYFILE_EXCL);await writeFile(join(destination,packed.filename+'.json'),JSON.stringify(manifest,null,2)+'\n',{flag:'wx'});}
   console.log(`Verified archive SHA-256: ${sha256}`);
   console.log(`Package smoke passed: ${packed.files.length} files; public exports, UI/continue CLI, workspace verification, local server and 3 Cursor roundtrips pass from an isolated install.`);
