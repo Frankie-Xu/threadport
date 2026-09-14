@@ -1,0 +1,17 @@
+# Claude native source — synthetic compatibility evidence
+
+Parser: `claude-jsonl-v1`. Fixture: [source-visible.jsonl](../tests/fixtures/claude/source-visible.jsonl). This is a synthetic structural fixture, not certification of an installed Claude release.
+
+Discovery diagnostics are always available on adapter.diagnostics (bounded to 1000), with an optional callback for progress. They are reset at the beginning of each discovery pass.
+
+The native source accepts explicitly allowed directory roots and discovers regular `.jsonl` files recursively. It recognizes top-level `type: user | assistant`, `message.content` strings or block arrays, optional `sessionId`, `version`, `timestamp`, and `cwd`. Visible `text`, Bash `tool_use`, file tool invocations, and `tool_result` blocks are whitelisted. Hidden reasoning and unknown fields never become searchable text. Unknown event/block/tool shapes produce diagnostics rather than completion claims. A record with competing vendor session IDs is isolated as unsupported.
+
+Bash invocation/result observations share a stable run ID; each has its own source event identity and ordinal. Explicit integer `exit_code` fields are observed outcomes; missing exits and prose-only results remain unknown. A reported tool error contradicting exit 0 remains unknown with a warning. File tools only establish an invocation; this source does not claim a file mutation succeeded. Source event timestamps are only explicit valid timestamps.
+
+A read call consumes at most one complete physical JSONL record, optionally part of its visible blocks when maxEvents is smaller. Call again while hasMore is true. Half-lines leave the byte offset at their beginning and set a transient warning; wait for append before retrying. Unknown/invalid complete records advance the cursor, so callers must not stop merely because an events array is empty.
+
+Limits: 50 MiB/file, 1 MiB/line, 256 blocks/record, 4 KiB/visible excerpt, 128 pending command correlations, 100,000 normalized events/session. Discovery stops explicitly after 10,000 entries, depth 16, or 1 GiB of candidate input. A pending-call overflow makes later results unmatched/unknown. Duplicate tool IDs invalidate pending correlations and disable further automatic pairing for that cursor, so reuse cannot manufacture a successful result. Global indexed-event capacity, two-file concurrency, 15-second scheduling, index upserts and preservation of manual links during rebuild belong to T07.
+
+Source session identity uses agent + configured source ID + canonical path. Event identity also includes physical byte position, block position and record digest, so replacing content cannot silently reassign old evidence IDs. Inode/birth identity, size shrink, prefix and cursor-boundary hashes detect replacement/truncation and common in-place edits. They do not claim an atomic snapshot or detection of every middle-of-file rewrite outside the fingerprints; no filesystem lock is taken. Detected changes return SOURCE_RESET so the indexer rebuilds events while preserving session/task identity.
+
+Cursor fields beyond the baseline port are private parser state: blockOffset, checkpoint, bounded pendingCalls, recognized/warnings and observed session metadata. Persist the complete cursor atomically with events. Do not project private source paths/cursors into exports. Unsupported/missing/permission states do not change source files.
