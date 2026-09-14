@@ -356,3 +356,5 @@ T08 的已实现 SDK、字段预算、关联事务与完成活动基线见 [人�
 T09 已实现的搜索 SDK、返回字段、字面量 AND 与游标失效语义见 [历史搜索](10-history-search.md)。schema v4 增加搜索 generation，与可见数据同事务变更。
 
 T10-A 的捕获预算、原始内容摘要、不可变存储与不完整原因见 [当前工作区快照](12-workspace-verification.md)。T10-B 提供比较报告，T10-C 接通 verify CLI。Capsule v1 保持冻结；CLI 仅通过 kind=other 且 locator=`threadport:workspace-snapshot:<id>` 的单一 evidence 引用选择本地已保存快照。无引用或无本地记录返回 unverifiable，CLI 投影中的 snapshotId/workspaceId/scope 可为 null（未知），不得伪造完整范围；详见上述文档。
+
+T14-A 实现补充：continue 在真实终端也可把 prepared 包完成审批，仍展示完整预览并要求明确键入 CONTINUE。launch_attempt 对外提供 errorCode 和可空 targetExitCode，实际 Agent 非零返回 CLI 5/TARGET_EXITED；私有 approval 运行元数据保存 owner PID，仅用于保守检测观察中断，不属于可导出包。详见[本地流程](13-local-server.md)。

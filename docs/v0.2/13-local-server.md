@@ -60,10 +60,23 @@ GET / 是无需 bearer 的静态 bootstrap，但仍校验 Host/Origin；所有 A
 
 工作区 verification 优先比较来源命令明确引用的历史快照；没有引用时只核验当前准备快照，历史命令当前有效性仍为 unknown，不生成测试通过记录。私有审批记录还绑定实际准备时的工作区路径、物理身份/摘要和来源身份。历史 drifted/unverifiable、来源 partial、未知人工字段需要 acknowledgeUncertainty=true；新工作区变化（包括分支变化）、任务修订、来源绑定或包内容变化，确认返回冲突，必须重新准备。
 
-`GET /api/v1/handoffs/:id` 返回 handoff/state/expired。`POST .../confirm` 接受 promptDigest/acknowledgeUncertainty，只返回 `threadport continue --handoff <uuid>`。本包不启动进程；T14 将在终端重新验证和确认。`POST .../export` 接受 format=json/markdown，返回下载字节，不接受服务端输出路径。过期包仍可作为只读 metadata 导出，不能确认执行。
+`GET /api/v1/handoffs/:id` 返回 handoff/state/expired。`POST .../confirm` 接受 promptDigest/acknowledgeUncertainty，只返回 `threadport continue --handoff <uuid>`。该 API 不启动进程；T14-A 的 continue CLI 在终端重新验证和确认。`POST .../export` 接受 format=json/markdown，返回下载字节，不接受服务端输出路径。过期包仍可作为只读 metadata 导出，不能确认执行。
 
 CLI：`threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id> [--mode native-resume|new-session] [--data-dir <path>]` 输出完整 JSON，默认 new-session。参数/不可准备输入=2，修订冲突=4，I/O=5。自定义数据目录后续使用 continue 时仍须由用户显式提供 --data-dir，不把路径拼入 UI 固定命令。
 
 ## T13 目标端能力
 
 GET /api/v1/targets 现返回 Claude/Codex 的 TargetCapability，显式区分 installed、version、auth=unknown、nativeResume、newSessionWithContext 和 reason；不返回 executable。命中明确版本与帮助参数才启用该接口能力，未知版本 export-only。该请求会用固定帮助参数探测本机 CLI，单次子进程 5 秒/256 KiB 上限，不创建 Agent 会话。旧 `threadport targets` 保持纯发现输出；新增 --capabilities 读取新能力。参数证据和实机认证缺口见[兼容性矩阵](../compatibility.md)。
+
+
+## T14-A 终端接续执行器
+
+`threadport continue --handoff <uuid> [--data-dir <path>]` 必须有 TTY stdin/stdout；解析严格拒绝 --yes 和额外参数。CLI prepare 的 prepared 包可在终端完成审批，已经由 UI 确认的包仍须在终端再次确认。打印完整实际 prompt、目标/版本、JSON 转义工作目录、验证状态和期限后，只有明确键入 CONTINUE 才接受上下文及列出的不确定性，其余输入/预览阶段取消均记 cancelled 并返回 130。
+
+构造 LaunchSpec 后再检查完整记录、任务修订、来源身份、当前工作区/分支和期限。即时事务把 confirmed 变为 launching 并写 launch_attempt；多进程竞争只有一个能取得占用。只支持当前已验证的 argv 传输，prompt 必须恰好作为一个参数，cwd 必须等于审核目录。使用 shell:false 和 inherited stdio，不解析/执行 next_action，没有后台自动重试。
+
+GET handoff 增加 attempts，包含安全状态/时间/errorCode/targetExitCode，无 PID 或可执行文件路径。Agent 正常退出只记 exited，不改任务生命周期；Agent 非零记 TARGET_EXITED 与真实 targetExitCode，CLI 返回 5。未安装/不支持=3；冲突/过期=4；I/O/中断=5；SIGINT 用户取消=130。Agent 运行期间转发 SIGINT/SIGTERM，并清理当前监听器。Windows 自动化中的 child.kill 只证明进程终止路径，不代替真实终端 Ctrl-C 认证。
+
+私有 approval 的运行元数据记录当前 ThreadPort owner PID/attempt ID（不进入导出，也不改变包摘要）。读取 launching 包时，若 owner PID 已不存在，标记 interrupted/OWNER_LOST；这表示观察中断，不证明 Agent 子进程已经停止。PID 存在或无法判断时保守保留占用；不杀其他进程、不自动重试。任何消费终态都要求重新 prepare 一个新 UUID。
+
+T14-A 只通过合成子进程与实际终端取消验证。Claude 当前未登录，至少一条真实跨 Agent 接续 gate 尚未完成；不能据此标记整个 T14 或版本发布完成。
