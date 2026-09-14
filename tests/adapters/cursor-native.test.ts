@@ -1,13 +1,17 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
-import { expect, it } from 'vitest';
+import { afterEach, expect, it } from 'vitest';
 import { createCursorAdapter } from '../../src/adapters/cursor.js';
 import { cursorNativeRecords } from '../../src/adapters/cursor-native.js';
 
 const exec = promisify(execFile);
+const roots: string[] = [];
+afterEach(async () => {
+  for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
+});
 const sessionId = '11111111-1111-4111-8111-111111111111';
 const epoch = Date.parse('2026-09-14T00:00:00Z');
 const text = (bubbleId: string, type: 1 | 2, content: string, offset: number) => ({ bubbleId, type, text: content, createdAt: new Date(epoch + offset).toISOString() });
@@ -29,11 +33,12 @@ it('does not certify an exit from text markers and unreliable completion flags',
   expect(capsule.status).toBe('paused');
 });
 it('never confirms a rejected native edit or an unknown tool', async () => {
+  const fixtureProject = await project();
   for (const denied of [true, false]) {
     const tool = edit('denied-edit', 10);
     const native = { ...tool, tool: { ...tool.tool, name: denied ? 'edit_file_v2' : 'future_tool_v99',
       result: denied ? { rejected: true } : null, error: null } };
-    const capsule = await createCursorAdapter().extract({ project: await project(),
+    const capsule = await createCursorAdapter().extract({ project: fixtureProject,
       sessionText: JSON.stringify(envelope([text('u', 1, 'Review.', 0), native])) });
     expect(capsule.completed).toEqual([]);
     if (denied) {
@@ -57,6 +62,7 @@ it('retains a cancelled native edit rejection even when after-content references
 });
 async function project() {
   const root = await mkdtemp(join(tmpdir(), 'threadport-native-'));
+  roots.push(root);
   await exec('git', ['init', '-b', 'main', root]);
   await writeFile(join(root, 'README.md'), 'synthetic');
   await exec('git', ['-C', root, 'add', '.']);
@@ -141,6 +147,9 @@ it('preserves unknown exits for pending and misleading completed native commands
 });
 
 it('never treats completed, rejected, interrupted or missing output as exit zero', async () => {
+  // Each extraction only reads Git. Reuse the fixture, not the tool records,
+  // so all five safety cases fit the same default deadline on Windows.
+  const fixtureProject = await project();
   for (const kind of ['missing', 'rejected', 'interrupted', 'arbitrary-output', 'unrecognized-wrapper']) {
     const tool = shell('test', 10, 20, 0);
     if (kind === 'missing') tool.tool.result.output = '';
@@ -148,7 +157,7 @@ it('never treats completed, rejected, interrupted or missing output as exit zero
     if (kind === 'interrupted') tool.tool.result.notInterrupted = false;
     if (kind === 'arbitrary-output') tool.tool.result.output = 'passed with exit code: 0';
     if (kind === 'unrecognized-wrapper') tool.tool.params.command = 'node --test; echo "EXIT_CODE=0"';
-    const capsule = await createCursorAdapter().extract({ sessionText: JSON.stringify(envelope([text('u', 1, 'Fix.', 0), tool])), project: await project() });
+    const capsule = await createCursorAdapter().extract({ sessionText: JSON.stringify(envelope([text('u', 1, 'Fix.', 0), tool])), project: fixtureProject });
     expect(capsule.status).toBe('paused');
     expect(capsule.commands[0]?.exit_code).toBeUndefined();
     expect(capsule.completed).toEqual([]);
@@ -164,6 +173,7 @@ it('rejects duplicate call/bubble IDs and reversed timestamps', () => {
 
 it('exports only selected visible SQLite fields and refuses overwrite or unknown session', async () => {
   const root = await mkdtemp(join(tmpdir(), 'threadport-export-db-'));
+  roots.push(root);
   const database = join(root, 'state.vscdb');
   const output = join(root, 'selected.json');
   const script = resolve('scripts/export-cursor-session.mjs');
