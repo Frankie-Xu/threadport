@@ -20,3 +20,11 @@
 容量回归：已有 100k events 超限回滚；新增恰好 1 GiB 的索引偏移可以提交，下一页超限时整批 events/cursor 回滚；在当前小批次提交后取消不再发起 read，恢复扫描无重复。新搜索保护覆盖 NUL 之后的内容、字面 %/_/反斜杠、Unicode，未削弱中文匹配。
 
 工作包 → 提交 → 文件 → 测试 → 回滚：T16 基准/容量；最终 SHA 与 CI 见 PR；scripts/benchmark.mjs、capacity/search 回归、package 和本文件/原始 JSON；固定样本与单元回归；独立 squash，无 schema/存量数据变更。评审为自审，回滚仅计划。T16 工程工具可交付，但 beta/RC 性能门禁未完成。
+
+## 2026-09-15 追加复测
+
+同机 Node24 再次运行完整样本：[API 复测](performance/retest-api.json) 搜索 p95 910.60ms；[浏览器复测](performance/retest-browser.json) API p95 456.14ms、浏览器可见延迟 p95 593.70ms，均未达标。不同轮次独立保存，不合并样本挑选结果。两轮索引约35秒，内存、启动、取消等既有预算通过。主机仍有其他负载；测试期间有本测试的真实 Agent 活动，不作为安静参考机认证。
+
+新增 `THREADPORT_TEST_CHROME=1 node scripts/benchmark.mjs --browser`（先 `npm run build`），可选模式在同一固定容量服务上执行100次混合查询，从按 Enter 前到收到响应、加载提示消失、结果容器可见并等待两帧计时；包含 Playwright 调度开销，是保守的可见延迟观测。失败仍返回非零；未指定 --browser 时不声称测过 UI。浏览器由 finally 关闭，服务/临时数据沿用原有清理。Ubuntu 参考平台仍缺失，性能 HOLD 不变。
+
+远端复现：Actions → Performance evidence → Run workflow。Ubuntu/Node24 使用锁定 Chromium；超预算保持失败状态，仍上传原始 JSON 和来源提交，保留14天。共享 runner 的硬件以报告为准，不能等同固定参考机或真实 Agent 认证。

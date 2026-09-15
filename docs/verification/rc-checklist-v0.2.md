@@ -26,7 +26,7 @@
 | Q20 日志注入 | [浏览器历史](../../tests/e2e/workspace.spec.ts)、[任务预览](../../tests/e2e/task-handoff.spec.ts) | 文本展示；真实日志未上传 |
 | Q21 迁移/导出/磁盘失败 | [迁移](../../tests/storage/migrations.test.ts)、[导出](../../tests/handoff/export.test.ts)、[删除失败](../../tests/integration/delete-failure.test.ts) | 全部删除不是跨文件原子事务 |
 | Q22 清理/撤来源/重建/删除 | [路由](../../tests/server/routes.test.ts)、[保留期](../../tests/integration/index-retention.test.ts)、[删除](../../tests/integration/delete-data.test.ts)、[UI](../../tests/e2e/data.spec.ts) | 代码回滚不恢复已删用户数据 |
-| Q23 两平台四路径三个任务 | [未完成矩阵](agent-matrix-beta.md) | **HOLD：真实测试未运行** |
+| Q23 两平台四路径三个任务 | [未完成矩阵](agent-matrix-beta.md) | **HOLD：macOS Codex 三场景已运行，21 格未运行** |
 | Q24 安装产物 | [包脚本](../../scripts/pack-smoke.mjs)、[产物记录](package-rc.md) | dev 快照；最终 RC 尚未认证 |
 
 发布阻断：性能预算、真实 Agent/平台认证、外部用户许可与结果、最终 RC 清单及具体发布授权。许可证为仓库现有 Apache-2.0，Capsule v1 冻结，主 SQLite schema 4；新增进程协调库不存任务正文。没有以“接受 P2”为由豁免这些门槛。未确认的外部实机情况记 unknown；后续失败按所属模块建立小工作包。

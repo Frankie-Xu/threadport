@@ -233,6 +233,38 @@ if (process.argv[2] === "--worker") {
       );
       queryTimes.push(performance.now() - time);
     }
+    const browserTimes = [];
+    if (process.argv.includes("--browser")) {
+      phase = "browser-search";
+      const { chromium } = await import("playwright");
+      const browser = await chromium.launch({
+        headless: true,
+        ...(process.env.THREADPORT_TEST_CHROME ? { channel: "chrome" } : {}),
+      });
+      try {
+        const page = await browser.newPage();
+        page.setDefaultTimeout(30000);
+        await page.goto(connection.origin + "/#token=" + connection.token);
+        const search = page.getByRole("searchbox", { name: "Search history" });
+        await search.waitFor();
+        for (let i = 0; i < 100; i++) {
+          const term = queries[i % queries.length];
+          await search.fill(term);
+          const response = page.waitForResponse(response => {
+            const url = new URL(response.url());
+            return url.pathname === "/api/v1/sessions" && url.searchParams.get("q") === term;
+          });
+          await page.evaluate(() => { window.__searchStarted = performance.now(); });
+          await search.press("Enter");
+          if (!(await response).ok()) throw new Error("Browser search failed");
+          await page.getByText("Searching history…", { exact: true }).waitFor({ state: "hidden" });
+          await page.locator("article.panel, .empty").first().waitFor();
+          browserTimes.push(await page.evaluate(() => new Promise(resolve => {
+            requestAnimationFrame(() => requestAnimationFrame(() => resolve(performance.now() - window.__searchStarted)));
+          })));
+        }
+      } finally { await browser.close(); }
+    }
     phase = "incremental";
     const currentEvents = (await request("/status")).data.capacity.events,
       incrementStarted = performance.now();
@@ -289,6 +321,7 @@ if (process.argv[2] === "--worker") {
     const metrics = {
       indexMs,
       searchP95Ms: percentile(queryTimes, 0.95),
+      ...(process.argv.includes("--browser") ? { browserSearchP95Ms: percentile(browserTimes, 0.95) } : {}),
       statusP95Ms: percentile(statusTimes, 0.95),
       coldP95Ms: percentile(cold, 0.95),
       incrementMs,
@@ -299,6 +332,7 @@ if (process.argv[2] === "--worker") {
     const limits = {
       indexMs: 60000,
       searchP95Ms: 300,
+      ...(process.argv.includes("--browser") ? { browserSearchP95Ms: 500 } : {}),
       statusP95Ms: 200,
       coldP95Ms: 3000,
       incrementMs: 20000,
@@ -342,9 +376,9 @@ if (process.argv[2] === "--worker") {
           decision: failed.length ? "hold" : "pass",
           indexStates: progress.map((p) => p.state),
           cancelStates: cancelled.map((p) => p.state),
-          samples: { queries: queryTimes, status: statusTimes, cold, idleCpu },
+          samples: { queries: queryTimes, browser: browserTimes, status: statusTimes, cold, idleCpu },
           limitations: [
-            "Synthetic evidence only. Browser UI latency is not measured by this API benchmark.",
+            process.argv.includes("--browser") ? "Synthetic browser latency includes Playwright scheduling and two animation frames after results render; conservative visible-latency observation." : "Synthetic evidence only. Browser UI latency is not measured by this API benchmark.",
             "RSS uses the service child high-water mark; generator memory is excluded.",
           ],
         },
