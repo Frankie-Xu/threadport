@@ -740,7 +740,7 @@ npm run test:package
 | T15 | done | L2（A/B 已合并 #49/#50，三平台自动 CI 通过） | 未单独计时 | [工作包](2026-09-15-t15-workbench.md)、[验证](../../verification/t15-workbench.md) |
 | T16 | in_progress | L1（容量/基准已实现，性能 HOLD） | 未单独计时 | [工作包](2026-09-15-t16-capacity.md)、[实测](../../verification/performance-beta.md) |
 | T17 | done | L2（A/B/C 已合并 #52/#53/#54，三平台自动 CI 通过） | 未单独计时 | [分包](2026-09-15-t17-data-lifecycle.md)、[证据](../../verification/t17-data-lifecycle.md)、[提交与回滚](../../verification/development-handoff-v0.2.md) |
-| T18 | blocked | L0（认证记录已准备，真实矩阵未运行） | 缺 Claude 登录与 Ubuntu 实机条件 | [24 格矩阵](../../verification/agent-matrix-beta.md)；不阻塞独立包装工作 |
+| T18 | blocked | L2 / 部分实机（macOS Codex 三场景已运行，21 格未运行） | 缺 Claude 登录与 Ubuntu 实机条件 | [24 格矩阵](../../verification/agent-matrix-beta.md)；不阻塞独立包装工作 |
 | T19 | in_progress | L2（开发包安装/类型验证） | 最终 RC 依赖 T18 | [工作包](2026-09-15-release-work-packages.md)、[产物](../../verification/package-rc.md) |
 | T20 | blocked | L0（观察表/素材草稿已准备） | 缺 5 名同意参与的真实用户及可认证 RC | [用户记录](../../verification/user-study-v0.2.md)、[演示方案](../../demo/README.md) |
 | T21 | blocked | HOLD（书面决策已记录） | T16/T18/T20 门槛未满足 | [发布决策](../../verification/release-0.2.0.md)；未 publish/tag |

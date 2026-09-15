@@ -1,0 +1,80 @@
+{
+  "schema": "threadport.real-agent-evidence.v1",
+  "at": "2026-09-15T15:16:47.844Z",
+  "sourceCommit": "aa76591990b0dc6f424510cb3a937443c740bfe8",
+  "packageVersion": "0.2.0-dev.0",
+  "packageSha256": "c4d8455842f63c4a9a0a20d5c60598e1e8a2496830f8eb77705c098b11be70a9",
+  "platform": "darwin",
+  "arch": "arm64",
+  "threadportNode": "v24.18.1",
+  "agent": "codex",
+  "agentVersion": "0.154.0-alpha.6.2",
+  "confirmation": "Actual installed CLI PTY preview and explicit CONTINUE for each case; directory trust accepted only for owned fixture directories.",
+  "cases": [
+    {
+      "case": 1,
+      "mode": "native-resume",
+      "source": "real Codex session",
+      "isolatedWorkspace": true,
+      "changedFiles": [
+        "sum.mjs"
+      ],
+      "protectedFilesUnchanged": true,
+      "independentNode24TestExit": 0,
+      "driftRejected": false,
+      "attempt": {
+        "status": "exited",
+        "exitCode": 0,
+        "startedAt": "2026-09-15T15:11:42.559Z",
+        "endedAt": "2026-09-15T15:13:52.995Z"
+      },
+      "promptDigest": "11adbdd51923e7724c58115d1a5a1116b52edb424cfe37ecfe3b6320518d2e60",
+      "firstCommandIssue": "Absolute Node path was redacted to external/... and exited 127; Agent fallback node test exited 0. Retained as a first-attempt issue."
+    },
+    {
+      "case": 2,
+      "mode": "native-resume",
+      "source": "real Codex session",
+      "isolatedWorkspace": true,
+      "changedFiles": [
+        "sum.mjs"
+      ],
+      "protectedFilesUnchanged": true,
+      "independentNode24TestExit": 0,
+      "driftRejected": false,
+      "attempt": {
+        "status": "exited",
+        "exitCode": 0,
+        "startedAt": "2026-09-15T15:14:00.595Z",
+        "endedAt": "2026-09-15T15:15:10.392Z"
+      },
+      "promptDigest": "a931b3b11cdee353549ea66a22f6ac042a870132a5c22a49a18db3069d920f9d"
+    },
+    {
+      "case": 3,
+      "mode": "native-resume",
+      "source": "real Codex session",
+      "isolatedWorkspace": true,
+      "changedFiles": [
+        "sum.mjs"
+      ],
+      "protectedFilesUnchanged": true,
+      "independentNode24TestExit": 0,
+      "driftRejected": true,
+      "attempt": {
+        "status": "exited",
+        "exitCode": 0,
+        "startedAt": "2026-09-15T15:15:33.886Z",
+        "endedAt": "2026-09-15T15:16:47.435Z"
+      },
+      "promptDigest": "09a39f9e363355bfe29ae55afa57596faf8e2e99a5287766e3d982a4800960ae"
+    }
+  ],
+  "limitations": [
+    "Fixture project contents; real authenticated vendor session, not external-user testing.",
+    "Existing Agent account permissions inherited; no bypass flags or global permission changes added.",
+    "Agent shell used its configured Node; all final test results independently rerun with Node24.",
+    "Source parser marked partial; unknown events were not fabricated as supported.",
+    "Claude, cross-agent and Ubuntu real-agent cells remain untested."
+  ]
+}

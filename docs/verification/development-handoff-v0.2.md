@@ -25,7 +25,7 @@
 ## 尚未完成的产品门槛
 
 - [性能](performance-beta.md)：搜索 API p95 375.12ms，高于 300ms；参考机及浏览器可见延迟复测未完成。
-- [真实认证](agent-matrix-beta.md)：Claude 未登录、Ubuntu 实机条件缺失，24 格尚未运行；T14/T18 未完成。
+- [真实认证](agent-matrix-beta.md)：macOS Codex 三场景已运行（保留首次命令问题），Claude 与 Ubuntu 实机条件缺失，21 格尚未运行；T14/T18 未完成。
 - [外部用户](user-study-v0.2.md)：没有 5 名已观察用户，不能计算激活/接续成功率；真实 demo 尚未录制。
 - [发布决策](release-0.2.0.md)：Q23、L3/L4、最终 RC 与具体发布授权未满足，不能宣布 alpha/beta/stable。
 
