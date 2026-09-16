@@ -3,8 +3,9 @@ import { DomainError } from '../domain/errors.js';
 import { canonical,sha256,type TaskHandoff } from '../handoff/contracts.js';
 import { validateExport } from '../handoff/export.js';
 import type { WorkspaceBinding,WorkspaceSnapshot } from '../workspace/contracts.js';
+import { launchPlanDigest, type LaunchPlan } from '../targets/review.js';
 export interface HandoffSource {id:string;agent:'claude'|'codex';vendorSessionId:string|null;status:string;projectId:string|null;workspaceId:string|null}
-export interface HandoffRecord {handoff:TaskHandoff;workspace:WorkspaceBinding;reviewSnapshot:WorkspaceSnapshot;source:HandoffSource;approval:null|{digest:string;confirmedAt:string;acknowledgeUncertainty:boolean;launch?:{attemptId:string;ownerPid:number}}}
+export interface HandoffRecord {handoff:TaskHandoff;workspace:WorkspaceBinding;reviewSnapshot:WorkspaceSnapshot;source:HandoffSource;approval:null|{digest:string;confirmedAt:string;acknowledgeUncertainty:boolean;plan?:LaunchPlan;planDigest?:string;launch?:{attemptId:string;ownerPid:number}}}
 export const recordDigest=(record:HandoffRecord)=>sha256(canonical({...record,approval:null}));
 export class HandoffStore {
  constructor(private readonly db:Database.Database){}
@@ -36,5 +37,11 @@ export class HandoffStore {
   if(!['prepared','confirmed'].includes(current.state)||recordDigest(current.record)!==recordDigest(record))throw new DomainError('REVISION_CONFLICT','Handoff cannot be confirmed.');
   const approval={digest:recordDigest(record),confirmedAt:new Date().toISOString(),acknowledgeUncertainty};
   this.db.prepare("UPDATE handoffs SET state='confirmed',body_json=? WHERE id=?").run(JSON.stringify({...record,approval}),record.handoff.id);
+ }).immediate();}
+ authorizePlan(id:string,plan:LaunchPlan){this.db.transaction(()=>{
+  const {record,state}=this.read(id);this.assertCurrent(record);
+  if(state!=='confirmed'||!record.approval||plan.handoffId!==id||plan.handoffDigest!==recordDigest(record)||plan.target!==record.handoff.target||plan.expiresAt!==record.handoff.expiresAt)throw new DomainError('REVISION_CONFLICT','Launch approval changed; review again.');
+  record.approval.plan=plan;record.approval.planDigest=launchPlanDigest(plan);
+  this.db.prepare("UPDATE handoffs SET body_json=? WHERE id=? AND state='confirmed'").run(JSON.stringify(record),id);
  }).immediate();}
 }
