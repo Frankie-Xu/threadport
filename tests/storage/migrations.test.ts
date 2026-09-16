@@ -91,3 +91,13 @@ it('migrates overlapping legacy active attempts to unknown without losing reserv
   expect(upgraded.prepare('SELECT state FROM handoffs').pluck().get()).toBe('unknown');
  }finally{upgraded.close();}
 });
+it('upgrades schema 5 without changing task history and rolls back a failed assertion migration',async()=>{
+ const dataDir=await dir();const {readFile}=await import('node:fs/promises');const old=new Database(join(dataDir,'threadport.sqlite'));
+ for(const name of ['001-initial.sql','002-index-state.sql','003-task-management.sql','004-history-search.sql','005-launch-coordination.sql'])old.exec(await readFile(new URL('../../migrations/'+name,import.meta.url),'utf8'));
+ old.exec(`INSERT INTO projects VALUES('p','Project'); INSERT INTO tasks VALUES('t','p',1,'{}','2026-09-16T00:00:00Z'); INSERT INTO task_revisions(task_id,revision,changed_at,body_json) VALUES('t',1,'2026-09-16T00:00:00Z','{}'); PRAGMA user_version=5;`);
+ const sql=await readFile(new URL('../../migrations/006-assertions.sql',import.meta.url),'utf8');
+ await expect(migrate(old,dataDir,[{version:6,sql:sql+'; SELECT * FROM missing_assertion_table;'}])).rejects.toMatchObject({code:'MIGRATION_FAILED'});
+ expect(old.pragma('user_version',{simple:true})).toBe(5);expect(old.prepare("SELECT name FROM sqlite_master WHERE name='assertion_revisions'").get()).toBeUndefined();
+ await migrate(old,dataDir);expect(old.prepare('SELECT body_json FROM task_revisions').pluck().get()).toBe('{}');
+ old.exec(`INSERT INTO assertion_revisions VALUES('a','t',1,1,'{}')`);expect(()=>old.exec("UPDATE assertion_revisions SET body_json='null'")).toThrow(/immutable/);old.close();
+});

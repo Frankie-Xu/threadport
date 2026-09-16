@@ -68,6 +68,7 @@ const messages: Record<string, string> = {
   NETWORK_ERROR:
     "The local service is unavailable. Check your terminal and try again.",
   UNAUTHORIZED: "Reopen the current terminal link to reconnect.",
+  ASSERTION_CONFLICT: "Resolve conflicting decisions or unknown applicability in Decisions and constraints before continuing.",
   INVALID_INPUT: "Check the fields and try again.",
   CONTEXT_BUDGET_EXCEEDED:
     "Required context exceeds the preview limit. Narrow the task scope while retaining its constraints.",

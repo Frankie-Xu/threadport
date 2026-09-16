@@ -12,11 +12,13 @@ export function Evidence({
   sessionId,
   eventId,
   onClose,
+  onCandidate,
 }: {
   api: ApiClient;
   sessionId: string;
   eventId?: string;
   onClose: () => void;
+  onCandidate?: (seed:{text:string;source:{sessionId:string;eventId:string}})=>void;
 }) {
   const events = usePage<NormalizedEvent>(
     api,
@@ -38,6 +40,7 @@ export function Evidence({
             {event.omitted ? " · Source content was omitted" : ""}
           </p>
           <pre className="evidence">{event.text}</pre>
+          {onCandidate&&<button className="quiet" onClick={()=>onCandidate({text:event.text,source:{sessionId:event.sessionId,eventId:event.id}})}>Draft a decision from this evidence</button>}
           {event.commandRun && (
             <p>Exit code: {event.commandRun.exitCode ?? "unknown"}</p>
           )}

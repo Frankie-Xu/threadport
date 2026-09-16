@@ -1,3 +1,4 @@
+import { registerAssertionRoutes } from './assertion-routes.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { randomUUID,createHash } from 'node:crypto';
@@ -19,6 +20,7 @@ const p=(request:{params:unknown})=>z.object({id}).strict().parse(request.params
 const revision=z.number().int().positive().safe();
 async function directory(root:string){if(!isAbsolute(root))throw new DomainError('INVALID_INPUT','Choose an absolute directory.');const info=await lstat(root);if(!info.isDirectory()||info.isSymbolicLink())throw new DomainError('INVALID_INPUT','Choose a physical directory.');const canonical=await realpath(root);if(canonical===parse(canonical).root)throw new DomainError('INVALID_INPUT','Choose a narrower directory.');return canonical;}
 export function registerBusinessRoutes(app:FastifyInstance,store:SqliteStore,indexer:IndexService){
+ registerAssertionRoutes(app,store);
  const api=store.apiStore(),tasks=new TaskService(store),search=new SearchService(store);
  const jobs=new Map<string,{sourceIds:string[];key:string;results:Map<string,IndexProgress>}>();
  app.get('/api/v1/projects',async request=>{empty.parse(request.query);return{data:api.projects().map(row=>({id:row.id,name:publicText(row.name)}))};});
