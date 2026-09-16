@@ -1,4 +1,4 @@
-import { fork } from "node:child_process";
+import { fork,execFileSync } from "node:child_process";
 import {
   mkdtemp,
   mkdir,
@@ -7,12 +7,13 @@ import {
   rm,
   realpath,
 } from "node:fs/promises";
-import { tmpdir, cpus, totalmem, platform, arch, release } from "node:os";
+import { tmpdir, cpus, totalmem, platform, arch, release, loadavg, freemem } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { once } from "node:events";
 const script = fileURLToPath(import.meta.url);
 if (process.argv[2] === "--worker") {
+  const {profileSearch}=await import("./benchmark-profile.mjs");profileSearch(value=>process.send?.(value));
   const { startLocalServer } = await import("../dist/src/server/app.js");
   const server = await startLocalServer({ dataDir: process.argv[3] });
   let cpu = process.cpuUsage(),
@@ -57,6 +58,11 @@ if (process.argv[2] === "--worker") {
     idle = false,
     idleCpu = [];
   let phase = "generation";
+  const searchTimings=[],responseTimings=[],loadSamples=[];
+  const loadTimer=setInterval(()=>loadSamples.push({at:new Date().toISOString(),phase,loadavg:loadavg(),freeMiB:freemem()/1024**2}),5000);
+  loadTimer.unref();
+  const sourceCommit=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
+  const trackedChanges=!!execFileSync("git",["status","--porcelain","--untracked-files=no"],{encoding:"utf8"}).trim();
   const percentile = (values, p) =>
     [...values].sort((a, b) => a - b)[
       Math.max(0, Math.ceil(values.length * p) - 1)
@@ -73,6 +79,7 @@ if (process.argv[2] === "--worker") {
       stderr += data;
     });
     current.on("message", (value) => {
+      if(value.searchTiming)searchTimings.push({phase,...value.searchTiming});
       if (value.metric) {
         peak = Math.max(peak, value.rss);
         if (idle) idleCpu.push(value.cpu);
@@ -94,6 +101,7 @@ if (process.argv[2] === "--worker") {
         );
       });
       current.on("message", (value) => {
+      if(value.searchTiming)searchTimings.push({phase,...value.searchTiming});
         if (value.ready) {
           clearTimeout(timeout);
           resolve(value);
@@ -114,6 +122,7 @@ if (process.argv[2] === "--worker") {
   }
   let connection;
   async function request(path, method = "GET", body) {
+    const began=performance.now();
     const response = await fetch(connection.origin + "/api/v1" + path, {
       method,
       headers: {
@@ -123,7 +132,9 @@ if (process.argv[2] === "--worker") {
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(30000),
     });
+    const received=performance.now();
     const value = await response.json();
+    if(phase==="search"||phase==="browser-search")responseTimings.push({phase,headersMs:received-began,jsonMs:performance.now()-received,totalMs:performance.now()-began});
     if (!response.ok)
       throw new Error(
         "API " + response.status + " " + (value.error?.code ?? ""),
@@ -352,6 +363,7 @@ if (process.argv[2] === "--worker") {
       JSON.stringify(
         {
           schema: "threadport.benchmark.v1",
+          sourceCommit,trackedChanges,
           at: new Date().toISOString(),
           machine: {
             os: platform(),
@@ -376,6 +388,7 @@ if (process.argv[2] === "--worker") {
           decision: failed.length ? "hold" : "pass",
           indexStates: progress.map((p) => p.state),
           cancelStates: cancelled.map((p) => p.state),
+          profile:{searchTimings,responseTimings,loadSamples},
           samples: { queries: queryTimes, browser: browserTimes, status: statusTimes, cold, idleCpu },
           limitations: [
             process.argv.includes("--browser") ? "Synthetic browser latency includes Playwright scheduling and two animation frames after results render; conservative visible-latency observation." : "Synthetic evidence only. Browser UI latency is not measured by this API benchmark.",
@@ -391,6 +404,7 @@ if (process.argv[2] === "--worker") {
       JSON.stringify(
         {
           schema: "threadport.benchmark.v1",
+          sourceCommit,trackedChanges,
           at: new Date().toISOString(),
           decision: "hold",
           stage: phase,
