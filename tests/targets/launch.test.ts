@@ -11,6 +11,13 @@ it('requires a terminal, complete preview and explicit consent before a single l
  await expect(continueHandoff(f.store,h.id,port,runner())).rejects.toMatchObject({code:'REVISION_CONFLICT'});expect(launches).toBe(1);
  }finally{f.store.close();}
 },30000);
+it('keeps a reservation unknown when the process gateway loses the outcome',async()=>{
+ const f=await fixture();try{
+  const service=new HandoffService(f.store);const h=await service.prepareHandoff(f.input);
+  await expect(continueHandoff(f.store,h.id,{isTTY:true,write:()=>{},confirm:async()=>true,run:async()=>{throw new Error('Outcome unavailable after possible spawn');}},runner())).rejects.toMatchObject({code:'LAUNCH_STATE_UNKNOWN'});
+  expect(service.get(h.id).state).toBe('unknown');expect(f.store.launchStore().inspectRun(h.id)?.state).toBe('unknown');
+ }finally{f.store.close();}
+},30000);
 it('records terminal cancellation without launching or allowing implicit retry',async()=>{
  const f=await fixture();try{const h=await new HandoffService(f.store).prepareHandoff(f.input);let launched=false;
  expect(await continueHandoff(f.store,h.id,{isTTY:true,write:()=>{},confirm:async()=>false,run:async()=>{launched=true;return {status:'exited',exitCode:0,errorCode:null};}},runner())).toBe(130);
@@ -31,6 +38,6 @@ it('reverifies workspace changes made while constructing the launch specificatio
 },30000);
 it('persists a real child failure as a failed attempt rather than task success',async()=>{
  const f=await fixture();try{const h=await new HandoffService(f.store).prepareHandoff(f.input);const failed=runner();failed.prepare=async input=>({executable:process.execPath,args:['-e','process.exit(7)','--',input.handoff.prompt],cwd:input.workspaceRoot,input:{kind:'argv',value:input.handoff.prompt}});const {runProcess}=await import('../../src/platform/process.js');
- await expect(continueHandoff(f.store,h.id,{isTTY:true,write:()=>{},confirm:async()=>true,run:runProcess},failed)).rejects.toMatchObject({code:'TARGET_EXITED'});const saved=new HandoffService(f.store).get(h.id);expect(saved.state).toBe('failed');expect(saved.attempts[0]).toMatchObject({errorCode:'TARGET_EXITED',targetExitCode:7});expect(f.store.getTask(f.taskId)?.lifecycle).toBe('active');
+ await expect(continueHandoff(f.store,h.id,{isTTY:true,write:()=>{},confirm:async()=>true,run:(spec)=>runProcess(spec)},failed)).rejects.toMatchObject({code:'TARGET_EXITED'});const saved=new HandoffService(f.store).get(h.id);expect(saved.state).toBe('failed');expect(saved.attempts[0]).toMatchObject({errorCode:'TARGET_EXITED',targetExitCode:7});expect(f.store.getTask(f.taskId)?.lifecycle).toBe('active');
  }finally{f.store.close();}
 },30000);

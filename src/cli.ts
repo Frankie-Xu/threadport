@@ -79,6 +79,8 @@ function usage(): string {
     'threadport handoff --to claude|codex|cursor|gemini <capsule.json> [--format markdown|json] [--out <file>] [--force]',
     'threadport targets [--capabilities]',
     'threadport continue --handoff <uuid> [--data-dir <path>]',
+    'threadport inspect-run --handoff <uuid> [--data-dir <path>]',
+    'threadport recover-run --handoff <uuid> [--data-dir <path>]',
     'threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id> [--mode native-resume|new-session] [--data-dir <path>]',
     'threadport ui [--data-dir <path>] [--no-open] [--demo]',
     'threadport doctor [--json] [--data-dir <path>]',
@@ -100,10 +102,11 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
       const {runUi}=await import('./cli-ui.js');
       return runUi({dataDir:parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined,noOpen:parsed.enabled.has('no-open'),demo:parsed.enabled.has('demo')},io);
     }
-    if (command === 'continue') {
+    if (command === 'continue'||command==='inspect-run'||command==='recover-run') {
       let parsed:ReturnType<typeof options>;
       try{parsed=options(rest,['handoff','data-dir']);if(parsed.positional.length||!parsed.named.handoff||!/^([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})$/i.test(parsed.named.handoff))throw new Error();}
-      catch{io.stderr.write('continue requires --handoff <uuid> and accepts only optional --data-dir.\n');return 2;}
+      catch{io.stderr.write(`${command} requires --handoff <uuid> and accepts only optional --data-dir.\n`);return 2;}
+      if(command!=='continue'){const {runRecovery}=await import('./cli-recovery.js');return runRecovery(command,parsed.named.handoff,parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined,io);}
       const {runContinue}=await import('./cli-continue.js');return runContinue({handoffId:parsed.named.handoff,dataDir:parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined},io);
     }
     if (command === 'prepare') {

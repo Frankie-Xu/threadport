@@ -18,7 +18,7 @@ export class MaintenanceStore {
         this.db
           .prepare("SELECT 1 FROM index_leases WHERE expires_at>?")
           .get(Date.now()) ||
-        this.db.prepare("SELECT 1 FROM handoffs WHERE state='launching'").get()
+        this.db.prepare("SELECT 1 FROM handoffs WHERE state IN ('launching','unknown')").get()
       )
         throw new DomainError(
           "STORAGE_BUSY",
@@ -51,12 +51,12 @@ export class MaintenanceStore {
       // An active attempt is never aged out, including a lost observer requiring reconciliation.
       const attemptsRemoved = this.db
         .prepare(
-          "DELETE FROM launch_attempts WHERE status!='launching' AND ended_at IS NOT NULL AND ended_at<? AND handoff_id NOT IN (SELECT id FROM handoffs WHERE state='launching')",
+          "DELETE FROM launch_attempts WHERE status!='launching' AND ended_at IS NOT NULL AND ended_at<? AND NOT EXISTS(SELECT 1 FROM workspace_runs r WHERE r.id=launch_attempts.id AND r.state!='released') AND handoff_id NOT IN (SELECT id FROM handoffs WHERE state IN ('launching','unknown'))",
         )
         .run(cutoff30).changes;
       const payloadsRemoved = this.db
         .prepare(
-          "UPDATE handoffs SET body_json='{}',digest='',state='retained' WHERE state NOT IN ('launching','retained') AND json_extract(body_json,'$.handoff.createdAt')<? AND NOT EXISTS(SELECT 1 FROM launch_attempts a WHERE a.handoff_id=handoffs.id AND a.status='launching')",
+          "UPDATE handoffs SET body_json='{}',digest='',state='retained' WHERE state NOT IN ('launching','unknown','retained') AND json_extract(body_json,'$.handoff.createdAt')<? AND NOT EXISTS(SELECT 1 FROM launch_attempts a WHERE a.handoff_id=handoffs.id AND a.status IN ('launching','unknown'))",
         )
         .run(cutoff7).changes;
       const handoffsRemoved = this.db

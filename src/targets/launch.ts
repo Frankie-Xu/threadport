@@ -7,7 +7,7 @@ import { confirmHandoff } from '../handoff/confirm.js';
 import type { LaunchSpec,TargetRunner } from './contracts.js';
 import type { ProcessResult } from '../platform/process.js';
 import { freezeLaunchPlan, verifyLaunchPlan, launchPlanDigest } from './review.js';
-export interface TerminalPort {isTTY:boolean;write(text:string):void;confirm():Promise<boolean>;run(spec:LaunchSpec):Promise<ProcessResult>}
+export interface TerminalPort {isTTY:boolean;write(text:string):void;confirm():Promise<boolean>;run(spec:LaunchSpec,onSpawn?:(pid:number)=>void):Promise<ProcessResult>}
 export async function continueHandoff(store:SqliteStore,id:string,terminal:TerminalPort,runner:TargetRunner):Promise<number>{
  if(!terminal.isTTY||!z.string().uuid().safeParse(id).success)throw new DomainError('INVALID_INPUT','An interactive terminal and handoff UUID are required.');
  const repository=store.handoffStore();const launches=store.launchStore();launches.reconcile(id);const {record,state}=repository.read(id);repository.assertCurrent(record);const h=record.handoff;
@@ -32,8 +32,9 @@ export async function continueHandoff(store:SqliteStore,id:string,terminal:Termi
  await verifyLaunchPlan(plan,checkedSpec,checkedCapability);
  repository.authorizePlan(id,plan);
  const attemptId=launches.claim(id,digest,launchPlanDigest(plan));let result:ProcessResult;
- try{result=await terminal.run(plan.spec);}catch{result={status:'failed',exitCode:5,errorCode:'SPAWN_FAILED'};}
+ try{result=await terminal.run(plan.spec,pid=>launches.recordTarget(id,attemptId,pid));}catch{result={status:'unknown',exitCode:5,errorCode:'TARGET_OBSERVATION_FAILED'};}
  launches.finish(id,attemptId,result);
+ if(result.status==='unknown')throw new DomainError('LAUNCH_STATE_UNKNOWN','Target state is unknown; inspect the attempt and recover explicitly.');
  if(result.status==='failed')throw new DomainError(result.errorCode?.startsWith('TARGET_EXIT_')?'TARGET_EXITED':'IO_FAILED','The target process failed; inspect the recorded attempt.');
  if(result.status==='interrupted')throw new DomainError('IO_FAILED','The target process was interrupted; prepare a new handoff.');
  return result.status==='cancelled'?130:0;

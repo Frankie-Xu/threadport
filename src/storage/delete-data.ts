@@ -20,7 +20,7 @@ export function deleteOwnedData(
         db
           .prepare("SELECT 1 FROM index_leases WHERE expires_at>?")
           .get(Date.now()) ||
-        db.prepare("SELECT 1 FROM handoffs WHERE state='launching'").get()
+        db.prepare("SELECT 1 FROM handoffs WHERE state IN ('launching','unknown')").get()
       )
         throw new DomainError(
           "STORAGE_BUSY",
