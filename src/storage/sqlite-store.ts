@@ -1,3 +1,4 @@
+import { ObservationStore } from './observation-store.js';
 import { AssertionStore } from './assertion-store.js';
 import {deleteOwnedData} from './delete-data.js';
 import type Database from 'better-sqlite3';
@@ -27,6 +28,7 @@ function page(limit: number, offset: number) {
 /** Infrastructure boundary. Callers supply already redacted task fields; Store validates shape and atomicity. */
 export class SqliteStore extends IndexStore {
   constructor(db:Database.Database){super(db);registerSearchFunctions(db);}
+  observationStore():ObservationStore{return new ObservationStore(this.db);}
   assertionStore():AssertionStore{return new AssertionStore(this.db,this);}
   maintenance():MaintenanceStore{return new MaintenanceStore(this.db);}
   launchStore():LaunchStore{return new LaunchStore(this.db);}

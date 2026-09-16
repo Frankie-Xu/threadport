@@ -69,7 +69,8 @@ export class MaintenanceStore {
         .prepare(
           `DELETE FROM snapshots WHERE captured_at<?
         AND NOT EXISTS(SELECT 1 FROM handoffs h WHERE json_extract(h.body_json,'$.reviewSnapshot.id')=snapshots.id OR json_extract(h.body_json,'$.handoff.verification.snapshotId')=snapshots.id)
-        AND NOT EXISTS(SELECT 1 FROM events e WHERE json_extract(e.body_json,'$.commandRun.snapshotId')=snapshots.id)`,
+        AND NOT EXISTS(SELECT 1 FROM events e WHERE json_extract(e.body_json,'$.commandRun.snapshotId')=snapshots.id)
+        AND NOT EXISTS(SELECT 1 FROM execution_observations o WHERE json_extract(o.body_json,'$.beforeSnapshotId')=snapshots.id OR json_extract(o.body_json,'$.afterSnapshotId')=snapshots.id)`,
         )
         .run(cutoff7).changes;
       return {

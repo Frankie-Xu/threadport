@@ -1,3 +1,4 @@
+import type { ExecutionObservation } from '../evidence/observations.js';
 import type { NormalizedEvent } from '../domain/models.js';
 import { evaluateCommandEvidence, type CommandEvidence } from '../evidence/command.js';
 import type { WorkspaceSnapshot, VerificationReport } from '../workspace/contracts.js';
@@ -7,6 +8,7 @@ import { compareWorkspaceSnapshots } from '../workspace/verify.js';
 export function prepareCommandEvidence(
   events: readonly NormalizedEvent[], current: WorkspaceSnapshot,
   getSnapshot: (id: string) => WorkspaceSnapshot | null,
+  observations:ReadonlyMap<string,ExecutionObservation>=new Map(),
 ): { byEvent: Map<string, CommandEvidence>; verification: VerificationReport; warnings: string[] } {
   const snapshots = new Map<string, WorkspaceSnapshot | null>();
   const byEvent = new Map<string, CommandEvidence>();
@@ -20,7 +22,8 @@ export function prepareCommandEvidence(
     if (!run) continue;
     if (run.snapshotId !== null && !snapshots.has(run.snapshotId)) snapshots.set(run.snapshotId, getSnapshot(run.snapshotId));
     const historical = run.snapshotId === null ? null : snapshots.get(run.snapshotId)!;
-    const evidence = evaluateCommandEvidence(event, historical, current)!;
+    const observation=observations.get(event.id);
+    const evidence = evaluateCommandEvidence(event, historical, current,observation?{record:observation,after:observation.afterSnapshotId?getSnapshot(observation.afterSnapshotId):null}:undefined)!;
     byEvent.set(event.id, evidence);
     counts[evidence.applicability]++;
     const report: VerificationReport = historical && historical.id === run.snapshotId

@@ -1,3 +1,4 @@
+import { observationSchema,type ExecutionObservation } from './observations.js';
 import { z } from 'zod';
 import type { NormalizedEvent } from '../domain/models.js';
 import { snapshotReasonSchema, type WorkspaceSnapshot } from '../workspace/contracts.js';
@@ -23,11 +24,12 @@ export const commandEvidenceSchema = z.object({
     scope: z.literal('head-tracked-diff-untracked'),
     reasons: z.array(z.union([snapshotReasonSchema, z.enum(['HEAD_CHANGED', 'CONTENT_CHANGED', 'SCOPE_CHANGED'])])),
   }).strict(),
+  observation:observationSchema.optional(),
   environment: z.literal('unknown'), testScope: z.literal('unknown'),
   reasons: z.array(z.enum([
     'EXECUTION_RESULT_UNKNOWN', 'SOURCE_INCOMPLETE', 'COMMAND_IDENTITY_MISMATCH',
     'SNAPSHOT_MISSING', 'SNAPSHOT_REFERENCE_MISMATCH', 'WORKSPACE_CHANGED',
-    'WORKSPACE_UNKNOWN', 'ENVIRONMENT_UNKNOWN', 'TEST_SCOPE_UNKNOWN',
+    'WORKSPACE_UNKNOWN', 'ENVIRONMENT_UNKNOWN', 'TEST_SCOPE_UNKNOWN', 'EXECUTION_WORKSPACE_CHANGED', 'EXECUTION_ENVIRONMENT_CHANGED', 'EXECUTION_OBSERVATION_INCOMPLETE',
   ])),
 }).strict();
 export type CommandEvidence = z.infer<typeof commandEvidenceSchema>;
@@ -35,6 +37,7 @@ export type CommandEvidence = z.infer<typeof commandEvidenceSchema>;
 /** Compare evidence only. Never infer argv, test counts or historical runtime from command prose. */
 export function evaluateCommandEvidence(
   event: NormalizedEvent, historical: WorkspaceSnapshot | null, current: WorkspaceSnapshot,
+  observation?:{record:ExecutionObservation;after:WorkspaceSnapshot|null},
 ): CommandEvidence | null {
   const run = event.commandRun;
   if (!run) return null;
@@ -57,12 +60,22 @@ export function evaluateCommandEvidence(
   const identityMatches = event.kind === 'command' && run.eventId === event.id
     && run.sessionId === event.sessionId && run.ordinal === event.ordinal;
   if (!identityMatches) reasons.push('COMMAND_IDENTITY_MISMATCH');
+  let incompleteExecution=false;
+  if(observation){
+    const value=observation.record;
+    if(!value.startedAt||!value.completedAt||!observation.after||!value.environmentAfter||['running','unknown'].includes(value.status)){
+      reasons.push('EXECUTION_OBSERVATION_INCOMPLETE');incompleteExecution=true;
+    }
+    if(historical&&observation.after){const during=compareWorkspaceSnapshots(historical,observation.after);if(during.status!=='matched'){reasons.push(during.status==='drifted'?'EXECUTION_WORKSPACE_CHANGED':'EXECUTION_OBSERVATION_INCOMPLETE');incompleteExecution=true;}}
+    if(value.environmentAfter&&value.environmentBefore.digest!==value.environmentAfter.digest){reasons.push('EXECUTION_ENVIRONMENT_CHANGED');incompleteExecution=true;}
+  }
   reasons.push('ENVIRONMENT_UNKNOWN', 'TEST_SCOPE_UNKNOWN');
-  const applicability = run.exitCode === null || event.omitted || !identityMatches
+  const applicability = run.exitCode === null || event.omitted || !identityMatches || incompleteExecution
     ? 'unverified' : workspace.status === 'drifted' ? 'stale' : 'unknown';
   return commandEvidenceSchema.parse({
     protocol: 'threadport.command-evidence.v1', eventId: event.id, sessionId: event.sessionId, commandRunId: run.id,
     historical: {result: run.exitCode === null ? 'unknown' : run.exitCode === 0 ? 'succeeded' : 'failed', exitCode: run.exitCode, startedAt: run.startedAt, completedAt: run.completedAt},
+    ...(observation?{observation:observation.record}:{}),
     applicability, workspace, environment: 'unknown', testScope: 'unknown', reasons,
   });
 }

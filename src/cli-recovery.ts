@@ -10,7 +10,7 @@ export async function runRecovery(command:'inspect-run'|'recover-run',handoffId:
  try{
   store=await openStore({dataDir});const launches=store.launchStore();launches.reconcile(handoffId);
   const run=launches.inspectRun(handoffId);if(!run)throw new DomainError('NOT_FOUND','No workspace reservation exists for this handoff.');
-  io.stdout.write(JSON.stringify({...run,ownerObservation:observeProcess(run.owner),targetObservation:run.target?observeProcess(run.target):'unavailable'},null,2)+'\n');
+  io.stdout.write(JSON.stringify({...run,executionObservation:store.observationStore().get(run.id),approvedPlan:store.observationStore().plan(run.id),ownerObservation:observeProcess(run.owner),targetObservation:run.target?observeProcess(run.target):'unavailable'},null,2)+'\n');
   if(command==='inspect-run')return 0;
   if(run.state!=='unknown')throw new DomainError('REVISION_CONFLICT','Only an unknown attempt can be recovered.');
   io.stdout.write('Inspect the original terminal and stop any target first. Releasing does not stop a process or prove it exited. This handoff remains consumed.\n');

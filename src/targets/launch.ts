@@ -1,3 +1,4 @@
+import { captureWorkspace } from '../workspace/snapshot.js';
 import { isAbsolute } from 'node:path';
 import { z } from 'zod';
 import type { SqliteStore } from '../storage/sqlite-store.js';
@@ -31,8 +32,17 @@ export async function continueHandoff(store:SqliteStore,id:string,terminal:Termi
  // Rehash after workspace IO, immediately before consuming the terminal grant.
  await verifyLaunchPlan(plan,checkedSpec,checkedCapability);
  repository.authorizePlan(id,plan);
+ const observations=store.observationStore();observations.assertCapacity(h.taskId);
  const attemptId=launches.claim(id,digest,launchPlanDigest(plan));let result:ProcessResult;
- try{result=await terminal.run(plan.spec,pid=>launches.recordTarget(id,attemptId,pid));}catch{result={status:'unknown',exitCode:5,errorCode:'TARGET_OBSERVATION_FAILED'};}
+ try{
+  observations.start(id,attemptId);
+  result=await terminal.run(plan.spec,pid=>{launches.recordTarget(id,attemptId,pid);observations.spawned(attemptId);});
+ }catch{result={status:'unknown',exitCode:5,errorCode:'TARGET_OBSERVATION_FAILED'};}
+ try{
+  let afterId:string|null=null;
+  try{const after=await captureWorkspace(record.workspace);store.saveSnapshot(after,record.workspace);afterId=after.id;}catch{/* A missing post-snapshot makes this evidence incomplete. */}
+  observations.finish(attemptId,result,afterId);
+ }catch{result={status:'unknown',exitCode:5,errorCode:'TARGET_OBSERVATION_FAILED'};}
  launches.finish(id,attemptId,result);
  if(result.status==='unknown')throw new DomainError('LAUNCH_STATE_UNKNOWN','Target state is unknown; inspect the attempt and recover explicitly.');
  if(result.status==='failed')throw new DomainError(result.errorCode?.startsWith('TARGET_EXIT_')?'TARGET_EXITED':'IO_FAILED','The target process failed; inspect the recorded attempt.');

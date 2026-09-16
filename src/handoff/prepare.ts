@@ -1,3 +1,4 @@
+import { observationEvent } from '../evidence/observations.js';
 import { compileAssertions } from '../assertions/compile.js';
 import { assertionDto,assertionText } from '../assertions/presentation.js';
 import { randomUUID } from 'node:crypto';
@@ -27,9 +28,13 @@ export class HandoffService {
   if(ledger.conflicts.length||ledger.uncertain.length)throw new DomainError('ASSERTION_CONFLICT','Resolve conflicting decisions and unknown applicability before preparing a continuation.');
   const {snapshot,git}=await captureWorkspaceWithGit(workspace);
   if(!git||!snapshot.digest)throw new DomainError('INVALID_INPUT','A complete SHA-1 Git workspace is required to prepare a Capsule.');
-  const events=context.events.filter(event=>event.sessionId===args.sourceSessionId);
+  const nativeEvents=context.events.filter(event=>event.sessionId===args.sourceSessionId);
+  const observed=this.store.observationStore().list(args.taskId,args.sourceSessionId);
+  const ordinal=nativeEvents.reduce((highest,event)=>Math.max(highest,event.ordinal),-1)+1;
+  const observationMap=new Map(observed.map(value=>['observed:'+value.id,value]));
+  const events=[...nativeEvents,...observed.map((value,index)=>observationEvent(value,ordinal+index))];
   // Each command needs its own historical reference; a later matching run cannot clear earlier drift.
-  const commandEvidence=prepareCommandEvidence(events,snapshot,id=>this.store.getSnapshot(id));
+  const commandEvidence=prepareCommandEvidence(events,snapshot,id=>this.store.getSnapshot(id),observationMap);
   const verification=commandEvidence.verification;
   // Bind the preview to the state actually reviewed, including when historical evidence drifted.
   const review=await verifyWorkspace(snapshot,workspace);
@@ -39,6 +44,7 @@ export class HandoffService {
   let selected=events.slice(-20);const omittedTotal=events.length-selected.length;
   const make=(count:number):TaskHandoff=>{
    const omissions=['Metadata only; source code, raw logs, hidden reasoning and authentication are not included.','Historical command results do not certify current tests; environment and test scope remain unknown.',...commandEvidence.warnings];
+   if(observed.length)omissions.push(`${observed.length} ThreadPort target-process observations; inner Agent commands, complete environments and test counts remain unknown. Exact approved argv are available only while the local launch-plan record is retained.`);
    if(ledger.candidates.length)omissions.push(`${ledger.candidates.length} assertion candidates are unconfirmed and must not be treated as current instructions.`);
    omissions.push(`Workspace policy ${snapshot.policy}: ignored paths and external link targets are outside the content scope.`);
    for(const omission of snapshot.omissions??[])omissions.push(`Workspace omission: ${omission.reason}; ${omission.count} path entries (ignored directories may represent multiple files).`);
