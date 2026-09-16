@@ -131,7 +131,7 @@ ThreadPort does not transfer hidden chain-of-thought, does not upload session da
 
 ### Editable tasks SDK
 
-The `threadport/tasks` entry supports manual task fields, revision conflicts, session associations and reversible lifecycle/archive changes. See [task management](docs/v0.2/09-task-management.md) for redaction preview, project boundaries and completion activity semantics. UI integration follows in the implementation plan.
+The `threadport/tasks` entry supports manual task fields, revision conflicts, session associations and reversible lifecycle/archive changes. See [task management](docs/v0.2/09-task-management.md) for redaction preview, project boundaries and completion activity semantics. The local workbench includes these editing controls.
 
 ### History search SDK
 
@@ -151,3 +151,11 @@ Prepare a task continuation with `threadport prepare --task <id> --source-sessio
 Prepared handoffs now assess each recorded command against its own historical workspace snapshot. Changed code marks a known historical outcome stale; the original exit code stays intact. Missing snapshot or environment evidence stays unknown, and incomplete execution evidence stays unverified. Native logs currently lack historical snapshot bindings, so they do not gain current test certification. Aggregate warnings include older commands whose excerpts were omitted. Required context that exceeds 32 KiB returns `CONTEXT_BUDGET_EXCEEDED` (HTTP 422 / CLI exit 2), without truncating constraints. See the [evidence decision](docs/adr/0009-command-evidence-applicability.md) and [report-to-code audit](docs/verification/report-v0.2-audit.md).
 
 Bundled browser dependency notices are included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### Runtime remediation status
+
+See the [current remediation record](docs/verification/remediation-progress-2026-09-16.md) for exact commits and checks. Terminal consent binds a frozen launch plan: canonical executable identity, version, argv, cwd, context transport, expiry and nonce. These are checked again before one-use consumption. Inherited Agent settings/interpreters and the final filesystem-to-exec race remain outside complete control.
+
+Runs sharing one application data directory reserve the canonical workspace across processes and handoffs. Independent data directories do not coordinate; concurrent use of the same workspace through multiple stores is unsupported. Lost observers retain an `unknown` reservation. Use `threadport inspect-run --handoff <uuid>` and, only after checking the target has stopped, `threadport recover-run --handoff <uuid>` with the same data directory. Recovery requires a terminal and the displayed `RELEASE <nonce>` phrase, records the evidence and does not retry the consumed handoff. Schema 5 is additive; schema-4 binaries refuse the upgraded database.
+
+Workbench snapshots use raw.v2 / scope.v1: sensitive filenames are excluded before content reads, incomplete captures block preparation, and ignored path counts are visible. Internal leaf symlinks contribute link text only. External links, submodules, non-UTF8 paths and unborn repositories cannot produce a complete snapshot. Older scope versions cannot match new captures. See the [reading policy](docs/adr/0012-workspace-reading-policy.md); its filename heuristic does not detect every secret, and legacy artifact extraction has a separate boundary.

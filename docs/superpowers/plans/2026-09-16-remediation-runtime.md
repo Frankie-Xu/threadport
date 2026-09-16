@@ -26,10 +26,10 @@
 
 ## Test-first checks and completion records
 
-- [ ] R01 exact-commit Node24 baseline and installed-browser check pass.
-- [ ] R02 tests fail when confirmation can change the executable or arguments; freeze/compare fix makes them pass.
-- [ ] R03 tests fail when separate handoffs overlap; transactional coordination and unknown recovery make them pass. Test migration failure rollback.
-- [ ] R04 tests prove synthetic secret files are never opened for content; old/new policies cannot match.
+- [x] R01 exact-commit Node24 baseline and installed-browser check pass.
+- [x] R02 tests fail when confirmation can change the executable or arguments; freeze/compare fix makes them pass.
+- [x] R03 tests fail when separate handoffs overlap; transactional coordination and unknown recovery make them pass. Test migration failure rollback.
+- [x] R04 tests prove synthetic secret files are never opened for content; old/new policies cannot match.
 - [ ] Run targeted tests for each package, then full checks and Node24 installed-browser package checks on the final runtime commit.
 - [ ] Update status with actual commits, test results, remaining platform/real-Agent/user requirements, and rollback constraints.
 
