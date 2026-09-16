@@ -30,9 +30,13 @@
 - [x] R02 tests fail when confirmation can change the executable or arguments; freeze/compare fix makes them pass.
 - [x] R03 tests fail when separate handoffs overlap; transactional coordination and unknown recovery make them pass. Test migration failure rollback.
 - [x] R04 tests prove synthetic secret files are never opened for content; old/new policies cannot match.
-- [ ] Run targeted tests for each package, then full checks and Node24 installed-browser package checks on the final runtime commit.
-- [ ] Update status with actual commits, test results, remaining platform/real-Agent/user requirements, and rollback constraints.
+- [x] Run targeted tests for each package, then full checks and Node24 installed-browser package checks on the final runtime commit.
+- [x] Update status with actual commits, test results, remaining platform/real-Agent/user requirements, and rollback constraints.
 
 ## Review and rollback
 
 R02 retains schema 4; its consumers must be reverted with it. R03 increases the schema version; older code refuses the upgraded database. Prefer a forward fix and retain run/recovery history. R04 keeps old snapshot records readable but requires new preparation before launch. All runtime changes receive a local self-review; this is not external certification. No push, PR, tag or publication is performed.
+
+## Final stage evidence
+
+Independent Node24 validation on `0e5557dc31da265552fc74971a5cfddefe7560e4`: 61 test files / 418 tests, 6 Chrome browser flows, and installed-browser package checks passed. The 201-file archive and exact source/Node/OS evidence are linked from the [remediation status](../../verification/remediation-progress-2026-09-16.md). R05–R09 remain outside this stage and stable remains HOLD.

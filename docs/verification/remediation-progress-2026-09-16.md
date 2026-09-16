@@ -24,7 +24,20 @@ R03 的协调范围是**同一应用数据目录**，多个独立数据目录并
 
 R04 的文件名策略不识别任意源码中的秘密。Git-ignored 内容不在比较范围；submodule、无 HEAD、非 UTF-8 路径、外部或链式链接仍为受限支持，不生成可启动的完整快照。旧 raw.v1 保留可读，需重新准备交接。legacy artifact CLI 的独立读取算法不纳入本项承诺。
 
-最终 Node24 独立检出、浏览器和安装包证据正在复验，完成后追加准确来源提交与产物摘要。
+### 最终阶段验证
+
+精确测试对象：`0e5557dc31da265552fc74971a5cfddefe7560e4`，干净独立检出；macOS **26.6.2 arm64** / Node **24.18.1**。本页及产物清单随后作为纯证据提交追加，不冒称包内已包含这个后续提交。
+
+| 检查 | 结果 |
+| --- | --- |
+| `npm run check` | 类型检查、构建通过；**61 文件 / 418 测试通过**；270 个本地文档目标通过 |
+| `THREADPORT_TEST_CHROME=1 npm run test:e2e` | **6 项浏览器流程通过**，系统 Chrome |
+| `THREADPORT_TEST_CHROME=1 npm run test:package` | **201 文件**；隔离安装、公开类型/导出、SQLite、CLI、工作区、Cursor roundtrip、安装后浏览器编辑/持久化/loopback 断言均通过 |
+| `git diff --check` | 通过；用户原有无关文件未纳入提交 |
+
+最终阶段安装包 SHA-256：`27992221c297aa01edf69b5dd8be9c9ccb95d452327614d53c8fd144e1f5874c`。原始 [产物清单](packages/r01-r04-node24.json) 记录 sourceCommit、trackedChanges=false、Node/平台、文件列表和 installedBrowser=true；本地归档保存在 `/tmp/threadport-runtime-0e5557d-artifacts/threadport-0.2.0-dev.0.tgz`，临时目录不是长期制品仓库。
+
+这些是本机合成验证，未执行本轮真实 Agent 接续、Ubuntu 实测、外部用户观察或性能重测。自审曾复现 spawn 后 error 被当作启动失败、非 UTF-8 文件 fixture 被本机文件系统拒绝：前者已修复并加入回归，后者改用真实 Git index 字节路径 fixture 后通过；不将环境拒绝视为产品通过。
 
 ## 尚未关闭的整改项
 
