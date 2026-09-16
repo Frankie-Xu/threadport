@@ -101,7 +101,6 @@ if (process.argv[2] === "--worker") {
         );
       });
       current.on("message", (value) => {
-      if(value.searchTiming)searchTimings.push({phase,...value.searchTiming});
         if (value.ready) {
           clearTimeout(timeout);
           resolve(value);

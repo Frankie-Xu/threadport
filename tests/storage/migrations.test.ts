@@ -101,3 +101,20 @@ it('upgrades schema 5 without changing task history and rolls back a failed asse
  await migrate(old,dataDir);expect(old.prepare('SELECT body_json FROM task_revisions').pluck().get()).toBe('{}');
  old.exec(`INSERT INTO assertion_revisions VALUES('a','t',1,1,'{}')`);expect(()=>old.exec("UPDATE assertion_revisions SET body_json='null'")).toThrow(/immutable/);old.close();
 });
+
+it('upgrades populated schema 7 with literal expression matching and rolls back failed indexing',async()=>{
+ const dataDir=await dir();const {readFile}=await import('node:fs/promises');const db=await openDatabase({dataDir});
+ db.exec("DROP INDEX events_search_folded; PRAGMA user_version=7; INSERT INTO sessions(id,metadata_json) VALUES('literal','{}')");
+ db.prepare('INSERT INTO events VALUES(?,?,?,?,?)').run('e','literal',0,'{}','prefix\0AfterNUL 100% a_b slash\\word Ä ä 支付');
+ const sql=await readFile(new URL('../../migrations/008-search-folded.sql',import.meta.url),'utf8');
+ await expect(migrate(db,dataDir,[{version:8,sql:sql+'; SELECT * FROM missing_index_table;'}])).rejects.toMatchObject({code:'MIGRATION_FAILED'});
+ expect(db.pragma('user_version',{simple:true})).toBe(7);expect(db.prepare("SELECT name FROM sqlite_master WHERE name='events_search_folded'").get()).toBeUndefined();
+ const query='SELECT 1 FROM events WHERE session_id=? AND instr(lower(search_text),?)>0';
+ const terms=['afternul','prefix\0after','%','a_b','slash\\word','Ä','支付','aZb'];
+ const before=terms.map(term=>db.prepare(query).all('literal',term));await migrate(db,dataDir);
+ expect(terms.map(term=>db.prepare(query).all('literal',term))).toEqual(before);
+ expect(JSON.stringify(db.prepare('EXPLAIN QUERY PLAN '+query).all('literal','absent'))).toContain('events_search_folded');
+ db.prepare('UPDATE events SET search_text=? WHERE id=?').run('Replacement','e');
+ expect(db.prepare(query).all('literal','replacement')).toHaveLength(1);expect(db.prepare(query).all('literal','afternul')).toEqual([]);
+ db.exec("DELETE FROM events WHERE id='e'");expect(db.prepare(query).all('literal','replacement')).toEqual([]);db.close();
+});

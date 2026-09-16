@@ -6,8 +6,14 @@
 
 **Tech Stack:** Existing SQLite and Node24. No additional services or search language.
 
-- [ ] Commit benchmark-only measurement support and record exact commit, load and raw stage samples.
-- [ ] Run the unchanged 200MiB / 500 sessions / 50,000 events / 100 mixed API+UI queries. Keep failures.
+- [x] Commit benchmark-only measurement support and record exact commit, load and raw stage samples.
+- [x] Run the unchanged 200MiB / 500 sessions / 50,000 events / 100 mixed API+UI queries. Keep failures.
 - [ ] If justified, add `events(session_id,ordinal DESC,id,search_text)` covering index; verify actual query plans and compare with the same dataset. Remove the change if it does not improve measured performance or violates resource budgets.
 - [ ] Preserve Chinese substrings, literal %, _, backslash, NUL suffixes, ASCII folding, filtering and stable paging through existing and added tests.
 - [ ] Record all metrics independently, including Ubuntu absence. A local pass cannot close the two-platform gate.
+
+## Measured adjustment
+
+Clean baseline `9a9e408`: API p95 468.30ms, UI p95 492.50ms; query execution dominates. Its raw profiling rows were accidentally collected twice by two IPC listeners (latency samples themselves are not duplicated); fix the second listener before comparison.
+
+A bounded 10,000-event in-memory diagnostic compared the existing scan (~61–73ms in four ordinary rounds, one 305ms outlier), raw-text covering index (~50–72ms) and an index on `(session_id,lower(search_text))` (~34–35ms). Therefore test the expression index in migration 008 instead of the original covering-index candidate. The production query remains unchanged. This adds one folded text copy on disk and index maintenance on writes; the full fixed-capacity benchmark must validate resource costs. Diagnostic timing is not release evidence.
