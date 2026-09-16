@@ -69,6 +69,8 @@ const messages: Record<string, string> = {
     "The local service is unavailable. Check your terminal and try again.",
   UNAUTHORIZED: "Reopen the current terminal link to reconnect.",
   INVALID_INPUT: "Check the fields and try again.",
+  CONTEXT_BUDGET_EXCEEDED:
+    "Required context exceeds the preview limit. Narrow the task scope while retaining its constraints.",
   PROJECT_MISMATCH:
     "This item belongs to another project. Choose its project or a different item.",
   REVISION_CONFLICT: "This item changed. Refresh before trying again.",

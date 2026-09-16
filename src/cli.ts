@@ -115,7 +115,7 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
       if(!input.success){io.stderr.write('Invalid prepare arguments.\n');return 2;}
       const {openStore}=await import('./storage/sqlite-store.js');let store:Awaited<ReturnType<typeof openStore>>|undefined;
       try{store=await openStore({dataDir:parsed.named['data-dir']?resolve(io.cwd(),parsed.named['data-dir']):undefined});const {HandoffService}=await import('./handoff/prepare.js');io.stdout.write(JSON.stringify(await new HandoffService(store).prepareHandoff(input.data),null,2)+'\n');return 0;}
-      catch(error){io.stderr.write('Preparation failed; review task, source and workspace.\n');return error instanceof DomainError&&['INVALID_INPUT','NOT_FOUND','PROJECT_MISMATCH','REDACTION_REQUIRED'].includes(error.code)?2:error instanceof DomainError&&error.code==='REVISION_CONFLICT'?4:5;}
+      catch(error){io.stderr.write(error instanceof DomainError&&error.code==='CONTEXT_BUDGET_EXCEEDED'?`${error.code}: ${error.message}\n`:'Preparation failed; review task, source and workspace.\n');return error instanceof DomainError&&['INVALID_INPUT','NOT_FOUND','PROJECT_MISMATCH','REDACTION_REQUIRED','CONTEXT_BUDGET_EXCEEDED'].includes(error.code)?2:error instanceof DomainError&&error.code==='REVISION_CONFLICT'?4:5;}
       finally{store?.close();}
     }
     if (command === 'verify') return runVerify(rest, io);

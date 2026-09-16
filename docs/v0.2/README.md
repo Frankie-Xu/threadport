@@ -31,6 +31,8 @@
 
 按实施计划的真实进度选择下一项，不重复已合并任务。工程增量与回滚关系见 [开发交接](../verification/development-handoff-v0.2.md)，以总计划进度表及各 PR 的真实状态为准。T16–T21 包含性能、真实 Agent 和外部用户门槛，详见 [发布 HOLD 记录](../verification/release-0.2.0.md)，不能按已写文档推定完成。
 
+2026-09-16 的开发报告已完成 [仓库对照与首个证据适用性增量](../verification/report-v0.2-audit.md)：逐条区分历史命令结果与当前适用性，同时列明 assertion ledger、工作区覆盖、runner 授权及真实认证的后续差距。
+
 ## 2. 首版的明确选择
 
 - 形态：npm 分发的本地 CLI + 浏览器工作台；一个仓库、一个 npm 包，无账户、无托管服务。

@@ -11,20 +11,16 @@ const messages:Record<VerificationReasonCode,string>={
  NO_GIT:'The bound workspace is not a readable Git repository.',
  NO_COMMIT:'The bound workspace has no readable HEAD commit.',
 };
-/** Read-only comparison; it neither saves a new snapshot nor validates historical tests. */
-export async function verifyWorkspace(input:WorkspaceSnapshot, binding:WorkspaceBinding|null, options:CaptureOptions={}):Promise<VerificationReport>{
+/** Compare recorded scope and identity before content; performs no filesystem operations. */
+export function compareWorkspaceSnapshots(input:WorkspaceSnapshot, observed:WorkspaceSnapshot):VerificationReport{
  const snapshot=workspaceInput(snapshotSchema,input);
- workspaceInput(limitSchema,options.limits??{});
- options.signal?.throwIfAborted();
+ const current=workspaceInput(snapshotSchema,observed);
  const codes=new Set<VerificationReasonCode>(snapshot.incompleteReasons);
  const report=(status:VerificationReport['status']):VerificationReport=>({
   status,snapshotId:snapshot.id,workspaceId:snapshot.workspaceId,verifiedAt:new Date().toISOString(),scope:snapshot.scope,
   reasons:[...codes].map(code=>({code,message:messages[code]})),
  });
- if(binding===null){codes.add('WORKSPACE_UNBOUND');return report('unverifiable');}
- const workspace=workspaceInput(bindingSchema,binding);
- if(workspace.id!==snapshot.workspaceId){codes.add('WORKSPACE_UNBOUND');return report('unverifiable');}
- const current=await captureWorkspace(workspace,options);
+ if(current.workspaceId!==snapshot.workspaceId){codes.add('WORKSPACE_UNBOUND');return report('unverifiable');}
  for(const reason of current.incompleteReasons)codes.add(reason);
  if(snapshot.bindingDigest!==null&&current.bindingDigest!==null&&snapshot.bindingDigest!==current.bindingDigest){
   codes.add('WORKSPACE_UNBOUND');return report('unverifiable');
@@ -35,4 +31,17 @@ export async function verifyWorkspace(input:WorkspaceSnapshot, binding:Workspace
  if(snapshot.head!==current.head)codes.add('HEAD_CHANGED');
  else if(snapshot.digest!==current.digest)codes.add('CONTENT_CHANGED');
  return report(codes.size?'drifted':'matched');
+}
+
+/** Read-only comparison; it neither saves a new snapshot nor validates historical tests. */
+export async function verifyWorkspace(input:WorkspaceSnapshot, binding:WorkspaceBinding|null, options:CaptureOptions={}):Promise<VerificationReport>{
+ const snapshot=workspaceInput(snapshotSchema,input);
+ workspaceInput(limitSchema,options.limits??{});
+ options.signal?.throwIfAborted();
+ const workspace=binding===null?null:workspaceInput(bindingSchema,binding);
+ if(workspace===null||workspace.id!==snapshot.workspaceId){
+  const codes=[...new Set<VerificationReasonCode>([...snapshot.incompleteReasons,'WORKSPACE_UNBOUND'])];
+  return {status:'unverifiable',snapshotId:snapshot.id,workspaceId:snapshot.workspaceId,verifiedAt:new Date().toISOString(),scope:snapshot.scope,reasons:codes.map(code=>({code,message:messages[code]}))};
+ }
+ return compareWorkspaceSnapshots(snapshot,await captureWorkspace(workspace,options));
 }
