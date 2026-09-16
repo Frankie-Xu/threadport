@@ -38,4 +38,4 @@ restoreBackup 检查备份完整性，只创建不存在的 threadport.sqlite；
 
 ## 2026-09-16 增量
 
-当前 schema 6：005 增加工作区运行占用/恢复，006 增加不可覆盖的决定修订。迁移保留已有人工任务，升级前保存一致备份；旧版本拒绝打开新 schema。对应 [运行时决策](../adr/0011-workspace-run-coordination.md)、[决定记录决策](../adr/0013-assertion-ledger.md) 与 [实际验证](../verification/remediation-progress-2026-09-16.md)。
+当前 schema 7：005 增加工作区运行占用/恢复，006 增加不可覆盖的决定修订，007 保存外层目标进程观测。搜索表达式索引实验在完整基准中退化，已撤回，未分发 schema-8 安装候选。迁移保留已有人工任务，升级前保存一致备份；旧版本拒绝打开新 schema。对应 [运行时决策](../adr/0011-workspace-run-coordination.md)、[决定记录决策](../adr/0013-assertion-ledger.md) 与 [实际验证](../verification/remediation-progress-2026-09-16.md)。

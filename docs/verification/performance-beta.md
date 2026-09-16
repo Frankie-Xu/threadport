@@ -28,3 +28,18 @@
 新增 `THREADPORT_TEST_CHROME=1 node scripts/benchmark.mjs --browser`（先 `npm run build`），可选模式在同一固定容量服务上执行100次混合查询，从按 Enter 前到收到响应、加载提示消失、结果容器可见并等待两帧计时；包含 Playwright 调度开销，是保守的可见延迟观测。失败仍返回非零；未指定 --browser 时不声称测过 UI。浏览器由 finally 关闭，服务/临时数据沿用原有清理。Ubuntu 参考平台仍缺失，性能 HOLD 不变。
 
 远端复现：Actions → Performance evidence → Run workflow。Ubuntu/Node24 使用锁定 Chromium；超预算保持失败状态，仍上传原始 JSON 和来源提交，保留14天。共享 runner 的硬件以报告为准，不能等同固定参考机或真实 Agent 认证。
+
+## 2026-09-16 整改测量与已撤回实验
+
+同一 Apple M1 / Node24.18.1，固定 200MiB、500 会话、50,000 事件、100 API 和 100 UI 查询，未改变数据、查询、阈值。两轮都未并行运行本任务的构建/测试；系统其他负载保存在原始记录中。
+
+| 版本 / 原始记录 | 索引 | API p95 | UI p95 | 峰值 RSS | 决定 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| [9a9e408 基线](performance/r08-baseline-9a9e408.json) | 26.88s | 468.30ms | 492.50ms | 258.80MiB | API 超预算 |
+| [09b51fc 表达式索引](performance/r08-folded-09b51fc.json) | 50.90s | 2387.61ms | 928.80ms | 223.28MiB | API/UI 超预算，撤回索引 |
+
+基线 SQLite 筛选 p95 458.73ms，JS 组装 p95 1.23ms。微基准曾显示表达式索引可减少 lower 计算，但完整磁盘样本没有证明改善，故删除该索引和迁移，当前仍 schema 7；见 [实验决策](../adr/0016-literal-search-expression-index.md)。不将本轮负载差异作为宣称达标的理由，也不把小样本诊断冒充容量认证。基线 IPC 的两处 listener 重复收集 storage timing，每条出现两次；API/UI 原始计时未重复。后续已修复该测量问题。
+
+其余指标逐项见 JSON：两轮 status、冷启动、增量、RSS、空闲和取消预算通过；所有超预算轮次保留，不合并重选样本。
+
+另从 [先前 Ubuntu 工作流](https://github.com/Frankie-Xu/threadport/actions/runs/34988633290) 找回遗漏的 [7f57a79 原始结果](performance/ubuntu-7f57a79.json)。Linux x64 / EPYC 4 核共享 runner / Node24.20.0：API p95 394.68ms、UI p95 427.70ms，API 未通过；索引53.24s，RSS296.62MiB。该版本早于本轮整改，不能认证当前候选，也不是固定参考机认证。发布性能 HOLD 不变。

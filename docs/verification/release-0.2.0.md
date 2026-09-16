@@ -18,4 +18,4 @@ Release Notes 草稿：实验性本地任务收件箱、历史搜索、人工修
 
 [Q01–Q24 审查索引](rc-checklist-v0.2.md) 列出自动证据与不能替代的真实门槛。当前快照版本为 0.2.0-dev.0，不冒充 alpha/RC/stable。
 
-当前 R01–R04 开发修复及 Node24 合成验证见 [整改状态](remediation-progress-2026-09-16.md)。R05–R09 仍需独立实现或真实验收；本页历史成绩不自动延伸到新提交。
+当前 R01–R08 分阶段开发修复及 Node24 合成验证见 [整改状态](remediation-progress-2026-09-16.md)。R06 内部 Agent 证据、R07 真实 CLI 复测及 R08/R09 的剩余认证仍未关闭；本页历史成绩不自动延伸到新提交。

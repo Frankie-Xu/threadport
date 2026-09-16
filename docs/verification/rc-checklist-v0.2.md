@@ -29,4 +29,4 @@
 | Q23 两平台四路径三个任务 | [未完成矩阵](agent-matrix-beta.md) | **HOLD：macOS Codex 三场景已运行，21 格未运行** |
 | Q24 安装产物 | [包脚本](../../scripts/pack-smoke.mjs)、[产物记录](package-rc.md) | dev 快照；最终 RC 尚未认证 |
 
-发布阻断：性能预算、真实 Agent/平台认证、外部用户许可与结果、最终 RC 清单及具体发布授权。许可证为仓库现有 Apache-2.0，Capsule v1 冻结，主 SQLite schema 4；新增进程协调库不存任务正文。没有以“接受 P2”为由豁免这些门槛。未确认的外部实机情况记 unknown；后续失败按所属模块建立小工作包。
+发布阻断：性能预算、真实 Agent/平台认证、外部用户许可与结果、最终 RC 清单及具体发布授权。许可证为仓库现有 Apache-2.0，Capsule v1 冻结，当前主 SQLite schema 7；后续实现与精确验证版本见 [整改状态](remediation-progress-2026-09-16.md)。原报告 36 场景附件仍缺，见 [本地查找记录](original-acceptance-search-2026-09-16.md)。没有以“接受 P2”为由豁免这些门槛。未确认的外部实机情况记 unknown；后续失败按所属模块建立小工作包。
