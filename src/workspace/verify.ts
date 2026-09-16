@@ -1,6 +1,12 @@
 import { bindingSchema, limitSchema, snapshotSchema, workspaceInput, type CaptureOptions, type VerificationReasonCode, type VerificationReport, type WorkspaceBinding, type WorkspaceSnapshot } from './contracts.js';
 import { captureWorkspace } from './snapshot.js';
 const messages:Record<VerificationReasonCode,string>={
+ SCOPE_CHANGED:'The snapshot algorithm or declared reading policy changed.',
+ SENSITIVE_EXCLUDED:'Sensitive paths were excluded before reading; capture is incomplete.',
+ SUBMODULE_UNSUPPORTED:'Submodule state is outside the supported snapshot scope.',
+ PATH_ENCODING_UNSUPPORTED:'Non-UTF8 paths or link text are not supported.',
+ SYMLINK_OUTSIDE:'A symbolic link points outside the bound workspace.',
+ SYMLINK_UNSUPPORTED:'A chained symbolic link cannot be captured safely.',
  HEAD_CHANGED:'The captured HEAD differs from the current HEAD.',
  CONTENT_CHANGED:'The tracked/index/untracked fingerprint changed at the same HEAD.',
  WORKSPACE_UNBOUND:'The snapshot does not match the explicitly bound workspace identity.',
@@ -25,9 +31,10 @@ export function compareWorkspaceSnapshots(input:WorkspaceSnapshot, observed:Work
  if(snapshot.bindingDigest!==null&&current.bindingDigest!==null&&snapshot.bindingDigest!==current.bindingDigest){
   codes.add('WORKSPACE_UNBOUND');return report('unverifiable');
  }
+ if(snapshot.algorithm!==current.algorithm||snapshot.policy!==current.policy)codes.add('SCOPE_CHANGED');
  // Incomplete captures cannot prove equivalence or attribute differences to this binding.
  if(codes.size)return report('unverifiable');
- // raw.v1 includes HEAD in its digest, so HEAD drift alone cannot prove file changes.
+ // The fingerprint includes HEAD in its digest, so HEAD drift alone cannot prove file changes.
  if(snapshot.head!==current.head)codes.add('HEAD_CHANGED');
  else if(snapshot.digest!==current.digest)codes.add('CONTENT_CHANGED');
  return report(codes.size?'drifted':'matched');

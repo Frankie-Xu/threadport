@@ -21,7 +21,7 @@ export const commandEvidenceSchema = z.object({
     status: z.enum(['matched', 'drifted', 'unverifiable']),
     snapshotId: id.nullable(), reviewSnapshotId: id,
     scope: z.literal('head-tracked-diff-untracked'),
-    reasons: z.array(z.union([snapshotReasonSchema, z.enum(['HEAD_CHANGED', 'CONTENT_CHANGED'])])),
+    reasons: z.array(z.union([snapshotReasonSchema, z.enum(['HEAD_CHANGED', 'CONTENT_CHANGED', 'SCOPE_CHANGED'])])),
   }).strict(),
   environment: z.literal('unknown'), testScope: z.literal('unknown'),
   reasons: z.array(z.enum([
