@@ -10,4 +10,6 @@
 - [x] Integrate start/spawn/finish in `src/targets/launch.ts`; retain unknown workspace reservations on evidence-persistence ambiguity.
 - [x] Project observations through `src/handoff/evidence.ts` and `src/handoff/prepare.ts`; unknown or incomplete environment never becomes current.
 - [x] Actual-process regression: approved Node fixture executes, observation saves pre/post snapshot, a later file edit makes the historical result stale. Crash/missing completion stays unverified; null count stays null.
-- [ ] Validate migration failure rollback, full checks and Node24 final candidate installation; document outer-process scope before pushing.
+- [x] Validate migration failure rollback, full checks and Node24 final candidate installation; document outer-process scope before pushing.
+
+Final Node24 verification: clean commit `44a23b5`, 432 tests, 7 browser workflows and the 217-file isolated installed package passed. See the remediation evidence record for limits and exact artifact digest.

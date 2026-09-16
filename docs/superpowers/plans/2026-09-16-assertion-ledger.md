@@ -43,4 +43,6 @@ Files: `web/src/features/task/assertions.tsx`, `web/src/features/task/detail.tsx
 - [x] Add labeled topic/type/scope/text/confirmation controls, candidate/confirmed/superseded history, explicit replacement selection, conflict messages and source-unavailable labels.
 - [x] Retain a failed/conflicting draft; refresh the baseline only on explicit user action and require another save.
 - [x] Browser scenario creates two conflicting decisions, sees preparation blocked, explicitly replaces both, and confirms only the replacement enters current decisions. Exercise concurrent draft preservation.
-- [ ] Run full checks, Node24 browser and installed-package validation; record exact tested commit and publish verified commits. R06–R09 remain individually tracked; implement subsequent packages without inventing external certification.
+- [x] Run full checks, Node24 browser and installed-package validation; record exact tested commit and publish verified commits. R06–R09 remain individually tracked; implement subsequent packages without inventing external certification.
+
+Final Node24 verification: clean commit `44a23b5`, 432 tests, 7 browser workflows and the 217-file isolated installed package passed. See the remediation evidence record for limits and exact artifact digest.

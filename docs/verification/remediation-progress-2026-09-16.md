@@ -45,7 +45,7 @@ R04 的文件名策略不识别任意源码中的秘密。Git-ignored 内容不�
 
 交接编译只采用适用范围内的有效确认；候选另列。未解决冲突或未知适用性阻止生成交接，每次条目修改同步推进任务版本使旧预览失效。工作台可从历史证据起草、明确替代、查看历史；并发保存失败可保留草稿并显式刷新基准。不是自由文本语义矛盾识别器。
 
-数据库为 **schema 6**，迁移 006 增加 assertion revisions，旧 schema-5 程序不能打开。已加入 schema-5 升级失败回滚、不可覆盖历史和来源丢失回归。新浏览器用例曾因预填文本影响隐式表单标签定位失败，已改为显式标签关联并通过替代/并发草稿流程；最终 Node24 与安装证据随验证提交补充。
+数据库为 **schema 6**，迁移 006 增加 assertion revisions，旧 schema-5 程序不能打开。已加入 schema-5 升级失败回滚、不可覆盖历史和来源丢失回归。新浏览器用例曾因预填文本影响隐式表单标签定位失败，已改为显式标签关联并通过替代/并发草稿流程；最终 Node24 与安装验证见下方本轮汇总。
 
 ## R06：可观测进程的证据生产
 
@@ -66,6 +66,21 @@ R04 的文件名策略不识别任意源码中的秘密。Git-ignored 内容不�
 [ADR 0016](../adr/0016-literal-search-expression-index.md) 记录表达式索引实验及撤回决定，生产查询和 schema 7 保持原状。精确基线 `9a9e408` 的 API p95 468.30ms、UI p95 492.50ms，API 未达标；数据库筛选占主要耗时。该失败轮次原始数据保留在 [性能记录](performance-beta.md)，不以微基准代替完整复测。
 
 按用户“你找找”的要求查找原始 36 场景，结果见 [本地查找记录](original-acceptance-search-2026-09-16.md)。Downloads、Desktop、当前/旧项目及 Spotlight 相关文件均未找到附件；研究 ZIP 是另一份评估资料。原规格继续未评估，不能以现有测试数量补造映射。
+
+## 本轮最终候选验证与推送
+
+精确测试对象 **`44a23b5b4e5f4b6b876223d42ef202d3fd13c222`**，干净独立检出，macOS arm64 / Node **24.18.1**；源码、浏览器、安装测试顺序完成，未与性能测试并行。以下清单作为后续纯证据提交保存，不冒称已包含在被测包内。
+
+| 检查 | 结果 |
+| --- | --- |
+| `npm run check` | 类型、构建、**67 文件 / 432 测试通过**；289 个本地文档目标通过 |
+| `THREADPORT_TEST_CHROME=1 npm run test:e2e` | **7 项通过**，含决定冲突、明确替代、并发草稿恢复 |
+| `THREADPORT_TEST_CHROME=1 npm run test:package` | **217 文件**；隔离安装、公开导出、SQLite、CLI、工作区、Cursor roundtrip、安装后浏览器编辑/持久化/loopback 通过 |
+| 安装包 SHA-256 | `6be949ba572a450151db04c3a688ae1a36ffbe520ce26ad6a29b82ece85410a6` |
+
+[原始产物清单](packages/r05-r08-node24.json) 记录精确提交、trackedChanges=false、Node/平台、文件列表和 installedBrowser=true。本地产物为 `/tmp/threadport-r05-r08-node24-artifacts/threadport-0.2.0-dev.0.tgz`；临时目录不是长期制品仓库。该候选为 schema 7，包含 R05/R06/R07 修复；schema-8 搜索实验已删除。
+
+本轮提交推送至用户已授权的 `codex/r04-evidence-applicability` 分支。没有合并或发布，也没有将用户原有无关工作纳入提交。当前候选未执行 Ubuntu 源码/安装认证或真实 Agent 重测；历史 Ubuntu 性能证据只认证其记录的旧提交。
 
 ## 尚未关闭的整改项
 
