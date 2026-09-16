@@ -68,6 +68,7 @@ const messages: Record<string, string> = {
   NETWORK_ERROR:
     "The local service is unavailable. Check your terminal and try again.",
   UNAUTHORIZED: "Reopen the current terminal link to reconnect.",
+  NEXT_ACTION_REVIEW_REQUIRED: "Edit the next action and confirm a portable command or relative path. Redacted placeholders cannot be executed.",
   ASSERTION_CONFLICT: "Resolve conflicting decisions or unknown applicability in Decisions and constraints before continuing.",
   INVALID_INPUT: "Check the fields and try again.",
   CONTEXT_BUDGET_EXCEEDED:

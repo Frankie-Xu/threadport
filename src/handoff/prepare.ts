@@ -20,6 +20,8 @@ export class HandoffService {
  async prepareHandoff(input:PrepareInput):Promise<TaskHandoff>{
   const parsed=prepareSchema.safeParse(input);if(!parsed.success)throw new DomainError('INVALID_INPUT','Invalid preparation fields.');const args=parsed.data;
   const context=this.store.readTaskContext(args.taskId);const workspace=this.store.getWorkspace(args.workspaceId);const source=this.store.handoffStore().source(args.sourceSessionId);
+  const nextAction=context.task.nextAction.text;
+  if(publicText(nextAction)!==nextAction||/external\/[a-f0-9]{24}|\[REDACTED/i.test(nextAction))throw new DomainError('NEXT_ACTION_REVIEW_REQUIRED','The next action contains rewritten paths or credentials. Review and save a portable replacement before preparing.');
   if(!workspace||!source||!context.sessionIds.includes(args.sourceSessionId))throw new DomainError('NOT_FOUND','Select an attached source and bound workspace.');
   if(workspace.projectId!==context.task.projectId||source.projectId!==context.task.projectId)throw new DomainError('PROJECT_MISMATCH','Source, task and workspace must share a project.');
   if(!['ready','partial'].includes(source.status))throw new DomainError('INVALID_INPUT','Source evidence is unavailable.');
