@@ -33,6 +33,12 @@ it('hashes internal link text and rejects external links without reading their t
  await symlink(target,join(root,'outside'),'file');reads.paths=[];
  expect(await captureWorkspace(binding)).toMatchObject({digest:null,incompleteReasons:['SYMLINK_OUTSIDE']});expect(reads.paths).not.toContain(target);expect(reads.paths).not.toContain(join(root,'outside'));
 },30000);
+it('retains a dangling internal leaf link as link metadata',async()=>{
+ const root=await realpath(await project());await symlink('missing.txt',join(root,'dangling'),'file');
+ const snapshot=await captureWorkspace({id:'w',projectId:'p',canonicalRoot:root});
+ expect(snapshot.digest).not.toBeNull();expect(snapshot.incompleteReasons).toEqual([]);
+ expect(reads.paths).not.toContain(join(root,'missing.txt'));
+},30000);
 it('classifies an external directory link before opening tracked descendants',async()=>{
  const root=await realpath(await project()),outside=await temporary();
  await mkdir(join(root,'linked'));await writeFile(join(root,'linked','tracked.txt'),'SYNTHETIC_PRIVATE_CONTENT');git(root,'add','.');git(root,'commit','-m','linked');

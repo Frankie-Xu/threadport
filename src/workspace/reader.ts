@@ -66,7 +66,13 @@ async function safePath(root:string,path:string):Promise<{absolute:string;info:A
    // appear as directories. Resolve only to classify the boundary; never read
    // through the link while checking a tracked descendant.
    let resolved:string;
-   try{resolved=await realpath(current);}catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')fail('READ_FAILED');throw error;}
+   try{resolved=await realpath(current);}catch(error){
+    // A dangling leaf link is still safely representable by its link text;
+    // descendants cannot be traversed without resolving the ancestor.
+    if((error as NodeJS.ErrnoException).code==='ENOENT'&&index===parts.length-1)return {absolute,info};
+    if((error as NodeJS.ErrnoException).code==='ENOENT')fail('READ_FAILED');
+    throw error;
+   }
    if(!inside(root,resolved))fail('SYMLINK_OUTSIDE');
    if(index<parts.length-1)fail('SYMLINK_UNSUPPORTED');
   }
