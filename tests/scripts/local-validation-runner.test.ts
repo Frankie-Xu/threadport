@@ -23,6 +23,7 @@ describe('local validation runner', () => {
       runtime: { node: 'v24.18.1', npm: '11.6.0', platform: 'darwin', arch: 'arm64' },
       steps: [baseStep('pass')],
       probes: { chrome: true, docker: true },
+      writeReport: async () => {},
       execute: async (step) => {
         calls.push(step);
         return { status: 'passed', exitCode: 0, stdout: 'ok\n', stderr: '' } satisfies CommandResult;
@@ -81,6 +82,7 @@ describe('local validation runner', () => {
         { ...baseStep('docker'), requires: 'docker' },
       ],
       probes: { chrome: false, docker: false },
+      writeReport: async () => {},
       execute: async (step) => {
         calls.push(step.id);
         return { status: 'passed', exitCode: 0, stdout: '', stderr: '' };
