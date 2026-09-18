@@ -62,7 +62,14 @@ export function ExportReview({
           </select>
         </label>
       )}
-      <ErrorNotice error={action.error} focus />
+      <ErrorNotice
+        error={action.error}
+        focus
+        onRecovery={() => {
+          action.setError(null);
+          setTick((n) => n + 1);
+        }}
+      />
       {!preview && !action.error && <p role="status">Preparing export…</p>}
       {preview && (
         <>

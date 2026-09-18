@@ -8,7 +8,7 @@ const servers:{close():Promise<void>}[]=[];afterEach(async()=>{for(const server 
 async function setup(){const dataDir=await temporary();const server=await startLocalServer({dataDir});servers.push(server);return{dataDir,server,async api(path:string,method='GET',body?:unknown){const response=await fetch(server.origin+'/api/v1'+path,{method,headers:{authorization:`Bearer ${server.token}`,...(method!=='GET'?{'content-type':'application/json'}:{})},body:body===undefined?undefined:JSON.stringify(body)});return{status:response.status,body:await response.json()};}};}
 it('creates explicit bindings and tasks with conflict-safe editing, filtering and strict inputs',async()=>{
  const {api}=await setup();const root=await project();
- expect((await api('/workspaces','POST',{root,confirmBinding:false})).status).toBe(400);
+ const invalid=await api('/workspaces','POST',{root,confirmBinding:false});expect(invalid.status).toBe(400);expect(invalid.body.error).toMatchObject({code:'INVALID_INPUT',retryable:false,recovery:'none'});
  const workspace=await api('/workspaces','POST',{root,confirmBinding:true});expect(workspace.status).toBe(201);
  const task=await api('/tasks','POST',{projectId:workspace.body.data.projectId,title:'Manual task'});expect(task.status).toBe(201);
  const id=task.body.data.id;
@@ -45,7 +45,7 @@ it('validates task pagination and cancels jobs using a bodyless authenticated DE
  const first=await api('/tasks?limit=1');expect(first.body.nextCursor).toBeTruthy();
  expect((await api('/tasks?limit=1&cursor='+first.body.nextCursor)).body.data).toHaveLength(1);
  await api('/tasks','POST',{projectId:workspace.body.data.projectId,title:'Three'});
- expect((await api('/tasks?limit=1&cursor='+first.body.nextCursor)).status).toBe(409);
+ const stale=await api('/tasks?limit=1&cursor='+first.body.nextCursor);expect(stale.status).toBe(409);expect(stale.body.error).toMatchObject({code:'SEARCH_STALE',retryable:true,recovery:'retry'});
  const source=await api('/sources','POST',{agent:'claude',root:await temporary()});
  const job=await api('/index-jobs','POST',{sourceIds:[source.body.data.id]});
  expect((await api('/index-jobs/'+job.body.data.jobId,'DELETE')).status).toBe(200);

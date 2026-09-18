@@ -1,21 +1,43 @@
 import { usePage } from "./api.js";
+import { ApiError, type RecoveryAction } from "./api.js";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 export function ErrorNotice({
   error,
   focus = false,
+  onRecovery,
 }: {
   error?: Error | null;
   focus?: boolean;
+  onRecovery?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (error && focus) ref.current?.focus();
   }, [error, focus]);
-  return error ? (
+  if (!error) return null;
+  const recovery = error instanceof ApiError ? error.recovery : "none";
+  const labels: Record<RecoveryAction, string> = {
+    reconnect: "Reconnect",
+    retry: "Try again",
+    refresh: "Refresh",
+    "edit-and-save": "Review and save",
+    "review-path": "Review path",
+    "export-only": "Export instead",
+    none: "",
+  };
+  const recover = onRecovery ?? ((recovery === "reconnect" || recovery === "refresh" || recovery === "retry")
+    ? () => window.location.reload()
+    : undefined);
+  return (
     <div className="notice error" role="alert" tabIndex={-1} ref={ref}>
-      {error.message}
+      <div>{error.message}</div>
+      {recovery !== "none" && recover && (
+        <button type="button" className="quiet" onClick={recover}>
+          {labels[recovery]}
+        </button>
+      )}
     </div>
-  ) : null;
+  );
 }
 export function useAction() {
   const guard = useRef(false);

@@ -64,6 +64,14 @@ export interface Page<T> {
   data: T[];
   nextCursor: string | null;
 }
+export type RecoveryAction =
+  | "reconnect"
+  | "retry"
+  | "refresh"
+  | "edit-and-save"
+  | "review-path"
+  | "export-only"
+  | "none";
 const messages: Record<string, string> = {
   NETWORK_ERROR:
     "The local service is unavailable. Check your terminal and try again.",
@@ -87,9 +95,27 @@ export class ApiError extends Error {
   constructor(
     readonly code: string,
     readonly status = 0,
+    readonly retryable = false,
+    readonly recovery: RecoveryAction = recoveryFor(code),
+    message?: string,
   ) {
-    super(messages[code] ?? "The operation could not be completed. Try again.");
+    super(message ?? messages[code] ?? "The operation could not be completed. Try again.");
+    this.name = "ApiError";
   }
+}
+function recoveryFor(code: string): RecoveryAction {
+  if (code === "NETWORK_ERROR" || code === "UNAUTHORIZED" || code === "UNAVAILABLE") return "reconnect";
+  if (code === "STORAGE_BUSY" || code === "SEARCH_STALE") return "retry";
+  if (code === "REVISION_CONFLICT" || code === "NOT_FOUND") return "refresh";
+  if (code === "REDACTION_REQUIRED" || code === "IO_FAILED") return "review-path";
+  if (code === "CONTEXT_BUDGET_EXCEEDED" || code === "ASSERTION_CONFLICT" || code === "NEXT_ACTION_REVIEW_REQUIRED") return "edit-and-save";
+  if (code === "TARGET_UNSUPPORTED") return "export-only";
+  return "none";
+}
+function retryableFor(code: string, value?: unknown): boolean {
+  return typeof value === "boolean"
+    ? value
+    : code === "NETWORK_ERROR" || code === "STORAGE_BUSY" || code === "SEARCH_STALE";
 }
 export interface ApiClient {
   onExpired?: () => void;
@@ -102,26 +128,41 @@ export interface ApiClient {
   ): Promise<T>;
 }
 function createApi(token: string): ApiClient {
+  async function responseError(response: Response): Promise<ApiError> {
+    let value: { error?: { code?: unknown; message?: unknown; retryable?: unknown; recovery?: unknown } } | undefined;
+    try { value = await response.json(); } catch { /* Safe fallback. */ }
+    const code = typeof value?.error?.code === "string"
+      ? value.error.code
+      : response.status === 401 ? "UNAUTHORIZED" : response.status === 503 ? "STORAGE_BUSY" : "REQUEST_FAILED";
+    if (response.status === 401) api.onExpired?.();
+    const retryable = retryableFor(code, value?.error?.retryable);
+    const recovery = typeof value?.error?.recovery === "string"
+      ? value.error.recovery as RecoveryAction
+      : recoveryFor(code);
+    const message = typeof value?.error?.message === "string" ? value.error.message : undefined;
+    return new ApiError(code, response.status, retryable, recovery, message);
+  }
   const api: ApiClient = {
     async exportText(id, format) {
-      const response = await fetch(
-        "/api/v1/handoffs/" + encodeURIComponent(id) + "/export",
-        {
-          method: "POST",
-          headers: {
-            authorization: "Bearer " + token,
-            "content-type": "application/json",
+      let response: Response;
+      try {
+        response = await fetch(
+          "/api/v1/handoffs/" + encodeURIComponent(id) + "/export",
+          {
+            method: "POST",
+            headers: {
+              authorization: "Bearer " + token,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ format }),
+            cache: "no-store",
           },
-          body: JSON.stringify({ format }),
-          cache: "no-store",
-        },
-      );
-      if (!response.ok) {
-        if (response.status === 401) api.onExpired?.();
-        throw new ApiError(
-          response.status === 401 ? "UNAUTHORIZED" : "REQUEST_FAILED",
-          response.status,
         );
+      } catch {
+        throw new ApiError("NETWORK_ERROR");
+      }
+      if (!response.ok) {
+        throw await responseError(response);
       }
       return response.text();
     },
@@ -148,15 +189,7 @@ function createApi(token: string): ApiClient {
         throw new ApiError("NETWORK_ERROR");
       }
       if (!response.ok) {
-        let code = "REQUEST_FAILED";
-        try {
-          const value = await response.json();
-          if (typeof value?.error?.code === "string") code = value.error.code;
-        } catch {
-          /* Safe fallback. */
-        }
-        if (response.status === 401) api.onExpired?.();
-        throw new ApiError(code, response.status);
+        throw await responseError(response);
       }
       return response.json() as Promise<T>;
     },
