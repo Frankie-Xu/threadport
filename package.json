@@ -59,6 +59,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json",
     "check:pack": "node scripts/pack-smoke.mjs",
     "check:env": "node scripts/local-environment-check.mjs --json",
+    "check:local": "node scripts/local-validation-runner.mjs",
     "test": "vitest run",
     "check": "npm run typecheck && npm run build && npm test && npm run check:docs",
     "check:docs": "node scripts/check-doc-links.mjs",

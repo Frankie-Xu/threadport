@@ -159,3 +159,30 @@ env PATH="/opt/homebrew/opt/node@24/bin:$PATH" THREADPORT_TEST_CHROME=1 \
 
 - 本计划覆盖源码、浏览器、安装包、Linux 用户态、Windows 契约仿真、容量测量和证据收口。
 - 计划不扩大产品支持声明，不修改 schema，不把外部依赖伪装成本地结果。
+
+---
+
+### Task 7: 可重复的一键本地验证执行器
+
+**Files:**
+- Create: `scripts/local-validation-runner.mjs`
+- Create: `scripts/local-validation-runner.d.mts`
+- Create: `tests/scripts/local-validation-runner.test.ts`
+- Modify: `package.json`
+- Evidence: `docs/verification/local-validation-YYYY-MM-DD.json`
+
+- [x] **Step 1: 以 argv 方式定义验证矩阵**
+
+`npm run check:local` 依次执行源码回归、浏览器流程、隔离安装包和 Node 24 Docker 检查。所有子进程均通过 `spawn(..., { shell: false })` 启动；命令参数作为数组保存，避免把路径、测试文本或环境变量拼进 shell。
+
+- [x] **Step 2: 自动探测并安全跳过外部工具**
+
+没有 Chrome 时将浏览器与安装包步骤记为 `skipped`，没有 Docker 时将 Linux 容器步骤记为 `skipped`。跳过不等同通过，报告保留明确的 `skipReason`，而且不会阻断其他本地步骤。
+
+- [x] **Step 3: 失败也保留完整机器可读报告**
+
+每步记录命令 argv、状态、退出码、开始/结束时间、stdout/stderr SHA-256 摘要和错误/跳过原因；报告绑定 `candidateSha`、工作树状态摘要和运行时版本。任一步失败时执行器继续收集后续步骤、写出报告并以非零退出码结束。
+
+- [x] **Step 4: 可注入测试与证据**
+
+`tests/scripts/local-validation-runner.test.ts` 使用注入的执行器和工具探测覆盖 pass、fail、skip 三种结果，断言失败报告仍写出、后续步骤仍记录、跳过原因明确且没有 shell 执行。真实运行结果写入 `docs/verification/local-validation-YYYY-MM-DD.json`；报告仅含摘要和 digest，不写入日志正文、令牌或本机绝对路径。
