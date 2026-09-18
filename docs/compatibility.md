@@ -7,12 +7,12 @@ T13 核对 CLI 版本和参数接口，不把命令存在、help 匹配或进程
 | Agent / 版本 | 参数证据平台 | new-session | native-resume + 当前上下文 | 实际接续认证 |
 | --- | --- | --- | --- | --- |
 | Claude Code 2.1.270 | macOS arm64；官方 npm @anthropic-ai/claude-code，临时隔离安装 | `["--", prompt]` | `["--resume", vendorUuid, "--", prompt]` | 尚未完成；T14/T18 |
-| Codex 0.154.0-alpha.6.2 | macOS arm64；当前 Codex CLI | `["--cd", root, "--", prompt]` | `["resume", "--cd", root, "--", vendorUuid, prompt]` | 尚未完成；T14/T18 |
+| Codex 0.154.0-alpha.6.2 / 0.155.0-alpha.9 | macOS arm64；当前 Codex CLI | `["--cd", root, "--", prompt]` | `["resume", "--cd", root, "--", vendorUuid, prompt]` | 尚未完成；T14/T18 |
 | 其他版本或帮助不匹配 | 不推断兼容 | export-only | export-only | 不宣称通过 |
 
 两种模式 input 均为 argv，完整 prompt 只放一个参数，stdin 留给交互终端；原生 session UUID 来自选定来源，由 T14 从已确认的私有记录读取。没有 prompt-file 假设、shell 拼接、--print、权限绕过、自动认证或原生恢复丢弃人工目标的降级。
 
-2026-09-15 实际只运行 --version/--help（Codex 加 resume --help），未启动真实会话。Claude 帮助的 Usage 包含 `[options] [command] [prompt]` 和 `--resume [value]`。Codex 包含 `[OPTIONS] [PROMPT]`、resume 的 `[SESSION_ID] [PROMPT]` 及 `--cd <DIR>`。实际 detector 对两端返回 installed=true、nativeResume=true、newSessionWithContext=true、auth=unknown；这些布尔值表示匹配了已核对的接口，不表示登录或接续实验成功。Claude 临时安装不会加入用户系统 PATH。
+2026-09-15 实际只运行 --version/--help（Codex 加 resume --help），未启动真实会话。Claude 帮助的 Usage 包含 `[options] [command] [prompt]` 和 `--resume [value]`。Codex 0.154.0-alpha.6.2 与 0.155.0-alpha.9 均核对了 `[OPTIONS] [PROMPT]`、resume 的 `[SESSION_ID] [PROMPT]` 及 `--cd <DIR>`。实际 detector 对已匹配版本返回 installed=true、nativeResume=true、newSessionWithContext=true、auth=unknown；这些布尔值表示匹配了已核对的接口，不表示登录或接续实验成功。Claude 临时安装不会加入用户系统 PATH。
 
 原始帮助输出 SHA-256（用于审计本次参数证据，不要求未来版本文本逐字一致）：
 

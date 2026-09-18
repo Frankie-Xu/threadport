@@ -42,3 +42,7 @@
 第一场景的绝对 Node 命令被预览脱敏为 external 引用，首次运行 exit127；Agent用 node 回退成功，独立 Node24 重跑成功。这项准备问题明确保留，不能写为首次零失败；后两场景在确认前改为可移植命令。Agent登录shell可使用其配置的Node，ThreadPort运行时与最终独立复核均为Node24。
 
 没有新增 bypass 参数或修改全局权限；继承当前账号配置，仅对本次自行创建、已核验的三个 fixture 目录接受信任提示。真实源索引仍报告 partial/unknown 事件，未宣称完整解析该版本所有事件。没有提交原始日志、会话UUID、临时私人路径或认证材料。此为开发代理观察，外部用户验证排除；Claude/cross-Agent/Ubuntu仍需真实环境，矩阵总门槛 HOLD。
+
+## 2026-09-19 当前 Codex 接口探测
+
+在候选工作树上对本机 `codex-cli 0.155.0-alpha.9` 仅执行 `--version`、`--help` 和 `resume --help`。帮助文本匹配 `--cd <DIR>`、`resume [SESSION_ID] [PROMPT]`，因此运行时能力探测返回 `installed=true`、`newSessionWithContext=true`、`nativeResume=true`、`auth=unknown`。这更新了可探测的接口版本白名单，但没有运行真实会话，也没有把任意 exit 0 或帮助匹配写成接续通过；24 格矩阵和真实 Codex 证据状态保持 HOLD。
