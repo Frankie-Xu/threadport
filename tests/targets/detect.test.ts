@@ -9,8 +9,9 @@ const RESUME_HELP = 'Usage: codex resume [OPTIONS] [SESSION_ID] [PROMPT]\nOption
 
 async function fakeCodexRoot() {
   const root = await mkdtemp(join(tmpdir(), 'threadport-target-detect-'));
-  await writeFile(join(root, 'codex'), 'synthetic executable');
-  await chmod(join(root, 'codex'), 0o755);
+  const executable = join(root, process.platform === 'win32' ? 'codex.exe' : 'codex');
+  await writeFile(executable, 'synthetic executable');
+  await chmod(executable, 0o755);
   return root;
 }
 
