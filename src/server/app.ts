@@ -23,7 +23,7 @@ export function createLocalApp(store:Pick<SqliteStore,'statusCounts'|'close'>,in
   if(error instanceof ZodError)return fail(reply,request,400,'INVALID_INPUT','Invalid request fields.');
   if(error instanceof DomainError){
    const statuses:Partial<Record<DomainError['code'],number>>={INVALID_INPUT:400,NOT_FOUND:404,REVISION_CONFLICT:409,PROJECT_MISMATCH:409,SEARCH_STALE:409,REDACTION_REQUIRED:422,STORAGE_BUSY:503,INDEX_LIMIT:409,TARGET_UNSUPPORTED:422,CONTEXT_BUDGET_EXCEEDED:422,WORKSPACE_BUSY:409,LAUNCH_STATE_UNKNOWN:409,ASSERTION_CONFLICT:409,NEXT_ACTION_REVIEW_REQUIRED:422};
-   return reply.code(statuses[error.code]??500).send({error:{...errorBody(error.code,'The operation could not be completed.',error.retryable),requestId:request.id}});
+   return reply.code(statuses[error.code]??500).send({error:{...errorBody(error.code,error.message,error.retryable),requestId:request.id}});
   }
   const code=(error as FastifyError).statusCode;
   const status=typeof code==='number'&&code>=400&&code<500?code:500;
