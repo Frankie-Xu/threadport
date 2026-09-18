@@ -22,4 +22,4 @@ Release Notes 草稿：实验性本地任务收件箱、历史搜索、人工修
 
 ## 2026-09-18 候选复核
 
-候选工作树最新提交为 `d45ee9a`；代码修复提交为 `6db8c71`，其后仅追加候选绑定性能原始证据与文档。`npm run check` 已通过（440 个测试），浏览器流程 7/7 通过，隔离安装包检查 217 个文件通过。固定容量性能证据绑定 `6db8c71`，Node 26/macOS API p95 为 324.85ms，R08 仍为 HOLD；这不是 Node 24/Ubuntu 的发布认证。Windows Node 24、真实 Claude/Codex 接续、原始 36 项规格和外部用户观察仍保持未验证或 unavailable，不能解除发布 HOLD。
+候选工作树最新提交为 `e608372`；代码修复提交为 `6db8c71`，其后仅追加候选绑定性能原始证据与文档。`npm run check` 已通过（440 个测试），浏览器流程 7/7 通过，隔离安装包检查 217 个文件通过。固定容量性能证据绑定 `6db8c71`，Node 26/macOS API p95 为 324.85ms，R08 仍为 HOLD；这不是 Node 24/Ubuntu 的发布认证。Windows Node 24、真实 Claude/Codex 接续、原始 36 项规格和外部用户观察仍保持未验证或 unavailable，不能解除发布 HOLD。
