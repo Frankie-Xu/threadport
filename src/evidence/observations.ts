@@ -71,6 +71,7 @@ export const innerEvidenceSchema=z.object({
    'NO_STRUCTURED_RESULT','PENDING_TOOL','INTERRUPTED','PARTIAL_LOG','RESULT_UNKNOWN',
    'SNAPSHOT_MISSING','SNAPSHOT_UNVERIFIABLE','NATIVE_IMPORT_UNBOUND','WORKSPACE_CHANGED',
    'ENVIRONMENT_UNKNOWN','EXECUTION_WORKSPACE_CHANGED',
+   'EVENT_MISMATCH','KIND_MISMATCH','SNAPSHOT_WORKSPACE_MISMATCH','DUPLICATE_EVENT',
  ])),
  observation:innerObservationSchema.nullable(),
 }).strict();
@@ -81,13 +82,14 @@ export type InnerEvidenceReason=InnerAgentEvidence['reasons'][number];
 
 /** Produce an explicit unknown record when a hook/export did not provide a result. */
 export function unknownInnerEvidence(
- eventId:string, kind:'command'|'test', reason:InnerEvidenceReason='NO_STRUCTURED_RESULT',
+ eventId:string, kind:'command'|'test', reason:InnerEvidenceReason|readonly InnerEvidenceReason[]='NO_STRUCTURED_RESULT',
 ):InnerAgentEvidence{
+ const reasons=[...new Set(Array.isArray(reason)?reason:[reason])];
  return innerEvidenceSchema.parse({
   protocol:'threadport.inner-agent-evidence.v1',eventId,kind,sourceProtocol:null,
   resultStatus:'unknown',exitCode:null,applicability:'unverified',
   workspace:{status:'unverifiable',beforeSnapshotId:null,afterSnapshotId:null},
-  environment:{scope:null,digest:null,complete:false},reasons:[reason],observation:null,
+  environment:{scope:null,digest:null,complete:false},reasons,observation:null,
  });
 }
 
@@ -97,6 +99,9 @@ export interface InnerObservationContext {
  before:WorkspaceSnapshot|null;
  /** Snapshot captured after the Agent command/test, when available. */
  after:WorkspaceSnapshot|null;
+ /** Expected outer event identity, when evaluating a result attached to an event. */
+ eventId?:string;
+ kind?:'command'|'test';
 }
 
 function innerUnknownReason(value:InnerAgentObservation):InnerEvidenceReason {
@@ -118,6 +123,14 @@ export function evaluateInnerObservation(value:InnerAgentObservation, context:In
   status:'unverifiable' as 'matched'|'drifted'|'unverifiable',
   beforeSnapshotId:value.workspace.beforeSnapshotId,afterSnapshotId:value.workspace.afterSnapshotId,
  };
+ if(context.eventId!==undefined&&value.eventId!==context.eventId)reasons.push('EVENT_MISMATCH');
+ if(context.kind!==undefined&&value.kind!==context.kind)reasons.push('KIND_MISMATCH');
+ const workspaceId=context.current.workspaceId;
+ const beforeWorkspaceMismatch=context.before!==null&&context.before.workspaceId!==workspaceId;
+ const afterWorkspaceMismatch=context.after!==null&&context.after.workspaceId!==workspaceId;
+ if(beforeWorkspaceMismatch||afterWorkspaceMismatch||(
+   context.before!==null&&context.after!==null&&context.before.workspaceId!==context.after.workspaceId
+ ))reasons.push('SNAPSHOT_WORKSPACE_MISMATCH');
  if(value.status==='pending'||value.status==='running'||value.status==='interrupted'||value.status==='unknown'||!value.startedAt||!value.completedAt||!value.workspace.afterSnapshotId){
   reasons.push(innerUnknownReason(value));
  }
@@ -125,14 +138,14 @@ export function evaluateInnerObservation(value:InnerAgentObservation, context:In
   reasons.push(value.source.origin==='native-import'?'NATIVE_IMPORT_UNBOUND':'SNAPSHOT_MISSING');
  } else if(context.before.id!==value.workspace.beforeSnapshotId){
   reasons.push('SNAPSHOT_UNVERIFIABLE');
- } else {
+ } else if(!beforeWorkspaceMismatch) {
   const review=compareWorkspaceSnapshots(context.before,context.current);
   workspace.status=review.status;
   if(review.status==='drifted')reasons.push('WORKSPACE_CHANGED');
   if(review.status==='unverifiable')reasons.push('SNAPSHOT_UNVERIFIABLE');
  }
  if(value.workspace.afterSnapshotId&&!context.after)reasons.push('SNAPSHOT_UNVERIFIABLE');
- if(context.before&&context.after&&value.workspace.beforeSnapshotId===context.before.id&&value.workspace.afterSnapshotId===context.after.id){
+ if(context.before&&context.after&&value.workspace.beforeSnapshotId===context.before.id&&value.workspace.afterSnapshotId===context.after.id&&!beforeWorkspaceMismatch&&!afterWorkspaceMismatch){
   const during=compareWorkspaceSnapshots(context.before,context.after);
   if(during.status!=='matched')reasons.push(during.status==='drifted'?'EXECUTION_WORKSPACE_CHANGED':'SNAPSHOT_UNVERIFIABLE');
  }
@@ -141,13 +154,14 @@ export function evaluateInnerObservation(value:InnerAgentObservation, context:In
  }
  const uniqueReasons=[...new Set(reasons)];
  let applicability:InnerAgentEvidence['applicability'];
- if(value.source.origin==='native-import'&&(!value.workspace.beforeSnapshotId||!context.before)) applicability='unknown';
+ if(uniqueReasons.some(reason=>['EVENT_MISMATCH','KIND_MISMATCH','DUPLICATE_EVENT'].includes(reason))) applicability='unverified';
+ else if(value.source.origin==='native-import'&&(!value.workspace.beforeSnapshotId||!context.before)) applicability='unknown';
  else if(uniqueReasons.some(reason=>['PENDING_TOOL','INTERRUPTED','PARTIAL_LOG','RESULT_UNKNOWN'].includes(reason))) applicability='unverified';
  else if(uniqueReasons.includes('WORKSPACE_CHANGED')||uniqueReasons.includes('EXECUTION_WORKSPACE_CHANGED')) applicability='stale';
  else if(uniqueReasons.length) applicability='unknown';
  else applicability='current';
  return innerEvidenceSchema.parse({
-  protocol:'threadport.inner-agent-evidence.v1',eventId:value.eventId,kind:value.kind,
+  protocol:'threadport.inner-agent-evidence.v1',eventId:context.eventId??value.eventId,kind:context.kind??value.kind,
   sourceProtocol:value.source.protocol,resultStatus:value.status,exitCode:value.exitCode,
   applicability,workspace,environment:value.environment,reasons:uniqueReasons,observation:value,
  });

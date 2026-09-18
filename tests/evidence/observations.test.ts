@@ -73,3 +73,45 @@ it('marks a process that changed its own workspace unverified even when it exite
   expect(f.store.getSnapshot(observation.beforeSnapshotId)).not.toBeNull();expect(f.store.getSnapshot(observation.afterSnapshotId!)).not.toBeNull();expect(f.store.observationStore().plan(observation.id)).toBeNull();
  }finally{f.store.close();}
 },30000);
+
+it('rejects inner results whose event identity or kind does not match the outer event',async()=>{
+ const f=await fixture();try{
+  const snapshot=await captureWorkspace({id:'w',projectId:'p',canonicalRoot:f.root});
+  const result={
+   protocol:'threadport.inner-agent-observation.v1',source:{protocol:'vendor.hook.v1',agent:'codex',version:'1',origin:'agent-hook'},
+   eventId:'vendor-event',kind:'test' as const,command:null,status:'passed' as const,exitCode:0,
+   startedAt:'2026-09-18T00:00:00.000Z',completedAt:'2026-09-18T00:00:01.000Z',
+   workspace:{beforeSnapshotId:snapshot.id,afterSnapshotId:snapshot.id,scope:'head-tracked-diff-untracked' as const},
+   environment:{scope:'agent-runtime.v1',digest:'a'.repeat(64),complete:true},
+  };
+  const prepared=prepareInnerEvidence([{eventId:'outer-event',kind:'command',result}],snapshot,id=>id===snapshot.id?snapshot:null);
+  expect(prepared.byEvent.get('outer-event')).toMatchObject({applicability:'unverified',reasons:['EVENT_MISMATCH','KIND_MISMATCH'],observation:null});
+  const direct=evaluateInnerObservation(innerObservationSchema.parse(result),{current:snapshot,before:snapshot,after:snapshot,eventId:'outer-event',kind:'command'});
+  expect(direct).toMatchObject({eventId:'outer-event',kind:'command',applicability:'unverified',reasons:expect.arrayContaining(['EVENT_MISMATCH','KIND_MISMATCH'])});
+ }finally{f.store.close();}
+},30000);
+
+it('collapses duplicate event IDs to one stable unverified record',async()=>{
+ const f=await fixture();try{
+  const snapshot=await captureWorkspace({id:'w',projectId:'p',canonicalRoot:f.root});
+  const result={protocol:'threadport.inner-agent-observation.v1',source:{protocol:'vendor.hook.v1',agent:'codex',version:'1',origin:'agent-hook'},eventId:'same',kind:'test' as const,command:null,status:'unknown' as const,exitCode:null,startedAt:null,completedAt:null,workspace:{beforeSnapshotId:null,afterSnapshotId:null,scope:'head-tracked-diff-untracked' as const},environment:{scope:'agent-runtime.v1',digest:null,complete:false}};
+  const prepared=prepareInnerEvidence([{eventId:'same',kind:'test',result},{eventId:'same',kind:'test',result:{...result,status:'passed',eventId:'same'}}],snapshot,()=>null);
+  expect(prepared.byEvent.size).toBe(1);
+  expect(prepared.byEvent.get('same')).toMatchObject({applicability:'unverified',reasons:['DUPLICATE_EVENT'],resultStatus:'unknown',observation:null});
+  expect(prepared.warnings[0]).toContain('1 unverified');
+ }finally{f.store.close();}
+},30000);
+
+it('never evaluates snapshots captured for a foreign workspace as current or stale',async()=>{
+ const f=await fixture();try{
+  const current=await captureWorkspace({id:'w',projectId:'p',canonicalRoot:f.root});
+  const foreign=await captureWorkspace({id:'foreign',projectId:'other',canonicalRoot:f.root});
+  const result=innerObservationSchema.parse({
+   protocol:'threadport.inner-agent-observation.v1',source:{protocol:'vendor.hook.v1',agent:'codex',version:'1',origin:'agent-hook'},eventId:'foreign-event',kind:'test',command:null,status:'passed',exitCode:0,
+   startedAt:'2026-09-18T00:00:00.000Z',completedAt:'2026-09-18T00:00:01.000Z',workspace:{beforeSnapshotId:foreign.id,afterSnapshotId:foreign.id,scope:'head-tracked-diff-untracked'},environment:{scope:'agent-runtime.v1',digest:'a'.repeat(64),complete:true},
+  });
+  const prepared=prepareInnerEvidence([{eventId:'foreign-event',kind:'test',result}],current,id=>id===foreign.id?foreign:null);
+  expect(prepared.byEvent.get('foreign-event')).toMatchObject({applicability:'unknown',reasons:['SNAPSHOT_WORKSPACE_MISMATCH']});
+  expect(evaluateInnerObservation(result,{current,before:foreign,after:foreign}).applicability).toBe('unknown');
+ }finally{f.store.close();}
+},30000);

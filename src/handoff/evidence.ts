@@ -1,4 +1,4 @@
-import { evaluateInnerObservation, innerObservationSchema, unknownInnerEvidence, type ExecutionObservation, type InnerAgentEvidence, type InnerAgentObservation } from '../evidence/observations.js';
+import { evaluateInnerObservation, innerObservationSchema, unknownInnerEvidence, type ExecutionObservation, type InnerAgentEvidence, type InnerAgentObservation, type InnerEvidenceReason } from '../evidence/observations.js';
 import type { NormalizedEvent } from '../domain/models.js';
 import { evaluateCommandEvidence, type CommandEvidence } from '../evidence/command.js';
 import type { WorkspaceSnapshot, VerificationReport } from '../workspace/contracts.js';
@@ -21,22 +21,51 @@ export function prepareInnerEvidence(
   inputs:readonly InnerObservationInput[],
   current:WorkspaceSnapshot,
   getSnapshot:(id:string)=>WorkspaceSnapshot|null,
-):{byEvent:Map<string,InnerAgentEvidence>;warnings:string[]}{
+):{byEvent:Map<string,InnerAgentEvidence>;warnings:string[]} {
   const byEvent=new Map<string,InnerAgentEvidence>();
-  const counts={current:0,stale:0,unverified:0,unknown:0};
+  const occurrences=new Map<string,number>();
+  for(const input of inputs) occurrences.set(input.eventId,(occurrences.get(input.eventId)??0)+1);
+
   for(const input of inputs){
+    // An event ID is the association key. Once it appears more than once, no
+    // result can be selected safely, so retain one stable unknown envelope.
+    if((occurrences.get(input.eventId)??0)>1){
+      byEvent.set(input.eventId,unknownInnerEvidence(input.eventId,input.kind,'DUPLICATE_EVENT'));
+      continue;
+    }
     const parsed=innerObservationSchema.safeParse(input.result);
     let evidence:InnerAgentEvidence;
-    if(!input.result)evidence=unknownInnerEvidence(input.eventId,input.kind,'NO_STRUCTURED_RESULT');
-    else if(!parsed.success)evidence=unknownInnerEvidence(input.eventId,input.kind,'PARTIAL_LOG');
-    else {
+    if(input.result===undefined||input.result===null){
+      evidence=unknownInnerEvidence(input.eventId,input.kind,'NO_STRUCTURED_RESULT');
+    } else if(!parsed.success){
+      evidence=unknownInnerEvidence(input.eventId,input.kind,'PARTIAL_LOG');
+    } else {
       const value:InnerAgentObservation=parsed.data;
-      const before=value.workspace.beforeSnapshotId?getSnapshot(value.workspace.beforeSnapshotId):null;
-      const after=value.workspace.afterSnapshotId?getSnapshot(value.workspace.afterSnapshotId):null;
-      evidence=evaluateInnerObservation(value,{current,before,after});
+      const identityReasons:InnerEvidenceReason[]=[];
+      if(value.eventId!==input.eventId)identityReasons.push('EVENT_MISMATCH');
+      if(value.kind!==input.kind)identityReasons.push('KIND_MISMATCH');
+      if(identityReasons.length){
+        evidence=unknownInnerEvidence(input.eventId,input.kind,identityReasons);
+      } else {
+        let before:WorkspaceSnapshot|null=null;
+        let after:WorkspaceSnapshot|null=null;
+        try {
+          before=value.workspace.beforeSnapshotId?getSnapshot(value.workspace.beforeSnapshotId):null;
+          after=value.workspace.afterSnapshotId?getSnapshot(value.workspace.afterSnapshotId):null;
+        } catch {
+          // A missing or unreadable historical snapshot is unverifiable; it
+          // must not turn an otherwise valid request into an API 500.
+          evidence=unknownInnerEvidence(input.eventId,input.kind,'SNAPSHOT_UNVERIFIABLE');
+          byEvent.set(input.eventId,evidence);
+          continue;
+        }
+        evidence=evaluateInnerObservation(value,{current,before,after,eventId:input.eventId,kind:input.kind});
+      }
     }
-    byEvent.set(input.eventId,evidence);counts[evidence.applicability]++;
+    byEvent.set(input.eventId,evidence);
   }
+  const counts={current:0,stale:0,unverified:0,unknown:0};
+  for(const evidence of byEvent.values())counts[evidence.applicability]++;
   const warnings=byEvent.size?[`Inner Agent evidence: ${counts.current} current, ${counts.stale} stale, ${counts.unverified} unverified, ${counts.unknown} unknown.`]:[];
   return {byEvent,warnings};
 }
