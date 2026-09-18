@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import {SqliteStore} from '../dist/src/storage/sqlite-store.js';
 /** Measurement only, in the isolated benchmark worker. No production API or query changes. */
 export function profileSearch(send){
- let queryMs=0,projectionMs=0;
+ let queryMs=0,projectionMs=0,searchId=0;
  const prepare=Database.prototype.prepare;
  Database.prototype.prepare=function(sql){
   const statement=prepare.call(this,sql);
@@ -12,6 +12,6 @@ export function profileSearch(send){
  };
  const search=SqliteStore.prototype.searchHistory;
  SqliteStore.prototype.searchHistory=function(input){
-  queryMs=0;projectionMs=0;const began=performance.now();try{return search.call(this,input);}finally{const storageMs=performance.now()-began;send({searchTiming:{queryMs,projectionMs,assemblyMs:Math.max(0,storageMs-queryMs-projectionMs),storageMs}});}
+  queryMs=0;projectionMs=0;const id=++searchId;const began=performance.now();try{return search.call(this,input);}finally{const storageMs=performance.now()-began;send({searchTiming:{id,queryMs,projectionMs,assemblyMs:Math.max(0,storageMs-queryMs-projectionMs),storageMs}});}
  };
 }

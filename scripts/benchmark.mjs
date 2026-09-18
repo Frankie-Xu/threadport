@@ -11,6 +11,7 @@ import { tmpdir, cpus, totalmem, platform, arch, release, loadavg, freemem } fro
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { once } from "node:events";
+import { validateSearchTimings } from "./benchmark-validation.mjs";
 const script = fileURLToPath(import.meta.url);
 if (process.argv[2] === "--worker") {
   const {profileSearch}=await import("./benchmark-profile.mjs");profileSearch(value=>process.send?.(value));
@@ -79,7 +80,10 @@ if (process.argv[2] === "--worker") {
       stderr += data;
     });
     current.on("message", (value) => {
-      if(value.searchTiming)searchTimings.push({phase,...value.searchTiming});
+      if(value.searchTiming){
+        const sample={phase,...value.searchTiming};
+        searchTimings.push(sample);
+      }
       if (value.metric) {
         peak = Math.max(peak, value.rss);
         if (idle) idleCpu.push(value.cpu);
@@ -339,6 +343,8 @@ if (process.argv[2] === "--worker") {
       idleCpuMedianPercent: percentile(idleCpu, 0.5),
       cancelMs,
     };
+    const expectedSearchTimings=process.argv.includes("--browser")?200:100;
+    const profileValidation={...validateSearchTimings(searchTimings,expectedSearchTimings),phases:Object.fromEntries([...new Set(searchTimings.map(sample=>sample.phase))].map(name=>[name,searchTimings.filter(sample=>sample.phase===name).length]))};
     const limits = {
       indexMs: 60000,
       searchP95Ms: 300,
@@ -353,6 +359,7 @@ if (process.argv[2] === "--worker") {
     const failed = Object.keys(limits).filter(
       (key) => metrics[key] === null || metrics[key] > limits[key],
     );
+    if(!profileValidation.valid)failed.push("profileTimingIncomplete");
     if (progress.some((p) => p.state !== "completed"))
       failed.push("incompleteIndex");
     if (cancelled.some((p) => p.state !== "cancelled"))
@@ -387,7 +394,7 @@ if (process.argv[2] === "--worker") {
           decision: failed.length ? "hold" : "pass",
           indexStates: progress.map((p) => p.state),
           cancelStates: cancelled.map((p) => p.state),
-          profile:{searchTimings,responseTimings,loadSamples},
+          profile:{searchTimings,responseTimings,loadSamples,validation:profileValidation},
           samples: { queries: queryTimes, browser: browserTimes, status: statusTimes, cold, idleCpu },
           limitations: [
             process.argv.includes("--browser") ? "Synthetic browser latency includes Playwright scheduling and two animation frames after results render; conservative visible-latency observation." : "Synthetic evidence only. Browser UI latency is not measured by this API benchmark.",

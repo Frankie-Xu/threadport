@@ -43,3 +43,9 @@
 其余指标逐项见 JSON：两轮 status、冷启动、增量、RSS、空闲和取消预算通过；所有超预算轮次保留，不合并重选样本。
 
 另从 [先前 Ubuntu 工作流](https://github.com/Frankie-Xu/threadport/actions/runs/34988633290) 找回遗漏的 [7f57a79 原始结果](performance/ubuntu-7f57a79.json)。Linux x64 / EPYC 4 核共享 runner / Node24.20.0：API p95 394.68ms、UI p95 427.70ms，API 未通过；索引53.24s，RSS296.62MiB。该版本早于本轮整改，不能认证当前候选，也不是固定参考机认证。发布性能 HOLD 不变。
+
+## 2026-09-18 W3 阶段计时复测
+
+本轮先固定查询计划和阶段计时边界，见[查询计划与计时说明](performance/query-plan-2026-09-18.md)。基准 worker 为每个 `searchHistory` 调用分配唯一 ID，并验证 100 条 API 样本（浏览器模式为 200 条）没有缺失或重复；验证结果随原始 JSON 保存。生产查询、schema 7 和既有 literal 匹配语义未改变。
+
+本机 macOS arm64 / Node 26.5.0 的 API p95 为 355.65ms；浏览器模式 API/UI p95 为 525.31/527.50ms。Node 26 不是发布要求的 Node 24，且没有 Ubuntu 同候选复测；API 与 UI 仍分别超过 300/500ms 门槛，因此 R08 继续 HOLD。主要耗时在 SQLite CTE/事件筛选，JS 组装 p95 约 1–1.5ms；本轮没有足够证据提交生产查询优化。
