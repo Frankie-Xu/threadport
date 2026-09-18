@@ -52,6 +52,8 @@ export const innerObservationSchema=z.object({
  if(value.status==='failed'&&value.exitCode===0)ctx.addIssue({code:z.ZodIssueCode.custom,path:['exitCode'],message:'Failed results cannot have exit code zero.'});
 });
 export type InnerAgentObservation=z.infer<typeof innerObservationSchema>;
+/** Short aliases used by callers that treat the record as an inner observation. */
+export type InnerObservation=InnerAgentObservation;
 
 export const innerEvidenceSchema=z.object({
  protocol:z.literal('threadport.inner-agent-evidence.v1'),
@@ -73,6 +75,7 @@ export const innerEvidenceSchema=z.object({
  observation:innerObservationSchema.nullable(),
 }).strict();
 export type InnerAgentEvidence=z.infer<typeof innerEvidenceSchema>;
+export type InnerEvidence=InnerAgentEvidence;
 
 export type InnerEvidenceReason=InnerAgentEvidence['reasons'][number];
 
@@ -149,6 +152,7 @@ export function evaluateInnerObservation(value:InnerAgentObservation, context:In
   applicability,workspace,environment:value.environment,reasons:uniqueReasons,observation:value,
  });
 }
+export const classifyInnerObservation=evaluateInnerObservation;
 /** No raw env values are retained. This cannot certify external Agent configuration or child commands. */
 export function observeEnvironment():ExecutionObservation['environmentBefore']{
  const values=['PATH','LANG','LC_ALL','NODE_ENV','CI'].map(key=>[key,process.env[key]??null]);
