@@ -1,8 +1,45 @@
-import type { ExecutionObservation } from '../evidence/observations.js';
+import { evaluateInnerObservation, innerObservationSchema, unknownInnerEvidence, type ExecutionObservation, type InnerAgentEvidence, type InnerAgentObservation } from '../evidence/observations.js';
 import type { NormalizedEvent } from '../domain/models.js';
 import { evaluateCommandEvidence, type CommandEvidence } from '../evidence/command.js';
 import type { WorkspaceSnapshot, VerificationReport } from '../workspace/contracts.js';
 import { compareWorkspaceSnapshots } from '../workspace/verify.js';
+
+export interface InnerObservationInput {
+  eventId:string;
+  kind:'command'|'test';
+  /** A structured vendor payload. Strings/prose are intentionally rejected. */
+  result?:unknown;
+}
+
+/**
+ * Prepare inner Agent evidence independently from outer process evidence. A
+ * missing or malformed result is retained as explicit unverified metadata;
+ * it is never promoted from assistant prose, a turn boundary, or an exit
+ * string. Snapshot lookup is required for a `current` classification.
+ */
+export function prepareInnerEvidence(
+  inputs:readonly InnerObservationInput[],
+  current:WorkspaceSnapshot,
+  getSnapshot:(id:string)=>WorkspaceSnapshot|null,
+):{byEvent:Map<string,InnerAgentEvidence>;warnings:string[]}{
+  const byEvent=new Map<string,InnerAgentEvidence>();
+  const counts={current:0,stale:0,unverified:0,unknown:0};
+  for(const input of inputs){
+    const parsed=innerObservationSchema.safeParse(input.result);
+    let evidence:InnerAgentEvidence;
+    if(!input.result)evidence=unknownInnerEvidence(input.eventId,input.kind,'NO_STRUCTURED_RESULT');
+    else if(!parsed.success)evidence=unknownInnerEvidence(input.eventId,input.kind,'PARTIAL_LOG');
+    else {
+      const value:InnerAgentObservation=parsed.data;
+      const before=value.workspace.beforeSnapshotId?getSnapshot(value.workspace.beforeSnapshotId):null;
+      const after=value.workspace.afterSnapshotId?getSnapshot(value.workspace.afterSnapshotId):null;
+      evidence=evaluateInnerObservation(value,{current,before,after});
+    }
+    byEvent.set(input.eventId,evidence);counts[evidence.applicability]++;
+  }
+  const warnings=byEvent.size?[`Inner Agent evidence: ${counts.current} current, ${counts.stale} stale, ${counts.unverified} unverified, ${counts.unknown} unknown.`]:[];
+  return {byEvent,warnings};
+}
 
 /** All selected-session commands contribute warnings, even if their excerpts are later omitted. */
 export function prepareCommandEvidence(
