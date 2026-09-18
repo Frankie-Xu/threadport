@@ -67,6 +67,15 @@ it('reports missing historical snapshots rather than substituting a later matchi
   await expect(service.confirmHandoff({id:h.id,promptDigest:h.promptDigest,acknowledgeUncertainty:false})).rejects.toMatchObject({code:'INVALID_INPUT'});
  }finally{f.store.close();}
 },30000);
+it('exposes missing structured Agent results as explicit unknown evidence',async()=>{
+ const f=await fixture();try{
+  addCommands(f,[null]);
+  const h=await new HandoffService(f.store).prepareHandoff(f.input);
+  expect(h.innerEvidence).toHaveLength(1);
+  expect(h.innerEvidence[0]).toMatchObject({eventId:'command-0',resultStatus:'unknown',applicability:'unverified',reasons:['NO_STRUCTURED_RESULT']});
+  expect(promptBody(h.prompt).innerEvidence[0].applicability).toBe('unverified');
+ }finally{f.store.close();}
+},30000);
 
 it('retains stale-result counts when the affected command is outside the excerpt budget',async()=>{
  const f=await fixture();try{

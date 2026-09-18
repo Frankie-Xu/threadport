@@ -15,6 +15,7 @@ const eventSchema: z.ZodType<NormalizedEvent> = z.object({
     exitCode: z.number().int().safe().nullable(), startedAt: timestamp, completedAt: timestamp,
     eventId: id, snapshotId: id.nullable(),
   }).strict().nullable(),
+  innerObservation: z.unknown().optional(),
 }).strict().refine(event => event.commandRun === null || (event.kind === 'command'
   && event.commandRun.eventId === event.id && event.commandRun.sessionId === event.sessionId
   && event.commandRun.ordinal === event.ordinal));

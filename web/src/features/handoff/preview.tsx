@@ -256,6 +256,49 @@ export function HandoffPreview({
               {reason.code}: {reason.message}
             </p>
           ))}
+          {handoff.innerEvidence.length > 0 && (
+            <>
+              <h2>Structured Agent evidence</h2>
+              <p>
+                Only structured results supplied by an Agent hook are shown.
+                Text and terminal output do not change these classifications.
+              </p>
+              {handoff.innerEvidence.map((evidence) => (
+                <div className="event" key={evidence.eventId}>
+                  <div className="result-meta">
+                    <strong>{evidence.kind}</strong>
+                    <StatusBadge
+                      tone={
+                        evidence.applicability === "current"
+                          ? "good"
+                          : evidence.applicability === "unknown" ||
+                              evidence.applicability === "unverified"
+                            ? "warning"
+                            : "neutral"
+                      }
+                    >
+                      {evidence.applicability}
+                    </StatusBadge>
+                    <span>{evidence.resultStatus}</span>
+                  </div>
+                  <p>
+                    Event {evidence.eventId} ·{" "}
+                    {evidence.sourceProtocol ?? "structured source unknown"}
+                  </p>
+                  <p>
+                    Workspace {evidence.workspace.status}; environment{" "}
+                    {evidence.environment.complete ? "complete" : "incomplete"}
+                    {evidence.environment.scope
+                      ? ` (${evidence.environment.scope})`
+                      : ""}
+                  </p>
+                  {evidence.reasons.length > 0 && (
+                    <p>Review markers: {evidence.reasons.join(", ")}</p>
+                  )}
+                </div>
+              ))}
+            </>
+          )}
           <h2>Unknown and omitted information</h2>
           {handoff.claims
             .filter((c) => c.origin === "unknown")

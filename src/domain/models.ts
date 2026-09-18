@@ -52,6 +52,8 @@ export interface NormalizedEvent {
   commandRun: CommandRun | null;
   relativePaths: string[];
   omitted: boolean;
+  /** Optional vendor hook result. It is validated at the evidence boundary and never inferred from text. */
+  innerObservation?: unknown;
 }
 
 export interface DerivedTaskState {
