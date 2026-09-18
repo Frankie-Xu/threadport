@@ -23,3 +23,7 @@ Release Notes 草稿：实验性本地任务收件箱、历史搜索、人工修
 ## 2026-09-18 候选复核
 
 候选工作树最新提交为 `e608372`；代码修复提交为 `6db8c71`，其后仅追加候选绑定性能原始证据与文档。`npm run check` 已通过（440 个测试），浏览器流程 7/7 通过，隔离安装包检查 217 个文件通过。固定容量性能证据绑定 `6db8c71`，Node 26/macOS API p95 为 324.85ms，R08 仍为 HOLD；这不是 Node 24/Ubuntu 的发布认证。Windows Node 24、真实 Claude/Codex 接续、原始 36 项规格和外部用户观察仍保持未验证或 unavailable，不能解除发布 HOLD。
+
+## 2026-09-19 本地环境模拟补充
+
+最新证据候选为 `8378962`，本机 Node 24 源码、浏览器和隔离安装包检查均已完成；Docker `node:24-bookworm` 用户态检查报告 437 项通过、3 项既有跳过。Node 24 固定容量 API p95 为 322.78ms，仍超过 300ms 门槛，性能继续 HOLD。该记录不扩大为 Ubuntu CI、Windows 实机、真实 Agent 接续或外部用户认证；完整边界见 [本地环境证据](local-environment-2026-09-19.json)。
