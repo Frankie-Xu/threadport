@@ -2,6 +2,15 @@
 
 本表是已运行自动回归的证据索引，不是 stable 认证通过表。整合开发快照在 Node 24.18.1 / macOS arm64 上 `npm run check` 为 377 tests / 56 files，浏览器 6 个合成流程；最终提交、三平台 CI 和安装产物以 PR/包证据 JSON 为准。审查者为当前开发代理自审，尚无独立外部人工评审。
 
+## 原始 36 项验收附件（W5）
+
+状态：**HOLD / unavailable**。原始附件尚未取得，不能进行逐项合规声明。
+
+- [查找记录](original-acceptance-search-2026-09-16.md)记录了可访问本地范围内的检索结果。
+- [36 项映射模板](../acceptance/threadport-v0.2-36-scenarios-map.md)和[机器可读索引](../acceptance/threadport-v0.2-36-scenarios.json)保留 `S01`–`S36` 的固定字段；36 条当前均为 `unavailable`。
+- `Q01`–`Q24` 是仓库自有回归场景，432 项自动测试也不能替代缺失的原始要求或将其标记为通过。
+- 取得原件后，必须先绑定源文件版本、取得日期和 SHA-256，再填入逐项代码、自动测试、实机证据、平台/Agent、缺口与审查者；首次失败和重测结果均需保留。
+
 | 场景 | 自动证据 | 仍有的边界 |
 | --- | --- | --- |
 | Q01 不同目录同名文件 | [路径](../../tests/workspace/paths.test.ts)、[隐私](../../tests/privacy.test.ts) | 合成路径 |
