@@ -24,7 +24,7 @@ try {
 
 每份快照包含应用生成 id、workspaceId、当前捕获开始时间 capturedAt、HEAD、digest、bindingDigest、algorithm、policy、scope、omissions、incompleteReasons。新算法 `threadport.workspace.raw.v2`，策略 `threadport.workspace.scope.v1`，scope 为 `head-tracked-diff-untracked`；与旧 Capsule dirty_diff_hash 不能混用。bindingDigest 对绑定的 project/workspace ID、canonical root、Git dir/common dir 与目录设备/inode 做摘要，供后续比较区分身份；不输出原始私有路径。
 
-实现读取 HEAD commit、完整 index 清单（含 mode/object ID/stage）、tracked 工作树文件原始内容/可执行位、未忽略 untracked 路径/内容与删除状态。通过这些信息覆盖 HEAD、暂存区和工作树差异；不依赖 Git patch 展示参数。为防止文件过滤器执行，不调用 git diff/status，不做内容规范化。Git 原生清单配合文件元数据提供状态复查。因此 CRLF 等原始字节改变也改变摘要，不能把它当作 Git clean-filter 规范化摘要。
+实现读取 HEAD commit、完整 index 清单（含 mode/object ID/stage）、tracked 工作树文件原始内容/可执行位、未忽略 untracked 路径/内容与删除状态。通过这些信息覆盖 HEAD、暂存区和工作树差异；不依赖 Git patch 展示参数。为防止文件过滤器执行，不调用 git diff/status，不做内容规范化。Git 原生清单配合文件元数据提供状态复查。因此 CRLF 等原始字节改变也改变摘要，不能把它当作 Git clean-filter 规范化摘要。每个路径组件先用 `lstat()` 保留符号链接本身，再用 `realpath()` 判定边界；Windows junction 与 POSIX 目录 symlink 的越界后代统一返回 `SYMLINK_OUTSIDE`，内部祖先链接返回 `SYMLINK_UNSUPPORTED`，不会打开链接目标。
 
 默认最多 10000 路径、合计 64 MiB 工作树内容（tracked + untracked）。limits.maxFiles/maxBytes 只能调低，不能绕过上限。Git 命令每次输出最多 1 MiB、最多 5 秒；单次捕获包括重试共享 30 秒期限。内容以 64 KiB 缓冲区读取，不保存源码、patch 或文件内容副本。忽略文件、Git 内部对象内容、目录权限/ACL、业务正确性不在比较范围；submodule 返回 SUBMODULE_UNSUPPORTED；内部叶子 symlink 只读取链接文本，外部目标返回 SYMLINK_OUTSIDE，链式链接拒绝；非常规文件返回 READ_FAILED。敏感路径在打开前被排除并返回 SENSITIVE_EXCLUDED，ignored 条目计数可见。
 

@@ -13,6 +13,10 @@ function fail(reason:SnapshotReason):never{throw new CaptureFault(reason);}
 const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
 const signature=(value:Awaited<ReturnType<typeof stat>>)=>[value.dev,value.ino,value.mode,value.size,value.mtimeNs,value.ctimeNs].join(':');
 const stat=(path:string)=>lstat(path,{bigint:true});
+function inside(root:string,target:string):boolean{
+ const rel=relative(root,target);
+ return rel===''||(!isAbsolute(rel)&&rel!=='..'&&!rel.startsWith('..'+sep));
+}
 async function git(root:string,args:string[],signal:AbortSignal):Promise<string>{
  signal.throwIfAborted();const env={...process.env};for(const key of Object.keys(env))if(key.startsWith('GIT_'))delete env[key];
  Object.assign(env,{GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_GLOBAL:process.platform==='win32'?'NUL':'/dev/null',GIT_TERMINAL_PROMPT:'0',GIT_NO_LAZY_FETCH:'1'});
@@ -57,7 +61,16 @@ async function safePath(root:string,path:string):Promise<{absolute:string;info:A
  for(const [index,part] of parts.entries()){
   current=resolve(current,part);let info:Awaited<ReturnType<typeof stat>>;
   try{info=await stat(current);}catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')return {absolute,info:null};throw error;}
-  if(info.isSymbolicLink()&&index<parts.length-1)fail('READ_FAILED');if(index<parts.length-1&&!info.isDirectory())fail('READ_FAILED');
+  if(info.isSymbolicLink()){
+   // lstat() preserves the link itself on Windows, where junctions otherwise
+   // appear as directories. Resolve only to classify the boundary; never read
+   // through the link while checking a tracked descendant.
+   let resolved:string;
+   try{resolved=await realpath(current);}catch(error){if((error as NodeJS.ErrnoException).code==='ENOENT')fail('READ_FAILED');throw error;}
+   if(!inside(root,resolved))fail('SYMLINK_OUTSIDE');
+   if(index<parts.length-1)fail('SYMLINK_UNSUPPORTED');
+  }
+  if(index<parts.length-1&&!info.isDirectory()&&!info.isSymbolicLink())fail('READ_FAILED');
   if(index===parts.length-1)return {absolute,info};
  }
  fail('READ_FAILED');
@@ -87,7 +100,11 @@ export async function readSnapshot(binding:WorkspaceBinding,limits:{maxFiles:num
   if(info.isSymbolicLink()){
    const link=await readlink(absolute,{encoding:'buffer'});const text=link.toString('utf8');if(!Buffer.from(text).equals(link))fail('PATH_ENCODING_UNSUPPORTED');
    const target=resolve(dirname(absolute),text),rel=relative(root,target);
-   if(rel==='..'||rel.startsWith('..'+sep)||isAbsolute(rel))fail('SYMLINK_OUTSIDE');
+   if(!inside(root,target))fail('SYMLINK_OUTSIDE');
+   // A dangling link has no realpath; retain the existing policy of hashing
+   // its link text as long as its lexical target remains inside the workspace.
+   try{if(!inside(root,await realpath(absolute)))fail('SYMLINK_OUTSIDE');}
+   catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}
    if(rel){const checked=await safePath(root,rel);if(checked.info?.isSymbolicLink())fail('SYMLINK_UNSUPPORTED');}
    bytes+=link.length;if(bytes>limits.maxBytes)fail('LIMIT_EXCEEDED');
    field('symlink');field(link);observations.set(file.path,signature(info));

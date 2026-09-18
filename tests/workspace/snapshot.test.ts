@@ -52,7 +52,7 @@ it('rejects stale workspace bindings and preserves snapshots across reopen',asyn
   expect(()=>store.saveSnapshot({...snapshot,id:'bad',incompleteReasons:['RACED']})).toThrowError(expect.objectContaining({code:'INVALID_INPUT'}));
  }finally{store.close();}
 },30000);
-it('distinguishes linked worktree identity and refuses a symlinked tracked ancestor',async()=>{
+it('distinguishes linked worktree identity and classifies external directory links',async()=>{
  const {root,binding}=await repo();const other=await temp();const worktree=join(other,'linked');git(root,'worktree','add','--detach',worktree,'HEAD');
  const original=await captureWorkspace(binding);const linked=await captureWorkspace({...binding,canonicalRoot:worktree});expect(linked.incompleteReasons).toEqual([]);expect(linked.bindingDigest).not.toBe(original.bindingDigest);expect(linked.digest).toBe(original.digest);
  await mkdir(join(root,'nested'));await writeFile(join(root,'nested','file'),'tracked');git(root,'add','.');git(root,'commit','-m','nested');await rm(join(root,'nested'),{recursive:true});

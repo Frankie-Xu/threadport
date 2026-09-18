@@ -4,7 +4,7 @@ vi.mock('node:fs/promises',async()=>{
  const real=await vi.importActual<typeof import('node:fs/promises')>('node:fs/promises');
  return {...real,open:async(...args:Parameters<typeof real.open>)=>{reads.paths.push(String(args[0]));return real.open(...args);}};
 });
-import { realpath,symlink,writeFile } from 'node:fs/promises';
+import { mkdir, realpath,rm,symlink,writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { git,project,temporary } from '../helpers.js';
@@ -32,6 +32,15 @@ it('hashes internal link text and rejects external links without reading their t
  expect((await captureWorkspace(binding)).digest).not.toBeNull();
  await symlink(target,join(root,'outside'),'file');reads.paths=[];
  expect(await captureWorkspace(binding)).toMatchObject({digest:null,incompleteReasons:['SYMLINK_OUTSIDE']});expect(reads.paths).not.toContain(target);expect(reads.paths).not.toContain(join(root,'outside'));
+},30000);
+it('classifies an external directory link before opening tracked descendants',async()=>{
+ const root=await realpath(await project()),outside=await temporary();
+ await mkdir(join(root,'linked'));await writeFile(join(root,'linked','tracked.txt'),'SYNTHETIC_PRIVATE_CONTENT');git(root,'add','.');git(root,'commit','-m','linked');
+ await rm(join(root,'linked'),{recursive:true});await writeFile(join(outside,'tracked.txt'),'outside');
+ await symlink(outside,join(root,'linked'),process.platform==='win32'?'junction':'dir');reads.paths=[];
+ const snapshot=await captureWorkspace({id:'w',projectId:'p',canonicalRoot:root});
+ expect(snapshot).toMatchObject({digest:null,incompleteReasons:['SYMLINK_OUTSIDE']});
+ expect(reads.paths).not.toContain(join(root,'linked','tracked.txt'));expect(reads.paths).not.toContain(join(outside,'tracked.txt'));
 },30000);
 it('blocks prepare when sensitive untracked data would make the capture incomplete',async()=>{
  const f=await fixture();try{
