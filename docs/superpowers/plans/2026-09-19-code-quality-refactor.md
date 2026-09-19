@@ -45,7 +45,7 @@ Replace the claim that no automated format gate exists with the exact scope: the
 
 Run `npm test -- tests/scripts/check-format.test.ts`, then `npm run check`. Expected: focused tests pass and the full gate remains green.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — implemented in `7fe6810` (`chore: make format gate testable and accurately documented`)
 
 ```bash
 git add CONTRIBUTING.md scripts/check-format.mjs tests/scripts/check-format.test.ts
