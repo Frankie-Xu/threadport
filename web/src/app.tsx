@@ -97,7 +97,7 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
   if (!api) return reconnectForm;
   return (
     <>
-    {expired && <Modal title="Reconnect to your terminal" onClose={() => false}>{reconnectForm}</Modal>}
+    {expired && <Modal title="Reconnect to your terminal" onClose={() => { setExpired(false); return true; }}>{reconnectForm}</Modal>}
     <Shell
       api={api}
       params={params}

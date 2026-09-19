@@ -256,10 +256,9 @@ export function useLoad<T>(api: ApiClient, path: string, revision = 0) {
     const controller = new AbortController();
     setState((previous) => ({
       key,
-      data:
-        previous.key.api === api && previous.key.path === path
-          ? previous.data
-          : undefined,
+      // Keep the last successful projection while credentials reconnect. This
+      // preserves open editors and their drafts across an ApiClient swap.
+      data: previous.key.path === path ? previous.data : undefined,
       loading: true,
     }));
     api
@@ -279,10 +278,7 @@ export function useLoad<T>(api: ApiClient, path: string, revision = 0) {
       ? state
       : {
           key,
-          data:
-            state.key.api === api && state.key.path === path
-              ? state.data
-              : undefined,
+          data: state.key.path === path ? state.data : undefined,
           loading: true,
         };
   return { ...current, reload: () => setTick((value) => value + 1) };
