@@ -87,7 +87,7 @@ Use the shared persisted task schema in `sqlite-store.ts`. Keep storage error tr
 
 Run `npm test -- tests/tasks/contracts.test.ts tests/public-api-compatibility.test.ts`, then `npm run check`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit** — implemented in `2fc5e80` (`refactor: centralize task validation contracts`)
 
 ```bash
 git add src/contracts src/tasks/contracts.ts src/storage/sqlite-store.ts src/server/business-routes.ts tests/tasks/contracts.test.ts tests/public-api-compatibility.test.ts
@@ -122,7 +122,7 @@ After `Promise.all` completes in the DELETE route, remove the job only if all re
 
 Run `npm test -- tests/server/routes.test.ts tests/indexing/service.test.ts`, then `npm run check`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — implemented in `38a976e` (`refactor: bound index job retention`)
 
 ```bash
 git add src/server/business-routes.ts src/indexing/service.ts tests/server/routes.test.ts tests/indexing/service.test.ts
