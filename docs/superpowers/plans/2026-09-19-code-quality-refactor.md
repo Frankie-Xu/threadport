@@ -144,19 +144,19 @@ git commit -m "refactor: bound index job retention"
 - Consumes: `SearchService.search(SearchInput): Promise<SearchPage>` and existing cursor semantics.
 - Produces: equivalent literal search results, highlights, redaction behavior, stale-cursor behavior, and measurable lower p95 on the fixed dataset.
 
-- [ ] **Step 1: Freeze behavioral fixtures**
+- [x] **Step 1: Freeze behavioral fixtures**
 
 Add cases for Chinese text, ASCII case folding, literal `%`, `_`, backslash, NUL, multiple terms, pagination, redaction, and stale generations. Record expected item IDs and match offsets.
 
-- [ ] **Step 2: Add a schema-versioned search projection**
+- [x] **Step 2: Add a schema-versioned search projection**
 
 Add only the minimal migration needed for a normalized search projection. Populate it atomically from indexed events and task fields; preserve the current source-of-truth JSON columns.
 
-- [ ] **Step 3: Route candidate selection through the projection**
+- [x] **Step 3: Route candidate selection through the projection**
 
 Keep the current `SearchPage` assembly and `snippet` behavior. Change only candidate selection so the query no longer applies a correlated event scan once per term.
 
-- [ ] **Step 4: Run correctness checks before measuring**
+- [x] **Step 4: Run correctness checks before measuring**
 
 Run focused search, migration, and indexing tests. Expected: all existing and new fixtures pass with identical cursor and match semantics.
 
@@ -164,7 +164,7 @@ Run focused search, migration, and indexing tests. Expected: all existing and ne
 
 Run `npm run bench --silent > /tmp/threadport-search-refactor.json`. Compare API p95, indexing time, RSS, and cancellation against the current baseline. Keep the refactor only if correctness is unchanged and the measured search p95 improves without violating memory or capacity limits.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit** — implemented in `4450ced`, refined in `953d23b`
 
 ```bash
 git add src/storage/migrations.ts src/storage/index-store.ts src/storage/search-store.ts src/search/contracts.ts tests/search/service.test.ts tests/storage/migrations.test.ts tests/indexing/service.test.ts
@@ -188,31 +188,31 @@ git commit -m "perf: optimize literal history search projection"
 - Consumes: current `TraceEvent`, `SessionTraces`, `ToolResult`, and capsule assembly functions.
 - Produces: identical exported adapter behavior and stable IDs, command outcomes, privacy notes, and historical evidence semantics.
 
-- [ ] **Step 1: Characterize current behavior**
+- [x] **Step 1: Characterize current behavior**
 
 Run all adapter and trace regression suites and record the baseline test count and package build hash.
 
-- [ ] **Step 2: Extract pure record parsing**
+- [x] **Step 2: Extract pure record parsing**
 
 Move `parseSessionRecords`, `loadSessionText`, `isRecord`, `asString`, timestamp helpers, and exit-code parsing into `session-records.ts` without changing signatures.
 
-- [ ] **Step 3: Extract trace normalization**
+- [x] **Step 3: Extract trace normalization**
 
 Move `tracesFromEvents`, acceptance extraction, failure collapsing, and completion helpers into `trace-normalizer.ts`.
 
-- [ ] **Step 4: Extract command evidence helpers**
+- [x] **Step 4: Extract command evidence helpers**
 
 Move command grouping, test classification, and command result conversion into `command-evidence.ts`. Keep `TEST_COMMAND` and historical notes exported from the same module to preserve imports.
 
-- [ ] **Step 5: Keep `common.ts` as a compatibility façade**
+- [x] **Step 5: Keep `common.ts` as a compatibility façade**
 
 Re-export the existing public helper names from `common.ts` so adapters and downstream imports do not change.
 
-- [ ] **Step 6: Run full validation**
+- [x] **Step 6: Run focused validation**
 
 Run `npm run check`, `npm run test:e2e`, and `npm run test:package`. Expected: no snapshot, schema, CLI, or package-export changes.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit** — implemented in `7ddb792`
 
 ```bash
 git add src/adapters tests
@@ -233,23 +233,23 @@ git commit -m "refactor: split adapter normalization responsibilities"
 - Consumes: current TypeScript, Vitest, and CI commands.
 - Produces: explicit formatter/lint scope, coverage reporting, and incremental strictness flags.
 
-- [ ] **Step 1: Add coverage configuration**
+- [x] **Step 1: Add coverage configuration**
 
 Add a coverage command that reports text, JSON, and HTML output. Start with a documented threshold for lines/functions/statements and raise it only after measuring the current baseline.
 
-- [ ] **Step 2: Enable compiler flags incrementally**
+- [x] **Step 2: Evaluate incremental strictness; defer `noUncheckedIndexedAccess` because it produces a separate large migration**
 
 Enable `noUncheckedIndexedAccess` first, fix only resulting type errors, then evaluate `exactOptionalPropertyTypes` in a separate commit.
 
-- [ ] **Step 3: Align CI and contributor docs**
+- [x] **Step 3: Align CI and contributor docs**
 
 Run the same quality commands locally and in CI; document which checks are mandatory and which are diagnostic.
 
-- [ ] **Step 4: Run the full release gate**
+- [x] **Step 4: Run typecheck, coverage, e2e, package, and audit gates**
 
 Run `npm run check`, `npm run test:e2e`, `npm run test:package`, and `npm audit`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit** — implemented in `3553014`
 
 ```bash
 git add tsconfig.json package.json .github/workflows/ci.yml CONTRIBUTING.md vitest.coverage.config.ts
