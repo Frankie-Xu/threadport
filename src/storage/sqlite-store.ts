@@ -15,11 +15,9 @@ import { HandoffStore } from './handoff-store.js';
 import { MaintenanceStore } from './maintenance.js';
 import { BusinessStore } from './api-store.js';
 import { innerObservationSchema, type InnerAgentObservation } from '../evidence/observations.js';
-const id = z.string().min(1).max(512);
-const date = z.string().datetime();
-const claim = z.object({ text: z.string(), origin: z.enum(['observed', 'user-confirmed', 'derived', 'unknown']), evidence: z.array(z.object({ sessionId: id, eventId: id }).strict()), updatedAt: date.nullable() }).strict();
-const taskSchema = z.object({ id, projectId: id, revision: z.number().int().positive().safe(), title: z.string().min(1), objective: claim, constraints: z.array(claim), nextAction: claim, lifecycle: z.enum(['active', 'paused', 'completed']), archived: z.boolean(), createdAt: date, updatedAt: date }).strict();
-const taskWriteSchema = taskSchema.extend({ title: z.string().min(1).max(120).refine(value => value.trim().length > 0), objective: claim.extend({ text: z.string().max(8000) }), constraints: z.array(claim.extend({ text: z.string().max(2000) })).max(50), nextAction: claim.extend({ text: z.string().max(4000) }) });
+import { idSchema } from '../contracts/identifiers.js';
+import { taskSchema, taskWriteSchema } from '../contracts/task.js';
+const id = idSchema;
 function validate<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value); if (!parsed.success) throw new DomainError('INVALID_INPUT', 'Invalid storage input.'); return parsed.data;
 }

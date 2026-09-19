@@ -45,7 +45,7 @@ Replace the claim that no automated format gate exists with the exact scope: the
 
 Run `npm test -- tests/scripts/check-format.test.ts`, then `npm run check`. Expected: focused tests pass and the full gate remains green.
 
-- [x] **Step 5: Commit** — implemented in `7fe6810` (`chore: make format gate testable and accurately documented`)
+- [x] **Step 5: Commit** — implemented in `26e5f48` (`chore: make format gate testable and accurately documented`)
 
 ```bash
 git add CONTRIBUTING.md scripts/check-format.mjs tests/scripts/check-format.test.ts
@@ -67,23 +67,23 @@ git commit -m "chore: make format gate testable and accurately documented"
 - Consumes: existing `Task`, `TaskPatch`, `CreateTaskInput`, and `DomainError` behavior.
 - Produces: shared `idSchema`, `taskSchema`, `taskWriteSchema`, `taskPatchSchema`, and `createTaskSchema` exports used by API and storage layers.
 
-- [ ] **Step 1: Write contract compatibility tests**
+- [x] **Step 1: Write contract compatibility tests**
 
 Cover title trimming rejection, field length limits, revision positivity, lifecycle enum values, strict unknown-field rejection, and the exact `INVALID_INPUT` error code returned by `validateTaskInput`.
 
-- [ ] **Step 2: Move shared schemas without changing limits**
+- [x] **Step 2: Move shared schemas without changing limits**
 
 Move only duplicated primitives and task shapes into `src/contracts`. Keep persistence-only validation separate where it validates stored `body_json`; do not broaden accepted input.
 
-- [ ] **Step 3: Replace inline route schemas**
+- [x] **Step 3: Replace inline route schemas**
 
 Import shared identifiers and task input schemas in `business-routes.ts`; retain route-specific schemas for query/path parameters.
 
-- [ ] **Step 4: Replace storage duplicates**
+- [x] **Step 4: Replace storage duplicates**
 
 Use the shared persisted task schema in `sqlite-store.ts`. Keep storage error translation and transaction boundaries unchanged.
 
-- [ ] **Step 5: Run focused and full checks**
+- [x] **Step 5: Run focused and full checks**
 
 Run `npm test -- tests/tasks/contracts.test.ts tests/public-api-compatibility.test.ts`, then `npm run check`.
 

@@ -14,11 +14,12 @@ import { detectTargetCapabilities } from '../targets.js';
 import { taskDto,eventDtoWithInnerEvidence,claimDto,runDto } from './dto.js';
 import { publicText } from '../privacy.js';
 import { innerObservationSchema } from '../evidence/observations.js';
-const id=z.string().min(1).max(512).regex(/^[A-Za-z0-9][A-Za-z0-9:._-]*$/);
+import { idSchema, taskRevisionSchema } from '../contracts/identifiers.js';
+const id=idSchema.regex(/^[A-Za-z0-9][A-Za-z0-9:._-]*$/);
 const pagination={limit:z.coerce.number().int().min(1).max(100).default(50),cursor:z.string().max(2048).optional()};
 const empty=z.object({}).strict();
 const p=(request:{params:unknown})=>z.object({id}).strict().parse(request.params).id;
-const revision=z.number().int().positive().safe();
+const revision=taskRevisionSchema;
 async function directory(root:string){if(!isAbsolute(root))throw new DomainError('INVALID_INPUT','Choose an absolute directory.');const info=await lstat(root);if(!info.isDirectory()||info.isSymbolicLink())throw new DomainError('INVALID_INPUT','Choose a physical directory.');const canonical=await realpath(root);if(canonical===parse(canonical).root)throw new DomainError('INVALID_INPUT','Choose a narrower directory.');return canonical;}
 export function registerBusinessRoutes(app:FastifyInstance,store:SqliteStore,indexer:IndexService){
  registerAssertionRoutes(app,store);
