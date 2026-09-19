@@ -49,6 +49,7 @@ it('validates task pagination and cancels jobs using a bodyless authenticated DE
  const source=await api('/sources','POST',{agent:'claude',root:await temporary()});
  const job=await api('/index-jobs','POST',{sourceIds:[source.body.data.id]});
  expect((await api('/index-jobs/'+job.body.data.jobId,'DELETE')).status).toBe(200);
+ expect((await api('/index-jobs/'+job.body.data.jobId)).status).toBe(404);
 },30000);
 it('keeps session ownership and revision checks atomic across task links',async()=>{
  const {api,dataDir}=await setup();const store=await openStore({dataDir});store.createProject('p','Project');store.createProject('other','Other');store.saveSession('session');store.bindSession('session','p',null);store.close();

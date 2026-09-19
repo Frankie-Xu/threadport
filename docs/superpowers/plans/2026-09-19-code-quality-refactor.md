@@ -106,19 +106,19 @@ git commit -m "refactor: centralize task validation contracts"
 - Consumes: existing index-job HTTP endpoints and `IndexService.refresh/cancelAndWait`.
 - Produces: terminal job cleanup with a bounded retention window; active jobs continue to coalesce by source.
 
-- [ ] **Step 1: Add tests for terminal cleanup and cancellation**
+- [x] **Step 1: Add tests for terminal cleanup and cancellation**
 
 Verify that a completed job remains readable during its retention window, that deleting a job cancels unfinished sources, and that the job is removed after deletion. Verify that two concurrent requests for the same active source return the same job.
 
-- [ ] **Step 2: Add explicit job timestamps and retention**
+- [x] **Step 2: Add explicit job timestamps and retention**
 
 Store `createdAt` and `finishedAt` on the in-memory job record. Add a private `pruneJobs(now = Date.now())` that removes terminal jobs older than a fixed 10-minute retention period and invoke it before creating or reading jobs.
 
-- [ ] **Step 3: Delete cancelled jobs after cancellation**
+- [x] **Step 3: Delete cancelled jobs after cancellation**
 
 After `Promise.all` completes in the DELETE route, remove the job only if all requested sources are terminal. Preserve the existing response shape.
 
-- [ ] **Step 4: Run focused and full checks**
+- [x] **Step 4: Run focused and full checks**
 
 Run `npm test -- tests/server/routes.test.ts tests/indexing/service.test.ts`, then `npm run check`.
 
