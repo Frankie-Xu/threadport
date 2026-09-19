@@ -33,12 +33,12 @@ Interfaces:
 - GET /api/v1/tasks/:id/events/:eventId/inner-evidence returns one InnerAgentEvidence.
 - JSON export includes evidence summaries; Markdown includes only status and recovery guidance.
 
-- [ ] Write failing tests for a structured command/test event, no-result event, and current/stale/unverified/unknown outcomes.
-- [ ] Add the event field and handoff DTO/schema.
-- [ ] In HandoffService.prepareHandoff call prepareInnerEvidence for selected events with historical snapshot lookup.
-- [ ] Add read-only API and render status, reason, source protocol, and recovery guidance in preview/evidence UI.
-- [ ] Run focused Vitest and task-handoff Playwright tests.
-- [ ] Commit feat(evidence): connect structured inner results to handoff previews.
+- [x] Write failing tests for a structured command/test event, no-result event, and current/stale/unverified/unknown outcomes.
+- [x] Add the event field and handoff DTO/schema.
+- [x] In HandoffService.prepareHandoff call prepareInnerEvidence for selected events with historical snapshot lookup.
+- [x] Add read-only API and render status, reason, source protocol, and recovery guidance in preview/evidence UI.
+- [x] Run focused Vitest and task-handoff Playwright tests.
+- [x] Commit feat(evidence): connect structured inner results to handoff previews.
 
 ### Task 2: 强化证据关联、重复和工作区校验
 
@@ -52,12 +52,12 @@ Interfaces:
 - evaluator validates eventId, kind, snapshot workspace binding, and current workspace identity.
 - EVENT_MISMATCH, KIND_MISMATCH, SNAPSHOT_WORKSPACE_MISMATCH, DUPLICATE_EVENT are stable reasons.
 
-- [ ] Add failing tests for event/kind mismatch, duplicate IDs, foreign workspace snapshots, and duplicate sources.
-- [ ] Add input-level identity validation before evaluator execution.
-- [ ] Add workspace binding validation; never substitute current snapshot for missing history.
-- [ ] Update warning, DTO, UI, and ADR text.
-- [ ] Run focused tests and typecheck.
-- [ ] Commit fix(evidence): reject mismatched and duplicate inner observations.
+- [x] Add failing tests for event/kind mismatch, duplicate IDs, foreign workspace snapshots, and duplicate sources.
+- [x] Add input-level identity validation before evaluator execution.
+- [x] Add workspace binding validation; never substitute current snapshot for missing history.
+- [x] Update warning, DTO, UI, and ADR text.
+- [x] Run focused tests and typecheck.
+- [x] Commit fix(evidence): reject mismatched and duplicate inner observations.
 
 ### Task 3: 统一 API、导出和界面的错误恢复
 
@@ -71,12 +71,12 @@ Interfaces:
 - retryable is true for NETWORK_ERROR, STORAGE_BUSY, SEARCH_STALE.
 - recovery is one of reconnect, retry, refresh, edit-and-save, review-path, export-only, none.
 
-- [ ] Add Fastify contract tests for network/401/storage busy/revision conflict/export validation.
-- [ ] Implement one pure errorResponse classifier and use it for all routes.
-- [ ] Make export failures use the same envelope while successful downloads keep attachment headers.
-- [ ] Extend ApiError and ErrorNotice with recovery action buttons.
-- [ ] Run focused tests and browser recovery tests.
-- [ ] Commit feat(errors): unify recovery guidance across API and exports.
+- [x] Add Fastify contract tests for network/401/storage busy/revision conflict/export validation.
+- [x] Implement one pure errorResponse classifier and use it for all routes.
+- [x] Make export failures use the same envelope while successful downloads keep attachment headers.
+- [x] Extend ApiError and ErrorNotice with recovery action buttons.
+- [x] Run focused tests and browser recovery tests.
+- [x] Commit feat(errors): unify recovery guidance across API and exports.
 
 ### Task 4: 本地一键验证执行器
 
@@ -91,30 +91,30 @@ Interfaces:
 - Secrets and absolute paths are redacted; failed steps remain and process exits non-zero.
 - npm run validate:local is the entry point.
 
-- [ ] Add mocked pass/fail/skip tests.
-- [ ] Implement argv-based child execution, fixed order, timeout, and digest-only output.
-- [ ] Bind git SHA/status and runtime versions; write atomically.
-- [ ] Add package script and documentation.
-- [ ] Run mocked and real validation; retain the report.
-- [ ] Commit feat(validation): add reproducible local validation runner.
+- [x] Add mocked pass/fail/skip tests.
+- [x] Implement argv-based child execution, fixed order, timeout, and digest-only output.
+- [x] Bind git SHA/status and runtime versions; write atomically.
+- [x] Add package script and documentation.
+- [x] Run mocked and real validation; retain the report.
+- [x] Commit feat(validation): add reproducible local validation runner.
 
 ### Task 5: P2 格式与维护门禁
 
-- Add deterministic format check for src, web, tests, and scripts without reformatting historical docs.
-- Add check:format to npm check and document the command.
-- Format only changed/new modules first and commit separately.
+- [x] Add deterministic format check for src, web, tests, and scripts without reformatting historical docs.
+- [x] Add check:format to npm check and document the command.
+- [x] Format only changed/new modules first and commit separately.
 
 ### Task 6: P2 公开边界与故障恢复
 
-- Add compatibility fixtures for public exports, CLI JSON, and API DTOs.
-- Add migration interruption, disk write failure, half-line/duplicate import, restart, and manual-field retention regressions.
-- Preserve schema 7 and existing error codes.
+- [x] Add compatibility fixtures for public exports, CLI JSON, and API DTOs.
+- [x] Add migration interruption, disk write failure, half-line/duplicate import, restart, and manual-field retention regressions.
+- [x] Preserve schema 7 and existing error codes.
 
 ### Task 7: P2 浏览器体验与状态索引
 
-- Add keyboard focus, long text, empty list, load failure, unsaved draft, and retry browser regressions.
-- Establish a single current-status entry with links to historical evidence.
-- Run all seven browser flows and documentation link checks.
+- [x] Add keyboard focus, long text, empty list, load failure, unsaved draft, and retry browser regressions.
+- [x] Establish a single current-status entry with links to historical evidence.
+- [x] Run all seven browser flows and documentation link checks.
 
 ## Integration order
 
