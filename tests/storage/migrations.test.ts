@@ -82,12 +82,12 @@ it('builds and maintains the compact search event projection during migration',a
  old.exec("INSERT INTO sessions(id,metadata_json) VALUES('s','{}'); INSERT INTO events VALUES('e','s',0,'{}','first'); PRAGMA user_version=7;");old.close();
  const upgraded=await openDatabase({dataDir});try{
   expect(upgraded.pragma('user_version',{simple:true})).toBe(SCHEMA_VERSION);
-  expect(upgraded.prepare('SELECT search_text FROM search_session_projection WHERE session_id=?').pluck().get('s')).toBe('first');
+  expect(upgraded.prepare('SELECT search_text FROM search_event_projection WHERE session_id=?').pluck().get('s')).toBe('first');
   upgraded.prepare('UPDATE events SET search_text=? WHERE id=?').run('second','e');
-  expect(upgraded.prepare('SELECT search_text FROM search_session_projection WHERE session_id=?').pluck().get('s')).toBe('second');
+  expect(upgraded.prepare('SELECT search_text FROM search_event_projection WHERE session_id=?').pluck().get('s')).toBe('second');
   upgraded.prepare('DELETE FROM events WHERE id=?').run('e');
   upgraded.prepare('DELETE FROM sessions WHERE id=?').run('s');
-  expect(upgraded.prepare('SELECT 1 FROM search_session_projection WHERE session_id=?').get('s')).toBeUndefined();
+  expect(upgraded.prepare('SELECT 1 FROM search_event_projection WHERE session_id=?').get('s')).toBeUndefined();
  }finally{upgraded.close();}
 });
 
