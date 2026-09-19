@@ -85,6 +85,9 @@ it('builds and maintains the compact search event projection during migration',a
   expect(upgraded.prepare('SELECT search_text FROM search_session_projection WHERE session_id=?').pluck().get('s')).toBe('first');
   upgraded.prepare('UPDATE events SET search_text=? WHERE id=?').run('second','e');
   expect(upgraded.prepare('SELECT search_text FROM search_session_projection WHERE session_id=?').pluck().get('s')).toBe('second');
+  upgraded.prepare('DELETE FROM events WHERE id=?').run('e');
+  upgraded.prepare('DELETE FROM sessions WHERE id=?').run('s');
+  expect(upgraded.prepare('SELECT 1 FROM search_session_projection WHERE session_id=?').get('s')).toBeUndefined();
  }finally{upgraded.close();}
 });
 
