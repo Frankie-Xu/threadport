@@ -15,7 +15,7 @@ npm ci
 npm run check
 ```
 
-The current gate runs TypeScript typechecking and compilation, Vitest, and local Markdown link checks. Run the link check separately with `npm run check:docs`. It checks file destinations in repository-root Markdown files, `docs/`, and `.github/`; it does not validate remote URLs or heading anchors. Follow existing formatting and review the diff with `git diff --check`; automated format/lint gates are not yet installed. Web, E2E, and benchmark checks are introduced by their implementation tasks and must not be reported as passed before they exist.
+The current gate runs a lightweight format check (trailing whitespace and carriage returns only), TypeScript typechecking and compilation, Vitest, and local Markdown link checks. Run the format check separately with `npm run check:format` and the link check with `npm run check:docs`. The link check covers file destinations in repository-root Markdown files, `docs/`, and `.github/`; it does not validate remote URLs or heading anchors. Review the diff with `git diff --check`; a structural formatter and lint gate are not yet installed. Web, E2E, and benchmark checks are introduced by their implementation tasks and must not be reported as passed before they exist.
 
 CI runs the same gate on Ubuntu, macOS and Windows with Node 24 (the `engines` floor), plus `npm run check:pack` to verify an isolated package installation. Vitest is configured in `vitest.config.ts` to run `tests/**/*.test.ts` only. `tsconfig.build.json` excludes tests from the runtime build. Keep Vitest and Vite pins compatible with the declared Node floor.
 
