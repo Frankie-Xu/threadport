@@ -13,18 +13,18 @@ export default defineConfig({
     maxWorkers: 2,
     testTimeout: process.platform === "win32" ? 30000 : 5000,
     include: ["tests/**/*.test.ts"],
-    exclude: ["dist/**", "node_modules/**"]
-  },
-  coverage: {
-    provider: "v8",
-    include: ["src/**/*.ts"],
-    exclude: ["src/**/*.d.ts"],
-    reporter: ["text", "json-summary"],
-    thresholds: {
-      lines: 70,
-      functions: 70,
-      statements: 70,
-      branches: 60
+    exclude: ["dist/**", "node_modules/**"],
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/*.d.ts"],
+      reporter: ["text", "json-summary", "html"],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        statements: 70,
+        branches: 60
+      }
     }
   }
 });

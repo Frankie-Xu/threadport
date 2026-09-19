@@ -49,6 +49,9 @@ jobs:
         run: npm ci
       - name: Check types, build, tests, and documentation links
         run: npm run check
+      - name: Check coverage baseline on Linux
+        if: runner.os == 'Linux'
+        run: npm run test:coverage
       - name: Cache pinned browser binaries
         uses: actions/cache@v4
         with:
