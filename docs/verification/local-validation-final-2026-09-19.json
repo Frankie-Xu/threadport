@@ -1,0 +1,113 @@
+{
+  "schema": "threadport.local-validation.v1",
+  "collectedAt": "2026-09-19T03:21:38.303Z",
+  "candidateSha": "3d11bc3ba7776604c89aca30a0c41641d16664a0",
+  "workingTree": {
+    "state": "dirty",
+    "dirty": true,
+    "statusDigest": "4df10b2e74caa883392d84daff22b9c9ebcebe9f09fcf3ee61250d71c964e03c"
+  },
+  "sourceHash": "19c76baa450fb717ca6e33cb510ba880d13b3c0e4de8bc4f44a31fcd47a0db4b",
+  "runtime": {
+    "node": "v26.5.0",
+    "npm": "11.17.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "kernel": "25.6.0"
+  },
+  "probes": {
+    "chrome": true,
+    "docker": true
+  },
+  "steps": [
+    {
+      "id": "source-check",
+      "title": "Source typecheck, build, tests, and docs",
+      "command": {
+        "executable": "npm",
+        "args": [
+          "run",
+          "check"
+        ]
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "startedAt": "2026-09-19T03:21:38.380Z",
+      "finishedAt": "2026-09-19T03:22:23.246Z",
+      "stdoutDigest": "92dcd431fc42bfd071306504cbd3145dff27150afbc4d07480d60ea2cac836b4",
+      "stderrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "packages": []
+    },
+    {
+      "id": "browser-e2e",
+      "title": "Production browser flow",
+      "command": {
+        "executable": "npm",
+        "args": [
+          "run",
+          "test:e2e"
+        ]
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "startedAt": "2026-09-19T03:22:23.247Z",
+      "finishedAt": "2026-09-19T03:22:40.187Z",
+      "stdoutDigest": "c53572195fd5a88326593bedfaeb2a552fdffc871dd501d5cbbba4aca43431ee",
+      "stderrDigest": "ddbe1025c91bc88c905f5c8099abd2d595e5b28230a39daebaa50d958b1ec37b",
+      "packages": []
+    },
+    {
+      "id": "package-smoke",
+      "title": "Isolated package smoke test",
+      "command": {
+        "executable": "npm",
+        "args": [
+          "run",
+          "test:package"
+        ]
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "startedAt": "2026-09-19T03:22:40.188Z",
+      "finishedAt": "2026-09-19T03:22:57.390Z",
+      "stdoutDigest": "8fff9a4cbfe130954f4fc3e50a2aaa0d8ab88f02cd2275bc9a8ef108e2ebbb88",
+      "stderrDigest": "ac7e3385f108345de52a05de16b3928e68a33e584beba1263cf826cc197501a0",
+      "packages": [
+        {
+          "filename": "threadport-0.2.0-dev.0.tgz",
+          "sha256": "0cfe606b09bf29db748541065b198c0767d12a3f28f36271a7f63f74936fc3b3"
+        }
+      ]
+    },
+    {
+      "id": "linux-container",
+      "title": "Linux Node 24 container check",
+      "command": {
+        "executable": "docker",
+        "args": [
+          "run",
+          "--rm",
+          "-v",
+          "<workspace>:/source:ro",
+          "node:24-bookworm",
+          "node",
+          "/source/scripts/local-validation-container.mjs"
+        ]
+      },
+      "status": "failed",
+      "exitCode": 1,
+      "startedAt": "2026-09-19T03:22:57.391Z",
+      "finishedAt": "2026-09-19T03:22:57.687Z",
+      "stdoutDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrDigest": "b5c503f7603b565d90edf6fac79b6ae30be64b4cb7ec45bc069e2ab685f7b892",
+      "packages": [],
+      "errorCode": "EXIT_1"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 1,
+    "skipped": 0,
+    "status": "failed"
+  }
+}
