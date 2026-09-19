@@ -23,10 +23,8 @@ function visible(value:unknown):string{
 export function normalizeBlock(input:{block:RecordValue;row:RecordValue;role:'user'|'assistant';sessionId:string;offset:number;blockIndex:number;recordHash:string;ordinal:number;pending:Map<string,PendingCall>;warnings:Set<string>}):NormalizedEvent|null{
  const {block,row,role,sessionId,offset,blockIndex,ordinal,pending,warnings}=input;
  const base={id:stableId(sessionId,offset,blockIndex,input.recordHash),sessionId,ordinal,occurredAt:timestamp(row.timestamp),relativePaths:[] as string[],omitted:false,commandRun:null};
- const structured = block.innerObservation ?? row.innerObservation;
- const withStructured = structured === undefined ? {} : { innerObservation: structured };
  if(block.type==='thinking'||block.type==='redacted_thinking'||block.type==='reasoning')return null;
- if(block.type==='text'&&typeof block.text==='string')return {...base,kind:role==='user'?'user-message':'assistant-message',...bounded(block.text),...withStructured};
+ if(block.type==='text'&&typeof block.text==='string')return {...base,kind:role==='user'?'user-message':'assistant-message',...bounded(block.text)};
  if(block.type==='tool_use'&&role==='assistant'&&record(block.input)){
   const args=block.input;const cwd=typeof args.cwd==='string'?args.cwd:typeof row.cwd==='string'?row.cwd:null;
   if(block.name==='Bash'&&typeof args.command==='string'&&args.command.trim()){
@@ -35,7 +33,7 @@ export function normalizeBlock(input:{block:RecordValue;row:RecordValue;role:'us
    const id=vendorId??stableId(base.id,'call');if(!vendorId)warnings.add('MISSING_TOOL_ID');
    const run={id,sessionId,ordinal,command:command.omitted?'[REDACTED:oversize-command]':command.text,cwd:location?.omitted?'[REDACTED:oversize-cwd]':location?.text??null,exitCode:null,startedAt:base.occurredAt,completedAt:null,eventId:base.id,snapshotId:null};
    if(vendorId&&!warnings.has('DUPLICATE_TOOL_ID')){if(pending.has(vendorId)){pending.clear();warnings.add('DUPLICATE_TOOL_ID');}else if(pending.size<128)pending.set(vendorId,{id,command:run.command,cwd:run.cwd,startedAt:run.startedAt});else warnings.add('PENDING_CALL_LIMIT');}
-   return {...base,kind:'command',text:'Observed command invocation; result unknown.',omitted:command.omitted||!!location?.omitted,commandRun:run,...withStructured};
+   return {...base,kind:'command',text:'Observed command invocation; result unknown.',omitted:command.omitted||!!location?.omitted,commandRun:run};
   }
   if(['Write','Edit','MultiEdit','NotebookEdit'].includes(String(block.name))){
    const path=typeof args.file_path==='string'?args.file_path:typeof args.notebook_path==='string'?args.notebook_path:null;
@@ -55,7 +53,7 @@ export function normalizeBlock(input:{block:RecordValue;row:RecordValue;role:'us
   // Missing, null, or malformed exits remain unknown; only explicit observed integers count.
   let exitCode=typeof explicit==='number'&&Number.isSafeInteger(explicit)?explicit:null;
   if(block.is_error===true){warnings.add('TOOL_REPORTED_ERROR');if(exitCode===0){exitCode=null;warnings.add('CONFLICTING_COMMAND_RESULT');}}
-   return {...base,kind:'command',...text,commandRun:{...call,sessionId,ordinal,exitCode,completedAt:base.occurredAt,eventId:base.id,snapshotId:null},...withStructured};
+   return {...base,kind:'command',...text,commandRun:{...call,sessionId,ordinal,exitCode,completedAt:base.occurredAt,eventId:base.id,snapshotId:null}};
  }
  warnings.add('UNKNOWN_BLOCK');return null;
 }
