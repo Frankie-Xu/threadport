@@ -76,6 +76,17 @@ it('upgrades v3 search state transactionally and ignores unchanged projection up
   upgraded.prepare('UPDATE projects SET name=? WHERE id=?').run('Changed','p');expect(generation()).toBe(1);
  }finally{upgraded.close();}
 });
+it('builds and maintains the compact search event projection during migration',async()=>{
+ const dataDir=await dir();const {readFile}=await import('node:fs/promises');const old=new Database(join(dataDir,'threadport.sqlite'));
+ for(const name of ['001-initial.sql','002-index-state.sql','003-task-management.sql','004-history-search.sql','005-launch-coordination.sql','006-assertions.sql','007-execution-observations.sql'])old.exec(await readFile(new URL('../../migrations/'+name,import.meta.url),'utf8'));
+ old.exec("INSERT INTO sessions(id,metadata_json) VALUES('s','{}'); INSERT INTO events VALUES('e','s',0,'{}','first'); PRAGMA user_version=7;");old.close();
+ const upgraded=await openDatabase({dataDir});try{
+  expect(upgraded.pragma('user_version',{simple:true})).toBe(SCHEMA_VERSION);
+  expect(upgraded.prepare('SELECT search_text FROM search_session_projection WHERE session_id=?').pluck().get('s')).toBe('first');
+  upgraded.prepare('UPDATE events SET search_text=? WHERE id=?').run('second','e');
+  expect(upgraded.prepare('SELECT search_text FROM search_session_projection WHERE session_id=?').pluck().get('s')).toBe('second');
+ }finally{upgraded.close();}
+});
 
 it('migrates overlapping legacy active attempts to unknown without losing reservations',async()=>{
  const dataDir=await dir();const {readFile}=await import('node:fs/promises');const old=new Database(join(dataDir,'threadport.sqlite'));
