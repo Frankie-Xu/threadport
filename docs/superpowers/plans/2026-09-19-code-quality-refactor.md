@@ -160,7 +160,7 @@ Keep the current `SearchPage` assembly and `snippet` behavior. Change only candi
 
 Run focused search, migration, and indexing tests. Expected: all existing and new fixtures pass with identical cursor and match semantics.
 
-- [ ] **Step 5: Run the fixed benchmark**
+- [ ] **Step 5: Run the fixed benchmark** — attempted on 2026-09-19; the benchmark exited with `hold / BENCHMARK_INCOMPLETE` before producing metrics, so no performance improvement is claimed.
 
 Run `npm run bench --silent > /tmp/threadport-search-refactor.json`. Compare API p95, indexing time, RSS, and cancellation against the current baseline. Keep the refactor only if correctness is unchanged and the measured search p95 improves without violating memory or capacity limits.
 
