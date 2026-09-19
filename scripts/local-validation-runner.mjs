@@ -1,9 +1,12 @@
 import { createHash } from 'node:crypto';
 import { execFile, spawn } from 'node:child_process';
-import { access, mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, writeFile, readFile, rename, readdir, lstat, readlink } from 'node:fs/promises';
 import { platform, arch, release } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import { pathToFileURL } from 'node:url';
+import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
 
 const execFileAsync = promisify(execFile);
 const REPORT_SCHEMA = 'threadport.local-validation.v1';
@@ -21,19 +24,22 @@ function isoNow() {
   return new Date().toISOString();
 }
 
-function npmExecutable() {
-  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
+export function npmCommand(npmPath = process.env.npm_execpath) {
+  if (!npmPath) {
+    try { npmPath = createRequire(import.meta.url).resolve('npm/bin/npm-cli.js'); }
+    catch { npmPath = join(dirname(process.execPath), process.platform === 'win32' ? 'node_modules/npm/bin/npm-cli.js' : '../lib/node_modules/npm/bin/npm-cli.js'); }
+  }
+  return { executable: process.execPath, args: [npmPath] };
 }
 
-function sourceSteps({ cwd = process.cwd(), packageOutput = 'output/package-local-validation' } = {}) {
-  const npm = npmExecutable();
+function sourceSteps({ cwd = process.cwd(), packageOutput = process.env.THREADPORT_PACKAGE_OUTPUT ?? join(cwd, 'output', `package-local-validation-${randomUUID()}`) } = {}) {
+  const npm = npmCommand();
+  const script = (name) => ({ executable: npm.executable, args: [...npm.args, 'run', name] });
   return [
-    { id: 'source-check', title: 'Source typecheck, build, tests, and docs', executable: npm, args: ['run', 'check'] },
-    { id: 'browser-e2e', title: 'Production browser flow', executable: npm, args: ['run', 'test:e2e'], requires: 'chrome', env: { THREADPORT_TEST_CHROME: '1' } },
-    { id: 'package-smoke', title: 'Isolated package smoke test', executable: npm, args: ['run', 'test:package'], requires: 'chrome', env: { THREADPORT_TEST_CHROME: '1', THREADPORT_PACKAGE_OUTPUT: packageOutput } },
-    // The mounted working tree lets this command remain an argv-only invocation. It is intentionally
-    // a user-state check; a clean CI-style archive is recorded separately by the Linux CI job.
-    { id: 'linux-container', title: 'Linux Node 24 container check', executable: 'docker', args: ['run', '--rm', '-v', `${resolve(cwd)}:/work:ro`, '-w', '/work', 'node:24-bookworm', 'npm', 'run', 'check'], requires: 'docker' },
+    { id: 'source-check', title: 'Source typecheck, build, tests, and docs', ...script('check') },
+    { id: 'browser-e2e', title: 'Production browser flow', ...script('test:e2e'), requires: 'chrome', env: { THREADPORT_TEST_CHROME: '1' } },
+    { id: 'package-smoke', title: 'Isolated package smoke test', ...script('test:package'), requires: 'chrome', env: { THREADPORT_TEST_CHROME: '1', THREADPORT_PACKAGE_OUTPUT: packageOutput } },
+    { id: 'linux-container', title: 'Linux Node 24 container check', executable: 'docker', args: ['run', '--rm', '-v', `${resolve(cwd)}:/source:ro`, 'node:24-bookworm', 'node', '/source/scripts/local-validation-container.mjs'], requires: 'docker' },
   ];
 }
 
@@ -44,7 +50,7 @@ function commandLabel(step) {
 }
 
 /** Execute one argv command. `shell` is always false so input cannot become shell syntax. */
-export function executeArgv(step, { cwd = process.cwd(), timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+export function executeArgv(step, { cwd = process.cwd(), timeoutMs = step.timeoutMs ?? DEFAULT_TIMEOUT_MS } = {}) {
   return new Promise(resolvePromise => {
     const child = spawn(step.executable, step.args, {
       cwd,
@@ -88,16 +94,16 @@ async function commandAvailable(command) {
   return false;
 }
 
-async function chromeAvailable() {
-  const names = process.platform === 'win32'
-    ? ['chrome.exe', 'msedge.exe']
+export async function chromeAvailable({ locate = commandAvailable, exists = access, host = process.platform } = {}) {
+  const names = host === 'win32'
+    ? ['chrome.exe']
     : process.platform === 'darwin'
-      ? ['google-chrome', 'chromium', 'chromium-browser']
-      : ['google-chrome', 'chromium', 'chromium-browser'];
-  if (await Promise.any(names.map(name => commandAvailable(name))).then(() => true, () => false)) return true;
-  if (process.platform === 'darwin') {
-    for (const path of ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Chromium.app/Contents/MacOS/Chromium']) {
-      try { await access(path); return true; } catch { /* unavailable */ }
+      ? ['google-chrome']
+      : ['google-chrome'];
+  if ((await Promise.all(names.map(name => locate(name)))).some(Boolean)) return true;
+  if (host === 'darwin') {
+    for (const path of ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome']) {
+      try { await exists(path); return true; } catch { /* unavailable */ }
     }
   }
   return false;
@@ -116,7 +122,8 @@ async function dockerAvailable() {
 async function runtimeInfo() {
   let npm = null;
   try {
-    const result = await execFileAsync(npmExecutable(), ['--version'], { timeout: 3000, windowsHide: true });
+    const command = npmCommand();
+    const result = await execFileAsync(command.executable, [...command.args, '--version'], { timeout: 3000, windowsHide: true });
     npm = String(result.stdout).trim().split(/\r?\n/, 1)[0] || null;
   } catch { /* npm version is optional metadata */ }
   return { node: process.version, npm, platform: platform(), arch: arch(), kernel: release() };
@@ -142,6 +149,38 @@ async function collectCandidateSha(cwd) {
   return value && /^[0-9a-f]{40}$/i.test(value) ? value : null;
 }
 
+export async function sourceDigest(cwd) {
+  const { stdout } = await execFileAsync('git', ['-C', cwd, 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], { maxBuffer: 16 * 1024 * 1024 });
+  const hash = createHash('sha256');
+  for (const path of [...new Set(stdout.split('\0').filter(Boolean))].sort()) {
+    if (/^(output|node_modules|dist)\//.test(path)) continue;
+    hash.update(path + '\0');
+    try {
+      const absolute = join(cwd, path);
+      const stat = await lstat(absolute);
+      hash.update(String(stat.mode) + '\0');
+      hash.update(stat.isSymbolicLink() ? await readlink(absolute) : await readFile(absolute));
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      hash.update('<deleted>');
+    }
+    hash.update('\0');
+  }
+  return hash.digest('hex');
+}
+
+async function packageDigests(step) {
+  const directory = step.env?.THREADPORT_PACKAGE_OUTPUT;
+  if (!directory) return [];
+  try {
+    const files = await readdir(directory);
+    return await Promise.all(files.filter(name => name.endsWith('.tgz')).sort().map(async name => ({ filename: name, sha256: sha256(await readFile(join(directory, name))) })));
+  } catch (error) {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  }
+}
+
 function requirementAvailable(step, probes) {
   if (!step.requires) return true;
   return Boolean(probes[step.requires]);
@@ -160,6 +199,7 @@ export async function runValidation({
   candidateSha,
   workingTree,
   runtime,
+  sourceHash,
   now = isoNow,
   reportPath,
   writeReport: writeReportFn = writeValidationReport,
@@ -169,13 +209,28 @@ export async function runValidation({
   const actualWorkingTree = workingTree ?? await collectWorkingTree(cwd);
   const actualRuntime = runtime ?? await runtimeInfo();
   const records = [];
+  const path = reportPath ?? defaultReportPath(cwd);
+  const report = {
+    schema: REPORT_SCHEMA, collectedAt: now(), candidateSha: actualCandidateSha,
+    workingTree: actualWorkingTree, sourceHash: sourceHash ?? await sourceDigest(cwd),
+    runtime: actualRuntime, probes: actualProbes, steps: records,
+    summary: { passed: 0, failed: 0, skipped: 0, status: 'running' },
+  };
+  const persist = async (complete = false) => {
+    const passed = records.filter(step => step.status === 'passed').length;
+    const failed = records.filter(step => step.status === 'failed').length;
+    const skipped = records.filter(step => step.status === 'skipped').length;
+    report.summary = { passed, failed, skipped, status: complete ? (failed ? 'failed' : skipped ? 'incomplete' : 'passed') : 'running' };
+    await writeReportFn(path, report);
+  };
+  await persist();
   for (const step of steps) {
     const startedAt = now();
     if (!requirementAvailable(step, actualProbes)) {
       records.push({
         id: step.id,
         title: step.title,
-        command: { executable: step.executable, args: redactArgs(step.args, cwd) },
+        command: { executable: redactArgs([step.executable], cwd)[0], args: redactArgs(step.args, cwd) },
         status: 'skipped',
         exitCode: null,
         startedAt,
@@ -184,6 +239,7 @@ export async function runValidation({
         stderrDigest: sha256(''),
         skipReason: `${step.requires} unavailable`,
       });
+      await persist();
       continue;
     }
     let result;
@@ -195,32 +251,20 @@ export async function runValidation({
     records.push({
       id: step.id,
       title: step.title,
-      command: { executable: step.executable, args: redactArgs(step.args, cwd) },
+      command: { executable: redactArgs([step.executable], cwd)[0], args: redactArgs(step.args, cwd) },
       status: result.status,
       exitCode: result.exitCode,
       startedAt,
       finishedAt: now(),
       stdoutDigest: sha256(result.stdout ?? ''),
       stderrDigest: sha256(result.stderr ?? ''),
+      packages: await packageDigests(step),
       ...(result.errorCode ? { errorCode: result.errorCode } : {}),
     });
+    await persist();
   }
-  const passed = records.filter(step => step.status === 'passed').length;
-  const failed = records.filter(step => step.status === 'failed').length;
-  const skipped = records.filter(step => step.status === 'skipped').length;
-  const report = {
-    schema: REPORT_SCHEMA,
-    collectedAt: now(),
-    candidateSha: actualCandidateSha,
-    workingTree: actualWorkingTree,
-    runtime: actualRuntime,
-    probes: actualProbes,
-    steps: records,
-    summary: { passed, failed, skipped, status: failed ? 'failed' : 'passed' },
-  };
-  const path = reportPath ?? defaultReportPath(cwd);
-  await writeReportFn(path, report);
-  return { report, reportPath: path, exitCode: failed ? 1 : 0 };
+  await persist(true);
+  return { report, reportPath: path, exitCode: report.summary.failed ? 1 : 0 };
 }
 
 function defaultReportPath(cwd) {
@@ -242,7 +286,9 @@ function redactArgs(args, cwd) {
 export async function writeValidationReport(path, report) {
   const absolute = isAbsolute(path) ? path : resolve(path);
   await mkdir(dirname(absolute), { recursive: true });
-  await writeFile(absolute, `${JSON.stringify(report, null, 2)}\n`, { encoding: 'utf8', mode: 0o644 });
+  const temporary = `${absolute}.${randomUUID()}.tmp`;
+  await writeFile(temporary, `${JSON.stringify(report, null, 2)}\n`, { encoding: 'utf8', mode: 0o644 });
+  await rename(temporary, absolute);
 }
 
 function parseArgs(argv) {
@@ -272,7 +318,7 @@ export async function main(argv = process.argv.slice(2)) {
   return result.exitCode;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   main().then(code => { process.exitCode = code; }).catch(error => {
     process.stderr.write(`local validation failed before report creation: ${error?.message ?? error}\n`);
     process.exitCode = 1;

@@ -123,7 +123,9 @@ export function Editor({
         <ErrorNotice error={action.error} focus />
         {action.error instanceof ApiError &&
           action.error.code === "REVISION_CONFLICT" && (
-            <button type="button" className="quiet" onClick={onSaved}>
+            <button type="button" className="quiet" onClick={() => {
+              if (window.confirm("Discard unsaved changes and load the latest task?")) onSaved();
+            }}>
               Discard draft and reload
             </button>
           )}

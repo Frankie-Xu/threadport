@@ -66,8 +66,8 @@ describe('local validation runner', () => {
     expect(result.report.summary).toMatchObject({ passed: 1, failed: 1, skipped: 0, status: 'failed' });
     expect(result.report.steps.map(step => step.id)).toEqual(['fail', 'after']);
     expect(result.report.steps[0]).toMatchObject({ status: 'failed', exitCode: 7, stderrDigest: digest('boom') });
-    expect(written).toHaveLength(1);
-    expect(JSON.parse(written[0]).steps[0].status).toBe('failed');
+    expect(written.length).toBeGreaterThanOrEqual(1);
+    expect(JSON.parse(written.at(-1)!).steps[0].status).toBe('failed');
     await expect(readFile('/tmp/does-not-exist-threadport-validation-report')).rejects.toThrow();
   });
 
@@ -90,7 +90,7 @@ describe('local validation runner', () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.report.summary).toEqual({ passed: 0, failed: 0, skipped: 2, status: 'passed' });
+    expect(result.report.summary).toEqual({ passed: 0, failed: 0, skipped: 2, status: 'incomplete' });
     expect(result.report.steps).toEqual([
       expect.objectContaining({ id: 'browser', status: 'skipped', exitCode: null, skipReason: 'chrome unavailable' }),
       expect.objectContaining({ id: 'docker', status: 'skipped', exitCode: null, skipReason: 'docker unavailable' }),

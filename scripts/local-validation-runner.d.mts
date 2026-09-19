@@ -32,11 +32,14 @@ export type ValidationReport = {
     finishedAt: string;
     stdoutDigest: string;
     stderrDigest: string;
+    packages?: Array<{ filename: string; sha256: string }>;
     skipReason?: string;
     errorCode?: string;
   }>;
-  summary: { passed: number; failed: number; skipped: number; status: 'passed' | 'failed' };
+  summary: { passed: number; failed: number; skipped: number; status: 'running' | 'passed' | 'failed' | 'incomplete' };
+  sourceHash: string;
 };
+export function chromeAvailable(options?: { locate?: (command: string) => Promise<boolean>; exists?: (path: string) => Promise<unknown>; host?: string }): Promise<boolean>;
 export const defaultSteps: (options?: { cwd?: string; packageOutput?: string }) => ValidationStep[];
 export function executeArgv(step: ValidationStep, options?: { cwd?: string; timeoutMs?: number }): Promise<CommandResult>;
 export function runValidation(options?: {
@@ -47,6 +50,7 @@ export function runValidation(options?: {
   candidateSha?: string | null;
   workingTree?: ValidationReport['workingTree'];
   runtime?: ValidationReport['runtime'];
+  sourceHash?: string;
   now?: () => string;
   reportPath?: string;
   writeReport?: (path: string, report: ValidationReport) => Promise<void>;

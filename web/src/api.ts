@@ -99,7 +99,7 @@ export class ApiError extends Error {
     readonly recovery: RecoveryAction = recoveryFor(code),
     message?: string,
   ) {
-    super(message ?? messages[code] ?? "The operation could not be completed. Try again.");
+    super(messages[code] ?? message ?? "The operation could not be completed. Try again.");
     this.name = "ApiError";
   }
 }
@@ -136,7 +136,8 @@ function createApi(token: string): ApiClient {
       : response.status === 401 ? "UNAUTHORIZED" : response.status === 503 ? "STORAGE_BUSY" : "REQUEST_FAILED";
     if (response.status === 401) api.onExpired?.();
     const retryable = retryableFor(code, value?.error?.retryable);
-    const recovery = typeof value?.error?.recovery === "string"
+    const recoveryActions: readonly string[] = ["reconnect", "retry", "refresh", "edit-and-save", "review-path", "export-only", "none"];
+    const recovery = typeof value?.error?.recovery === "string" && recoveryActions.includes(value.error.recovery)
       ? value.error.recovery as RecoveryAction
       : recoveryFor(code);
     const message = typeof value?.error?.message === "string" ? value.error.message : undefined;

@@ -25,9 +25,8 @@ export function ErrorNotice({
     "export-only": "Export instead",
     none: "",
   };
-  const recover = onRecovery ?? ((recovery === "reconnect" || recovery === "refresh" || recovery === "retry")
-    ? () => window.location.reload()
-    : undefined);
+  // Recovery must be supplied by the owner; reloading loses in-memory drafts and auth.
+  const recover = onRecovery;
   return (
     <div className="notice error" role="alert" tabIndex={-1} ref={ref}>
       <div>{error.message}</div>
