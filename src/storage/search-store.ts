@@ -35,7 +35,7 @@ export function searchHistory(db:Database.Database,input:SearchInput):SearchPage
   if(query.after&&query.after.generation!==generation)throw new DomainError('SEARCH_STALE','Search data changed; restart the search without a cursor.');
   const values:Record<string,string|number|null>={project:query.projectId,agent:query.agent,from:query.from,to:query.to,limit:query.limit+1};
   const clauses=['(@project IS NULL OR d.projectId=@project)','(@agent IS NULL OR d.agent=@agent)','(@from IS NULL OR d.activity>=@from)','(@to IS NULL OR d.activity<=@to)'];
-  query.terms.forEach((term,index)=>{values[`term${index}`]=term;clauses.push(`(instr(lower(d.title),@term${index})>0 OR instr(lower(d.objective),@term${index})>0 OR d.id IN (SELECT 's:'||ep.session_id FROM search_event_projection ep WHERE instr(lower(ep.search_text),@term${index})>0))`);});
+  query.terms.forEach((term,index)=>{values[`term${index}`]=term;clauses.push(`(instr(lower(d.title),@term${index})>0 OR instr(lower(d.objective),@term${index})>0 OR EXISTS (SELECT 1 FROM search_event_projection ep WHERE ep.session_id=d.sessionId AND instr(lower(ep.search_text),@term${index})>0))`);});
   if(query.after){values.afterTime=query.after.activity??'';values.afterId=query.after.id;clauses.push("(coalesce(d.activity,'')<@afterTime OR (coalesce(d.activity,'')=@afterTime AND d.id>@afterId))");}
   const rows=db.prepare(`${documents} SELECT * FROM documents d WHERE ${clauses.join(' AND ')} ORDER BY coalesce(activity,'') DESC,id ASC LIMIT @limit`).all(values) as Row[];
   const hasMore=rows.length>query.limit;rows.length=Math.min(rows.length,query.limit);
