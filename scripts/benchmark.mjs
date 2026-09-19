@@ -317,8 +317,7 @@ if (process.argv[2] === "--worker") {
       ).data.jobId;
     await delay(30);
     const cancelStarted = performance.now();
-    await request("/index-jobs/" + cancelJob, "DELETE");
-    const cancelled = await finished(cancelJob),
+    const cancelled = (await request("/index-jobs/" + cancelJob, "DELETE")).data.progress,
       cancelMs = performance.now() - cancelStarted;
     await request("/sources/" + cancelSource.id, "DELETE", {
       confirmation: true,

@@ -48,7 +48,7 @@ it('validates task pagination and cancels jobs using a bodyless authenticated DE
  const stale=await api('/tasks?limit=1&cursor='+first.body.nextCursor);expect(stale.status).toBe(409);expect(stale.body.error).toMatchObject({code:'SEARCH_STALE',retryable:true,recovery:'retry'});
  const source=await api('/sources','POST',{agent:'claude',root:await temporary()});
  const job=await api('/index-jobs','POST',{sourceIds:[source.body.data.id]});
- expect((await api('/index-jobs/'+job.body.data.jobId,'DELETE')).status).toBe(200);
+ const cancelled=await api('/index-jobs/'+job.body.data.jobId,'DELETE');expect(cancelled.status).toBe(200);expect(['cancelled','completed','partial']).toContain(cancelled.body.data.progress[0].state);
  expect((await api('/index-jobs/'+job.body.data.jobId)).status).toBe(404);
 },30000);
 it('keeps session ownership and revision checks atomic across task links',async()=>{
