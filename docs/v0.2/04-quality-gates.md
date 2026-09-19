@@ -143,7 +143,7 @@ CI required check 继续保留名为 `check` 的汇总 job，依赖所有必须 
 
 浏览器 Playwright Chromium 自动化；本机可用 `THREADPORT_TEST_CHROME=1` 选择系统 Chrome。缺少浏览器是环境缺口，断言失败是产品/测试失败，两者分别记录，不跳过后宣称通过。Safari/WebKit 的 UI 基本流程 RC 补测，不声明所有浏览器版本。单元测试收集仅 `tests/**/*.test.ts`，排除 `tests/e2e/**`、dist、node_modules；Playwright 使用 `.spec.ts`。不要因构建输出让测试运行两遍。
 
-覆盖率不作为唯一门槛。新纯领域模块目标分支覆盖 ≥85%，索引幂等、revision 冲突、确认失效、迁移恢复的命名场景必须存在；没有行为价值的快照、常量 getter、简单样式无需为凑百分比加测试。
+覆盖率不作为唯一门槛。`npm run test:coverage` 使用 V8 对 `src/**/*.ts` 进行插桩，并执行仓库基线：行、语句、函数覆盖率至少 70%，分支覆盖率至少 60%。新纯领域模块目标分支覆盖 ≥85%，索引幂等、revision 冲突、确认失效、迁移恢复的命名场景必须存在；没有行为价值的快照、常量 getter、简单样式无需为凑百分比加测试。
 
 ## 7. RC 审查记录模板
 
