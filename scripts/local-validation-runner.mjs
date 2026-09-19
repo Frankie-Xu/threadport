@@ -110,10 +110,13 @@ export async function chromeAvailable({ locate = commandAvailable, exists = acce
   return false;
 }
 
-async function dockerAvailable() {
+async function dockerAvailable(cwd = process.cwd()) {
   if (!await commandAvailable('docker')) return false;
   try {
     await execFileAsync('docker', ['info', '--format', '{{.ServerVersion}}'], { timeout: 5000, windowsHide: true });
+    // Docker Desktop may report a healthy daemon while denying this workspace
+    // mount. Treat that as unavailable instead of recording a false code failure.
+    await execFileAsync('docker', ['run', '--rm', '-v', `${resolve(cwd)}:/source:ro`, 'node:24-bookworm', 'node', '-e', "require('node:fs').accessSync('/source/package.json')"], { timeout: 15000, windowsHide: true });
     return true;
   } catch {
     return false;
@@ -205,7 +208,7 @@ export async function runValidation({
   reportPath,
   writeReport: writeReportFn = writeValidationReport,
 } = {}) {
-  const actualProbes = probes ?? { chrome: await chromeAvailable(), docker: await dockerAvailable() };
+  const actualProbes = probes ?? { chrome: await chromeAvailable(), docker: await dockerAvailable(cwd) };
   const actualCandidateSha = candidateSha === undefined ? await collectCandidateSha(cwd) : candidateSha;
   const actualWorkingTree = workingTree ?? await collectWorkingTree(cwd);
   const actualRuntime = runtime ?? await runtimeInfo();
