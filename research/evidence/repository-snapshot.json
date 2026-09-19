@@ -1,0 +1,145 @@
+{
+  "retrieved_at": "2026-09-13T17:38:23.610868+00:00",
+  "repositories": [
+    {
+      "repo": "Frankie-Xu/threadport",
+      "stargazers_count": 0,
+      "forks_count": 0,
+      "created_at": "2026-09-12T06:38:25Z",
+      "pushed_at": "2026-09-13T17:11:57Z",
+      "description": "Portable, verifiable work state for coding agents",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "rosehgal/handoff",
+      "stargazers_count": 2,
+      "forks_count": 0,
+      "created_at": "2026-06-30T10:43:02Z",
+      "pushed_at": "2026-06-30T10:46:17Z",
+      "description": "Persistent, cross-agent session handoff for AI coding agents (Claude Code, Cursor). Never lose context between sessions.",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "conorbronsdon/agent-context-os",
+      "stargazers_count": 24,
+      "forks_count": 8,
+      "created_at": "2026-03-06T22:18:44Z",
+      "pushed_at": "2026-09-11T21:04:04Z",
+      "description": "Portable, evolving context and workflow layer that works across Claude Code, Codex, Hermes Agent, OpenClaw, Cursor, Devin and other compatible coding agents. All backed by Git. ",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "Ryu0118/ctxmv",
+      "stargazers_count": 43,
+      "forks_count": 1,
+      "created_at": "2026-03-14T18:01:04Z",
+      "pushed_at": "2026-09-06T04:07:14Z",
+      "description": "🏠 A CLI tool to migrate sessions between AI coding agents",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "entireio/cli",
+      "stargazers_count": 5091,
+      "forks_count": 473,
+      "created_at": "2026-01-02T17:13:58Z",
+      "pushed_at": "2026-09-13T16:52:20Z",
+      "description": "📜 Entire CLI hooks into your Git workflow to capture AI agent sessions as you work. Sessions are indexed alongside commits, creating a searchable record of how code was written in your repo.",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "entireio/skills",
+      "stargazers_count": 221,
+      "forks_count": 20,
+      "created_at": "2026-04-10T20:38:36Z",
+      "pushed_at": "2026-09-05T20:22:47Z",
+      "description": "✨ Cross-agent skills that help coding agents use Entire context from Checkpoints, sessions, and git history to search past work, explain code, and hand off sessions.",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "steveyegge/beads",
+      "stargazers_count": null,
+      "forks_count": null,
+      "created_at": null,
+      "pushed_at": null,
+      "description": null,
+      "archived": null,
+      "message": "Moved Permanently"
+    },
+    {
+      "repo": "thedotmack/claude-mem",
+      "stargazers_count": 93793,
+      "forks_count": 8253,
+      "created_at": "2025-08-31T20:50:03Z",
+      "pushed_at": "2026-09-13T09:42:20Z",
+      "description": "Persistent Context Across Sessions for Every Agent –  Captures everything your agent does during sessions, compresses it with AI, and injects relevant context back into future sessions. Works with Claude Code, OpenClaw, Codex, Gemini, Hermes, Copilot, OpenCode + More",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "mem0ai/mem0",
+      "stargazers_count": 65229,
+      "forks_count": 7639,
+      "created_at": "2023-06-20T08:58:36Z",
+      "pushed_at": "2026-09-11T15:36:33Z",
+      "description": "The Memory Layer for AI Agents - Drop-in memory infrastructure for AI agents and apps. Context that persists. Built for production.",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "getzep/graphiti",
+      "stargazers_count": 30851,
+      "forks_count": 3136,
+      "created_at": "2024-08-08T22:08:30Z",
+      "pushed_at": "2026-09-11T20:16:31Z",
+      "description": "Build Real-Time Knowledge Graphs for AI Agents",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "Dicklesworthstone/coding_agent_session_search",
+      "stargazers_count": 1127,
+      "forks_count": 137,
+      "created_at": "2025-11-21T01:22:15Z",
+      "pushed_at": "2026-09-13T04:39:36Z",
+      "description": "Unified TUI and CLI to index and search your local coding agent session history across 11+ providers (Codex, Claude, Gemini, Cursor, Aider, etc.)",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "00PrabalK00/Continuum",
+      "stargazers_count": 10,
+      "forks_count": 1,
+      "created_at": "2026-05-26T12:45:52Z",
+      "pushed_at": "2026-08-09T05:32:59Z",
+      "description": "Local shared memory and controlled workflows for AI coding agents.",
+      "archived": false,
+      "message": null
+    },
+    {
+      "repo": "ashahi10/ai-capsules",
+      "stargazers_count": null,
+      "forks_count": null,
+      "created_at": null,
+      "pushed_at": null,
+      "description": null,
+      "archived": null,
+      "message": "Not Found"
+    },
+    {
+      "repo": "megarampo/threadport",
+      "stargazers_count": 1,
+      "forks_count": 0,
+      "created_at": "2026-07-31T21:52:37Z",
+      "pushed_at": "2026-09-10T18:35:42Z",
+      "description": null,
+      "archived": false,
+      "message": null
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+Snapshot: 31ae6771bbb135bcf690e713c02869136db4b3ca
+Date: 2026-09-14 Asia/Singapore
+Local runtime: Node v26.5.0, macOS
+Command: npm run check (dependencies installed previously using npm ci)
+Build: passed
+Vitest v3.2.7: 10 files, 38 tests passed
+Remote CI: latest snapshot success; workflow Ubuntu Node 20 and 24
+Live third-party agent continuation: not run
+Additional synthetic probes: probe-results.json
+npm registry /threadport/latest: HTTP 404 at inspection time

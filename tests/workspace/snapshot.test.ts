@@ -24,7 +24,7 @@ it('returns incomplete reasons for no repository, missing root, no commit, symli
  const root=await temp();const binding={id:'w',projectId:'p',canonicalRoot:root};expect((await captureWorkspace(binding)).incompleteReasons).toContain('NO_GIT');
  expect((await captureWorkspace({...binding,canonicalRoot:join(root,'missing')})).incompleteReasons).toContain('SOURCE_MISSING');git(root,'init','-b','main');expect((await captureWorkspace(binding)).incompleteReasons).toContain('NO_COMMIT');
  const repoState=await repo();await writeFile(join(repoState.root,'extra'),'123456');const limited=await captureWorkspace(repoState.binding,{limits:{maxBytes:2}});expect(limited).toMatchObject({digest:null,incompleteReasons:['LIMIT_EXCEEDED']});
- await symlink(join(repoState.root,'a.txt'),join(repoState.root,'link'),'file');expect((await captureWorkspace(repoState.binding)).incompleteReasons).toContain('READ_FAILED');
+ await symlink(join(repoState.root,'a.txt'),join(repoState.root,'link'),'file');expect((await captureWorkspace(repoState.binding)).incompleteReasons).toEqual([]);
  await mkdir(join(repoState.root,'child'));expect((await captureWorkspace({...repoState.binding,canonicalRoot:join(repoState.root,'child')})).incompleteReasons).toContain('WORKSPACE_UNBOUND');
 },30000);
 it('cancels without creating a stored snapshot',async()=>{
@@ -52,10 +52,10 @@ it('rejects stale workspace bindings and preserves snapshots across reopen',asyn
   expect(()=>store.saveSnapshot({...snapshot,id:'bad',incompleteReasons:['RACED']})).toThrowError(expect.objectContaining({code:'INVALID_INPUT'}));
  }finally{store.close();}
 },30000);
-it('distinguishes linked worktree identity and refuses a symlinked tracked ancestor',async()=>{
+it('distinguishes linked worktree identity and classifies external directory links',async()=>{
  const {root,binding}=await repo();const other=await temp();const worktree=join(other,'linked');git(root,'worktree','add','--detach',worktree,'HEAD');
  const original=await captureWorkspace(binding);const linked=await captureWorkspace({...binding,canonicalRoot:worktree});expect(linked.incompleteReasons).toEqual([]);expect(linked.bindingDigest).not.toBe(original.bindingDigest);expect(linked.digest).toBe(original.digest);
  await mkdir(join(root,'nested'));await writeFile(join(root,'nested','file'),'tracked');git(root,'add','.');git(root,'commit','-m','nested');await rm(join(root,'nested'),{recursive:true});
  const outside=await temp();await writeFile(join(outside,'file'),'outside');await symlink(outside,join(root,'nested'),process.platform==='win32'?'junction':'dir');
- expect((await captureWorkspace(binding)).incompleteReasons).toContain('READ_FAILED');expect(await readFile(join(outside,'file'),'utf8')).toBe('outside');
+ expect((await captureWorkspace(binding)).incompleteReasons).toContain('SYMLINK_OUTSIDE');expect(await readFile(join(outside,'file'),'utf8')).toBe('outside');
 },30000);

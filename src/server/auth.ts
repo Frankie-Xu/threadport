@@ -1,7 +1,8 @@
 import { timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { errorBody } from './error-response.js';
 export function fail(reply:FastifyReply,request:FastifyRequest,status:number,code:string,message:string){
- return reply.code(status).send({error:{code,message,retryable:false,requestId:request.id}});
+ return reply.code(status).send({error:{...errorBody(code,message),requestId:request.id}});
 }
 export function installAuth(app:FastifyInstance,token:string):void{
  const expected=Buffer.from(`Bearer ${token}`);

@@ -2,6 +2,15 @@
 
 本表是已运行自动回归的证据索引，不是 stable 认证通过表。整合开发快照在 Node 24.18.1 / macOS arm64 上 `npm run check` 为 377 tests / 56 files，浏览器 6 个合成流程；最终提交、三平台 CI 和安装产物以 PR/包证据 JSON 为准。审查者为当前开发代理自审，尚无独立外部人工评审。
 
+## 原始 36 项验收附件（W5）
+
+状态：**HOLD / unavailable**。原始附件尚未取得，不能进行逐项合规声明。
+
+- [查找记录](original-acceptance-search-2026-09-16.md)记录了可访问本地范围内的检索结果。
+- [36 项映射模板](../acceptance/threadport-v0.2-36-scenarios-map.md)和[机器可读索引](../acceptance/threadport-v0.2-36-scenarios.json)保留 `S01`–`S36` 的固定字段；36 条当前均为 `unavailable`。
+- `Q01`–`Q24` 是仓库自有回归场景，432 项自动测试也不能替代缺失的原始要求或将其标记为通过。
+- 取得原件后，必须先绑定源文件版本、取得日期和 SHA-256，再填入逐项代码、自动测试、实机证据、平台/Agent、缺口与审查者；首次失败和重测结果均需保留。
+
 | 场景 | 自动证据 | 仍有的边界 |
 | --- | --- | --- |
 | Q01 不同目录同名文件 | [路径](../../tests/workspace/paths.test.ts)、[隐私](../../tests/privacy.test.ts) | 合成路径 |
@@ -29,4 +38,4 @@
 | Q23 两平台四路径三个任务 | [未完成矩阵](agent-matrix-beta.md) | **HOLD：macOS Codex 三场景已运行，21 格未运行** |
 | Q24 安装产物 | [包脚本](../../scripts/pack-smoke.mjs)、[产物记录](package-rc.md) | dev 快照；最终 RC 尚未认证 |
 
-发布阻断：性能预算、真实 Agent/平台认证、外部用户许可与结果、最终 RC 清单及具体发布授权。许可证为仓库现有 Apache-2.0，Capsule v1 冻结，主 SQLite schema 4；新增进程协调库不存任务正文。没有以“接受 P2”为由豁免这些门槛。未确认的外部实机情况记 unknown；后续失败按所属模块建立小工作包。
+发布阻断：性能预算、真实 Agent/平台认证、外部用户许可与结果、最终 RC 清单及具体发布授权。许可证为仓库现有 Apache-2.0，Capsule v1 冻结，当前主 SQLite schema 7；后续实现与精确验证版本见 [整改状态](remediation-progress-2026-09-16.md)。原报告 36 场景附件仍缺，见 [本地查找记录](original-acceptance-search-2026-09-16.md)。没有以“接受 P2”为由豁免这些门槛。未确认的外部实机情况记 unknown；后续失败按所属模块建立小工作包。

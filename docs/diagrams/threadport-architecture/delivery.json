@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "docs/diagrams/threadport-architecture/architecture.json",
+  "output": "docs/diagrams/threadport-architecture/index.html",
+  "specification": {
+    "sha256": "8375f5f0c89472d9c6c1b8eb70199a3e7d1f5c1c19954aa7698bf379c5f5b294",
+    "bytes": 6307
+  },
+  "artifact": {
+    "sha256": "af2c7db2e7b169618fc78fd4a5f390627b9db7fb38e3fd7daa6152385b390b5b",
+    "bytes": 814883
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  },
+  "evidence": {
+    "verified": true,
+    "repository": "https://github.com/Frankie-Xu/threadport",
+    "revision": "7f57a7917130014870a478951e4b650f97f3dd41",
+    "references": 11
+  }
+}

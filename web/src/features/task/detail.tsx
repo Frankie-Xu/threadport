@@ -1,3 +1,4 @@
+import { Assertions,type AssertionSeed } from "./assertions.js";
 import {ExportReview} from "../settings/export.js";
 import { useState } from "react";
 import {
@@ -40,6 +41,7 @@ export function Detail({
       eventId?: string;
     } | null>(null),
     [continuing, setContinuing] = useState(false);
+  const [assertionSeed,setAssertionSeed]=useState<AssertionSeed|null>(null);
   const action = useAction();
   const [exporting,setExporting]=useState(false);
   const refresh = () => {
@@ -139,6 +141,7 @@ export function Detail({
               <p>No constraints recorded.</p>
             )}
           </section>
+          <Assertions api={api} taskId={id} projectId={value.task.projectId} onSaved={()=>detail.reload()} onEvidence={setEvidence} seed={assertionSeed} onSeedConsumed={()=>setAssertionSeed(null)}/>
           <section className="panel">
             <h2>Source suggestions</h2>
             <p>
@@ -364,7 +367,7 @@ export function Detail({
       )}
       {exporting&&<ExportReview api={api} id={id} kind="task" onClose={()=>setExporting(false)}/>}
       {evidence && (
-        <Evidence api={api} {...evidence} onClose={() => setEvidence(null)} />
+        <Evidence api={api} {...evidence} onClose={() => setEvidence(null)} onCandidate={seed=>{setEvidence(null);setAssertionSeed(seed);}} />
       )}
     </>
   );

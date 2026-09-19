@@ -1,0 +1,24 @@
+[
+  {
+    "login": "Frankie-Xu",
+    "id": 92643488,
+    "node_id": "U_kgDOBYWgoA",
+    "avatar_url": "https://avatars.githubusercontent.com/u/92643488?v=4",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/Frankie-Xu",
+    "html_url": "https://github.com/Frankie-Xu",
+    "followers_url": "https://api.github.com/users/Frankie-Xu/followers",
+    "following_url": "https://api.github.com/users/Frankie-Xu/following{/other_user}",
+    "gists_url": "https://api.github.com/users/Frankie-Xu/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/Frankie-Xu/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/Frankie-Xu/subscriptions",
+    "organizations_url": "https://api.github.com/users/Frankie-Xu/orgs",
+    "repos_url": "https://api.github.com/users/Frankie-Xu/repos",
+    "events_url": "https://api.github.com/users/Frankie-Xu/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/Frankie-Xu/received_events",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false,
+    "contributions": 18
+  }
+]

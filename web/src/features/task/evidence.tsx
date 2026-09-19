@@ -7,18 +7,29 @@ import {
 } from "../../api.js";
 import type { NormalizedEvent } from "../../../../src/domain/models.js";
 import { ErrorNotice, Modal, Pager, useAction } from "../../components.js";
+type EventWithInnerObservation = NormalizedEvent & {
+  innerObservation?: {
+    status: "succeeded" | "passed" | "failed" | "running" | "pending" | "interrupted" | "unknown" | "unverified";
+    eventId?: string;
+    kind?: "command" | "test";
+    source?: { agent?: string; origin?: string };
+    environment?: { complete: boolean };
+  };
+};
 export function Evidence({
   api,
   sessionId,
   eventId,
   onClose,
+  onCandidate,
 }: {
   api: ApiClient;
   sessionId: string;
   eventId?: string;
   onClose: () => void;
+  onCandidate?: (seed:{text:string;source:{sessionId:string;eventId:string}})=>void;
 }) {
-  const events = usePage<NormalizedEvent>(
+  const events = usePage<EventWithInnerObservation>(
     api,
     "/sessions/" +
       encodeURIComponent(sessionId) +
@@ -38,8 +49,21 @@ export function Evidence({
             {event.omitted ? " · Source content was omitted" : ""}
           </p>
           <pre className="evidence">{event.text}</pre>
+          {onCandidate&&<button className="quiet" onClick={()=>onCandidate({text:event.text,source:{sessionId:event.sessionId,eventId:event.id}})}>Draft a decision from this evidence</button>}
           {event.commandRun && (
             <p>Exit code: {event.commandRun.exitCode ?? "unknown"}</p>
+          )}
+          {event.innerObservation && (
+            <p>
+              Structured Agent result:{" "}
+              {event.innerObservation.status}
+              {event.innerObservation.source?.agent
+                ? ` · ${event.innerObservation.source.agent}`
+                : ""}
+              {event.innerObservation.environment
+                ? ` · environment ${event.innerObservation.environment.complete ? "complete" : "incomplete"}`
+                : ""}
+            </p>
           )}
         </article>
       ))}

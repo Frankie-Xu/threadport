@@ -38,7 +38,13 @@ export type TraceEvent = (
   | { type: "assistant"; text: string }
   | { type: "file"; path: string; action: FileAction; outcome?: 'succeeded' | 'failed' | 'unknown'; output?: string }
   | { type: "command"; command: string; exitCode?: number | null; cwd?: string | null; sessionId?: string; output?: string }
-) & { /** Observed result position, or call position when no result exists. Not serialized. */ order?: number; occurredAt?: string | null };
+) & {
+  /** Optional structured vendor result. It is validated at the evidence boundary. */
+  innerObservation?: unknown;
+  /** Observed result position, or call position when no result exists. Not serialized. */
+  order?: number;
+  occurredAt?: string | null;
+};
 
 export interface SessionTraces {
   objective: string;
@@ -189,6 +195,7 @@ export function tracesFromEvents(events: TraceEvent[], sessionId = 'inline-sessi
         : event.type === 'file' ? 'file-change' : 'command',
       text: event.type === 'user' || event.type === 'assistant' ? event.text : event.output ?? '',
       commandRun: run, relativePaths: [], omitted: false,
+      ...(event.innerObservation === undefined ? {} : { innerObservation: event.innerObservation }),
     };
   });
   const derived = deriveTask(normalizedEvents);

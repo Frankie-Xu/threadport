@@ -1,3 +1,4 @@
+import { registerAssertionRoutes } from './assertion-routes.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { randomUUID,createHash } from 'node:crypto';
@@ -10,8 +11,9 @@ import { createTaskSchema,taskPatchSchema } from '../tasks/contracts.js';
 import { SearchService } from '../search/service.js';
 import { DomainError } from '../domain/errors.js';
 import { detectTargetCapabilities } from '../targets.js';
-import { taskDto,eventDto,claimDto,runDto } from './dto.js';
+import { taskDto,eventDtoWithInnerEvidence,claimDto,runDto } from './dto.js';
 import { publicText } from '../privacy.js';
+import { innerObservationSchema } from '../evidence/observations.js';
 const id=z.string().min(1).max(512).regex(/^[A-Za-z0-9][A-Za-z0-9:._-]*$/);
 const pagination={limit:z.coerce.number().int().min(1).max(100).default(50),cursor:z.string().max(2048).optional()};
 const empty=z.object({}).strict();
@@ -19,6 +21,7 @@ const p=(request:{params:unknown})=>z.object({id}).strict().parse(request.params
 const revision=z.number().int().positive().safe();
 async function directory(root:string){if(!isAbsolute(root))throw new DomainError('INVALID_INPUT','Choose an absolute directory.');const info=await lstat(root);if(!info.isDirectory()||info.isSymbolicLink())throw new DomainError('INVALID_INPUT','Choose a physical directory.');const canonical=await realpath(root);if(canonical===parse(canonical).root)throw new DomainError('INVALID_INPUT','Choose a narrower directory.');return canonical;}
 export function registerBusinessRoutes(app:FastifyInstance,store:SqliteStore,indexer:IndexService){
+ registerAssertionRoutes(app,store);
  const api=store.apiStore(),tasks=new TaskService(store),search=new SearchService(store);
  const jobs=new Map<string,{sourceIds:string[];key:string;results:Map<string,IndexProgress>}>();
  app.get('/api/v1/projects',async request=>{empty.parse(request.query);return{data:api.projects().map(row=>({id:row.id,name:publicText(row.name)}))};});
@@ -50,7 +53,13 @@ export function registerBusinessRoutes(app:FastifyInstance,store:SqliteStore,ind
   const sessionId=p(request);if(!store.getSessionBinding(sessionId))throw new DomainError('NOT_FOUND','Session does not exist.');
   const q=z.object({...pagination,eventId:id.optional()}).strict().refine(value=>!(value.eventId&&value.cursor)).parse(request.query);const generation=api.generation();let offset=q.eventId?api.eventOffset(sessionId,q.eventId):0;
   if(q.cursor){try{const value=JSON.parse(Buffer.from(q.cursor,'base64url').toString('utf8'));if(value.generation!==generation)throw new DomainError('SEARCH_STALE','Events changed; restart pagination.');if(value.sessionId!==sessionId||value.limit!==q.limit||!Number.isSafeInteger(value.offset)||value.offset<0)throw new Error();offset=value.offset;}catch(error){if(error instanceof DomainError)throw error;throw new DomainError('INVALID_INPUT','Invalid event cursor.');}}
-  const rows=store.listEvents(sessionId,q.limit+1,offset);return{data:rows.slice(0,q.limit).map(eventDto),nextCursor:rows.length>q.limit?Buffer.from(JSON.stringify({generation,sessionId,limit:q.limit,offset:offset+q.limit})).toString('base64url'):null};
+  const rows=store.listEvents(sessionId,q.limit+1,offset);return{data:rows.slice(0,q.limit).map(eventDtoWithInnerEvidence),nextCursor:rows.length>q.limit?Buffer.from(JSON.stringify({generation,sessionId,limit:q.limit,offset:offset+q.limit})).toString('base64url'):null};
+ });
+ app.post('/api/v1/sessions/:id/inner-observations',async(request,reply)=>{
+  const sessionId=p(request);
+  const body=z.object({eventId:id,kind:z.enum(['command','test']),result:innerObservationSchema}).strict().parse(request.body);
+  const event=store.saveInnerObservation(sessionId,body.eventId,body.kind,body.result);
+  return reply.code(201).send({data:eventDtoWithInnerEvidence(event)});
  });
  app.get('/api/v1/targets',async request=>{empty.parse(request.query);return{data:await detectTargetCapabilities()};});
 }

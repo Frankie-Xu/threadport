@@ -85,3 +85,9 @@ it('preserves literal wildcard, slash, Unicode and NUL matching in the native ev
  for(const q of ['AfterNUL','prefix\0After','%','a_b','slash\\word','Ä','支付'])expect((await search.search({q,projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
  for(const q of ['aZb','slashword','100anything','不存在'])expect((await search.search({q,projectId:'p'})).items).toEqual([]);
 });
+it('validates one stage timing sample per mixed benchmark search request',async()=>{
+ const {validateSearchTimings}=await import('../../scripts/benchmark-validation.mjs');
+ const samples=[{id:1},{id:2},{id:3}];
+ expect(validateSearchTimings(samples,3)).toMatchObject({expected:3,observed:3,uniqueIds:3,duplicateIds:[],valid:true});
+ expect(validateSearchTimings([...samples,{id:2}],3)).toMatchObject({observed:4,uniqueIds:3,duplicateIds:[2],valid:false});
+});

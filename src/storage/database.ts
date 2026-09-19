@@ -18,7 +18,7 @@ export async function openDatabase(options: DatabaseOptions = {}): Promise<Datab
     if (process.platform !== 'win32') await chmod(path, 0o600);
     db = new Database(path, { timeout: 5000 });
     if ((db.pragma('user_version', { simple: true }) as number) > SCHEMA_VERSION) throw new DomainError('MIGRATION_FAILED', 'Database is newer than this application; use a compatible version.');
-    db.pragma('foreign_keys = ON'); db.pragma('journal_mode = WAL'); db.pragma('busy_timeout = 5000');
+    db.pragma('synchronous = FULL'); db.pragma('foreign_keys = ON'); db.pragma('journal_mode = WAL'); db.pragma('busy_timeout = 5000');
     await migrate(db, dataDir);trackDatabase(db,access); return db;
   } catch (error) { db?.close();access?.release(); throw storageError(error); }
 }

@@ -8,7 +8,7 @@ const servers:{close():Promise<void>}[]=[];afterEach(async()=>{for(const server 
 async function setup(){const dataDir=await temporary();const server=await startLocalServer({dataDir});servers.push(server);return{dataDir,server,async api(path:string,method='GET',body?:unknown){const response=await fetch(server.origin+'/api/v1'+path,{method,headers:{authorization:`Bearer ${server.token}`,...(method!=='GET'?{'content-type':'application/json'}:{})},body:body===undefined?undefined:JSON.stringify(body)});return{status:response.status,body:await response.json()};}};}
 it('creates explicit bindings and tasks with conflict-safe editing, filtering and strict inputs',async()=>{
  const {api}=await setup();const root=await project();
- expect((await api('/workspaces','POST',{root,confirmBinding:false})).status).toBe(400);
+ const invalid=await api('/workspaces','POST',{root,confirmBinding:false});expect(invalid.status).toBe(400);expect(invalid.body.error).toMatchObject({code:'INVALID_INPUT',retryable:false,recovery:'none'});
  const workspace=await api('/workspaces','POST',{root,confirmBinding:true});expect(workspace.status).toBe(201);
  const task=await api('/tasks','POST',{projectId:workspace.body.data.projectId,title:'Manual task'});expect(task.status).toBe(201);
  const id=task.body.data.id;
@@ -45,7 +45,7 @@ it('validates task pagination and cancels jobs using a bodyless authenticated DE
  const first=await api('/tasks?limit=1');expect(first.body.nextCursor).toBeTruthy();
  expect((await api('/tasks?limit=1&cursor='+first.body.nextCursor)).body.data).toHaveLength(1);
  await api('/tasks','POST',{projectId:workspace.body.data.projectId,title:'Three'});
- expect((await api('/tasks?limit=1&cursor='+first.body.nextCursor)).status).toBe(409);
+ const stale=await api('/tasks?limit=1&cursor='+first.body.nextCursor);expect(stale.status).toBe(409);expect(stale.body.error).toMatchObject({code:'SEARCH_STALE',retryable:true,recovery:'retry'});
  const source=await api('/sources','POST',{agent:'claude',root:await temporary()});
  const job=await api('/index-jobs','POST',{sourceIds:[source.body.data.id]});
  expect((await api('/index-jobs/'+job.body.data.jobId,'DELETE')).status).toBe(200);
@@ -86,4 +86,21 @@ it('locates evidence by ID and exposes safe session capabilities and attention',
  expect((await api('/sessions/'+sessionId+'/events?eventId=missing')).status).toBe(404);expect((await api('/sessions/'+sessionId+'/events?eventId='+events[23].id+'&cursor='+located.body.nextCursor)).status).toBe(400);
  const projectId=(await api('/workspaces','POST',{root:await temporary(),confirmBinding:true})).body.data.projectId;const task=(await api('/tasks','POST',{projectId,title:'Evidence',sessionId})).body.data;
  const detail=(await api('/tasks/'+task.id)).body.data;expect(detail.sessions[0]).toMatchObject({agent:'claude',status:'ready',nativeSessionAvailable:true});expect(detail.sessions[0]).not.toHaveProperty('vendorId');expect(JSON.stringify(detail)).not.toContain('/Users/private');expect(detail.files.items.length).toBeGreaterThan(0);expect((await api('/tasks')).body.data[0].attention).toContain('EVIDENCE_TIME_UNKNOWN');
+},30000);
+
+it('imports structured inner observations with namespaced ids and idempotency',async()=>{
+ const {api}=await setup();const root=await temporary();
+ await writeFile(join(root,'session.jsonl'),JSON.stringify({type:'user',sessionId:'inner-session',message:{role:'user',content:'Synthetic inner observation'}})+'\n');
+ const source=await api('/sources','POST',{agent:'claude',root}),job=await api('/index-jobs','POST',{sourceIds:[source.body.data.id]});
+ for(let i=0;i<100;i++){const state=(await api('/index-jobs/'+job.body.data.jobId)).body.data.progress[0].state;if(!['queued','running'].includes(state)){expect(state).toBe('completed');break;}await new Promise(resolve=>setTimeout(resolve,10));}
+ const sessionId=(await api('/sessions/unassigned')).body.data[0].id;
+ const result={protocol:'threadport.inner-agent-observation.v1',source:{protocol:'vendor.hook.v1',agent:'claude',version:'1',origin:'structured-export'},eventId:'hook-1',kind:'test',command:null,status:'passed',exitCode:0,startedAt:'2026-09-19T00:00:00.000Z',completedAt:'2026-09-19T00:00:01.000Z',workspace:{beforeSnapshotId:null,afterSnapshotId:null,scope:'head-tracked-diff-untracked'},environment:{scope:'agent-runtime.v1',digest:null,complete:false}};
+ const first=await api('/sessions/'+sessionId+'/inner-observations','POST',{eventId:'hook-1',kind:'test',result});
+ expect(first.status).toBe(201);expect(first.body.data.id).toBe('inner:hook-1');expect(first.body.data.innerObservation).toMatchObject({status:'passed',eventId:'hook-1',kind:'test'});expect(JSON.stringify(first.body)).not.toContain('agent-runtime-secret');
+ const second=await api('/sessions/'+sessionId+'/inner-observations','POST',{eventId:'hook-1',kind:'test',result});
+ expect(second.status).toBe(201);expect(second.body.data.id).toBe(first.body.data.id);
+ const different={...result,status:'failed',exitCode:1};
+ expect((await api('/sessions/'+sessionId+'/inner-observations','POST',{eventId:'hook-1',kind:'test',result:different})).status).toBe(400);
+ expect((await api('/sessions/'+sessionId+'/inner-observations','POST',{eventId:'hook-2',kind:'command',result})).status).toBe(400);
+ const events=await api('/sessions/'+sessionId+'/events?eventId=inner:hook-1');expect(events.status).toBe(200);expect(events.body.data[0]).toMatchObject({kind:'test',innerObservation:{eventId:'hook-1',kind:'test'}});expect(JSON.stringify(events.body)).not.toContain('agent-runtime-secret');
 },30000);

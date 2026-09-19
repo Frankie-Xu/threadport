@@ -1,0 +1,46 @@
+[
+  {
+    "url": "https://api.github.com/repos/Frankie-Xu/threadport/releases/387824662",
+    "assets_url": "https://api.github.com/repos/Frankie-Xu/threadport/releases/387824662/assets",
+    "upload_url": "https://uploads.github.com/repos/Frankie-Xu/threadport/releases/387824662/assets{?name,label}",
+    "html_url": "https://github.com/Frankie-Xu/threadport/releases/tag/v0.1.0",
+    "id": 387824662,
+    "author": {
+      "login": "Frankie-Xu",
+      "id": 92643488,
+      "node_id": "U_kgDOBYWgoA",
+      "avatar_url": "https://avatars.githubusercontent.com/u/92643488?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/Frankie-Xu",
+      "html_url": "https://github.com/Frankie-Xu",
+      "followers_url": "https://api.github.com/users/Frankie-Xu/followers",
+      "following_url": "https://api.github.com/users/Frankie-Xu/following{/other_user}",
+      "gists_url": "https://api.github.com/users/Frankie-Xu/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/Frankie-Xu/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/Frankie-Xu/subscriptions",
+      "organizations_url": "https://api.github.com/users/Frankie-Xu/orgs",
+      "repos_url": "https://api.github.com/users/Frankie-Xu/repos",
+      "events_url": "https://api.github.com/users/Frankie-Xu/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/Frankie-Xu/received_events",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "node_id": "RE_kwDOUXs4UM4XHbwW",
+    "tag_name": "v0.1.0",
+    "target_commitish": "main",
+    "name": "v0.1.0",
+    "draft": false,
+    "immutable": false,
+    "prerelease": false,
+    "created_at": "2026-09-13T07:20:52Z",
+    "updated_at": "2026-09-13T07:21:32Z",
+    "published_at": "2026-09-13T07:21:32Z",
+    "assets": [
+
+    ],
+    "tarball_url": "https://api.github.com/repos/Frankie-Xu/threadport/tarball/v0.1.0",
+    "zipball_url": "https://api.github.com/repos/Frankie-Xu/threadport/zipball/v0.1.0",
+    "body": "Capsule v1 plus local session adapters and a read-only handoff CLI. Includes Claude, Codex, Cursor, and Gemini adapters, threadport extract/validate/render, and GitHub Actions CI."
+  }
+]

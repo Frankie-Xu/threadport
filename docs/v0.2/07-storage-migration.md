@@ -35,3 +35,7 @@ await restoreBackup('/old-data/backups/v1-example/backup.sqlite', '/new-recovery
 ```
 
 restoreBackup 检查备份完整性，只创建不存在的 threadport.sqlite；已有文件拒绝覆盖。确认新目录数据后，通过 openStore 的 dataDir 显式切换。不要在服务运行中替换原库，不要仅复制运行库主文件而忽略 WAL。旧包不认识新 user_version 时应使用兼容包，或恢复到新的旧版本目录。恢复函数不自动停止服务或切换配置。
+
+## 2026-09-16 增量
+
+当前 schema 7：005 增加工作区运行占用/恢复，006 增加不可覆盖的决定修订，007 保存外层目标进程观测。搜索表达式索引实验在完整基准中退化，已撤回，未分发 schema-8 安装候选。迁移保留已有人工任务，升级前保存一致备份；旧版本拒绝打开新 schema。对应 [运行时决策](../adr/0011-workspace-run-coordination.md)、[决定记录决策](../adr/0013-assertion-ledger.md) 与 [实际验证](../verification/remediation-progress-2026-09-16.md)。

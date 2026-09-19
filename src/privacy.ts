@@ -100,6 +100,16 @@ export function protectCapsule(input: Capsule, privacy: 'local' | 'portable', ro
     }
     const redacted = redactSecrets(value); count += redacted.count; return redacted.text;
   }) as Capsule;
+  const placeholder=(value:string)=>/external\/[a-f0-9]{24}|\[REDACTED/i.test(value);
+  const warning='Review only: rewritten or redacted command is not directly executable.';
+  for(const [index,command] of result.commands.entries())if(command.command!==input.commands[index]?.command||placeholder(command.command)){
+    if(!command.summary?.includes(warning))command.summary=[command.summary,warning].filter(Boolean).join(' ');
+  }
+  for(const [index,test] of result.tests.entries())if(test.command!==input.tests[index]?.command||placeholder(test.command)){
+    if(!test.summary?.includes(warning))test.summary=[test.summary,warning].filter(Boolean).join(' ');
+  }
+  const actionWarning='Review required: this action was rewritten or redacted. Confirm a portable replacement before executing. ';
+  if((result.next_action!==input.next_action||placeholder(result.next_action))&&!result.next_action.startsWith(actionWarning))result.next_action=actionWarning+result.next_action;
   result.redaction = { applied: count > 0, count };
   return result;
 }

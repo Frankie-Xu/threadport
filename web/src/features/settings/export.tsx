@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type ApiClient, type Envelope } from "../../api.js";
+import { ApiError, type ApiClient, type Envelope } from "../../api.js";
 import { ErrorNotice, Modal, useAction } from "../../components.js";
 export function ExportReview({
   api,
@@ -62,7 +62,17 @@ export function ExportReview({
           </select>
         </label>
       )}
-      <ErrorNotice error={action.error} focus />
+      <ErrorNotice
+        error={action.error}
+        focus
+        onRecovery={action.error instanceof ApiError &&
+          (action.error.recovery === "refresh" || (!preview && action.error.recovery === "retry"))
+          ? () => {
+            action.setError(null);
+            setTick((n) => n + 1);
+          }
+          : undefined}
+      />
       {!preview && !action.error && <p role="status">Preparing export…</p>}
       {preview && (
         <>
