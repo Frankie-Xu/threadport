@@ -27,7 +27,7 @@ const innerObservationDto=(value:unknown)=>{
 };
 export const eventDtoWithInnerEvidence=(event:NormalizedEvent)=>({
  ...eventDto(event),
- ...(event.kind==='command'
+ ...(event.kind==='command'||event.kind==='test'
    ? {innerObservation:innerObservationDto(event.innerObservation)}
    : event.innerObservation===undefined ? {} : {innerObservation:innerObservationDto(event.innerObservation)}),
 });

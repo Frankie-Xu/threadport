@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { execFile, spawn } from 'node:child_process';
 import { access, mkdir, writeFile, readFile, rename, readdir, lstat, readlink } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { platform, arch, release } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
@@ -25,9 +26,9 @@ function isoNow() {
 }
 
 export function npmCommand(npmPath = process.env.npm_execpath) {
-  if (!npmPath) {
+  if (!npmPath || !existsSync(npmPath)) {
     try { npmPath = createRequire(import.meta.url).resolve('npm/bin/npm-cli.js'); }
-    catch { npmPath = join(dirname(process.execPath), process.platform === 'win32' ? 'node_modules/npm/bin/npm-cli.js' : '../lib/node_modules/npm/bin/npm-cli.js'); }
+    catch { return { executable: process.platform === 'win32' ? 'npm.cmd' : 'npm', args: [] }; }
   }
   return { executable: process.execPath, args: [npmPath] };
 }

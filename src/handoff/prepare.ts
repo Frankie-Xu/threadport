@@ -40,8 +40,8 @@ export class HandoffService {
   const commandEvidence=prepareCommandEvidence(events,snapshot,id=>this.store.getSnapshot(id),observationMap);
   // Every executable event gets an explicit inner-evidence record. A missing
   // structured hook result is meaningful and must remain visible as unknown.
-  const innerInputs=events.filter(event=>event.kind==='command').map(event=>({
-   eventId:event.id,kind:event.kind==='command'?'command' as const:'test' as const,
+  const innerInputs=events.filter(event=>event.kind==='command'||event.kind==='test').map(event=>({
+   eventId:event.id,kind:event.kind==='test'?'test' as const:'command' as const,
    result:(event as {innerObservation?:unknown}).innerObservation,
   }));
   const innerEvidence=prepareInnerEvidence(innerInputs,snapshot,id=>this.store.getSnapshot(id));

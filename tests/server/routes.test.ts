@@ -102,5 +102,5 @@ it('imports structured inner observations with namespaced ids and idempotency',a
  const different={...result,status:'failed',exitCode:1};
  expect((await api('/sessions/'+sessionId+'/inner-observations','POST',{eventId:'hook-1',kind:'test',result:different})).status).toBe(400);
  expect((await api('/sessions/'+sessionId+'/inner-observations','POST',{eventId:'hook-2',kind:'command',result})).status).toBe(400);
- const events=await api('/sessions/'+sessionId+'/events?eventId=inner:hook-1');expect(events.status).toBe(200);expect(events.body.data[0].innerObservation).toMatchObject({eventId:'hook-1',kind:'test'});
+ const events=await api('/sessions/'+sessionId+'/events?eventId=inner:hook-1');expect(events.status).toBe(200);expect(events.body.data[0]).toMatchObject({kind:'test',innerObservation:{eventId:'hook-1',kind:'test'}});expect(JSON.stringify(events.body)).not.toContain('agent-runtime-secret');
 },30000);

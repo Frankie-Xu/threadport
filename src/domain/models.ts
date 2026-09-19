@@ -47,7 +47,7 @@ export interface NormalizedEvent {
   sessionId: string;
   ordinal: number;
   occurredAt: string | null;
-  kind: 'user-message' | 'assistant-message' | 'file-change' | 'command';
+  kind: 'user-message' | 'assistant-message' | 'file-change' | 'command' | 'test';
   text: string;
   commandRun: CommandRun | null;
   relativePaths: string[];

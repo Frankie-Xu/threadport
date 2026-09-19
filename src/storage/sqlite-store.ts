@@ -113,7 +113,7 @@ export class SqliteStore extends IndexStore {
         return body;
       }
       const ordinal=this.db.prepare('SELECT coalesce(max(ordinal),-1)+1 FROM events WHERE session_id=?').pluck().get(sessionId) as number;
-      const event:NormalizedEvent={id,sessionId,ordinal,occurredAt:stored.completedAt??stored.startedAt,kind:'command',text:'Imported structured inner observation.',commandRun:null,relativePaths:[],omitted:false,innerObservation:stored};
+      const event:NormalizedEvent={id,sessionId,ordinal,occurredAt:stored.completedAt??stored.startedAt,kind:kind,text:'Imported structured inner observation.',commandRun:null,relativePaths:[],omitted:false,innerObservation:stored};
       this.db.prepare('INSERT INTO events(id,session_id,ordinal,body_json,search_text) VALUES(?,?,?,?,?)').run(event.id,event.sessionId,event.ordinal,JSON.stringify(event),event.text);
       return event;
     }).immediate());
