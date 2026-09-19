@@ -22,4 +22,4 @@
 
 ## 仍保持 HOLD
 
-性能搜索 p95 仍高于 300ms 门槛；Windows Node 24 实机、Ubuntu x64 CI、Claude/Codex 真实接续、36 项原始验收附件和外部用户观察仍未在本机验证。相关记录继续保持 `HOLD` 或 `unavailable`，没有被本地回归替代。
+性能搜索 p95 仍高于 300ms 门槛；最新 Node 26 本机固定容量复测为 350.27ms，原始结果见 [`local-node26-search-2026-09-19.json`](./performance/local-node26-search-2026-09-19.json)。Windows Node 24 实机、Ubuntu x64 CI、Claude/Codex 真实接续、36 项原始验收附件和外部用户观察仍未在本机验证。相关记录继续保持 `HOLD` 或 `unavailable`，没有被本地回归替代。
