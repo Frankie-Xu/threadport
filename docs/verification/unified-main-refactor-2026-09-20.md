@@ -28,3 +28,10 @@ Environment: macOS arm64, Node 24.18.1, 2026-09-20. Checks below apply to the in
 - `git diff --cached --check`: exit 0.
 
 The first Node 26 integration run used stale compiled migration filenames while source integration was still in progress; after rebuilding, all 12 affected subprocess tests passed. The complete Node 24 check and coverage run above supersede that incomplete intermediate run.
+
+## Remote review and capacity evidence
+
+Integration PR: [#64](https://github.com/Frankie-Xu/threadport/pull/64).
+The first CI run passed macOS and Ubuntu. Windows passed 508/509 tests, with the format-check fixture incorrectly expecting POSIX separators. The test now constructs paths with `path.join`; no format-validation requirement was weakened.
+
+Full capacity benchmark on clean `7e5aff529274d90febff1546679773deb1249d27` (Node 24.18.1, M1/macOS arm64) completed with 100/100 validated timing samples and exit 1: index 27,608ms, search p95 475.54ms, status p95 13.80ms, cold start p95 376.57ms, increment 208.44ms, RSS 334.53MiB, cancellation 7.05ms, idle CPU median 62.77%. Decision remains **HOLD** for search latency and idle CPU. Development integration does not waive these release gates.

@@ -15,4 +15,4 @@
 - [x] Resolve migration lineage in src/storage/migrations.ts and migration SQL; test fresh, main v6, local v9, and failed upgrade data preservation.
 - [x] Resolve src/storage/search-store.ts and tests/search/service.test.ts with main session_search invalidation and existing literal-search contracts.
 - [x] Run npm run check, npm run test:coverage, npm run test:e2e, npm run test:package and npm audit; record actual exit results.
-- [ ] Commit unified branch, push a reviewable integration PR against main with migration notes, and inspect CI.
+- [x] Commit unified branch, push a reviewable integration PR against main with migration notes, and inspect CI.
