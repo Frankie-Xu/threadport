@@ -114,7 +114,7 @@ it('does not rewrite a clean projection on unchanged scans and repairs dirty or 
  const {store,dir,a}=await setup();const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));
  const index=new IndexService(store);
  try{
-  db.exec('CREATE TABLE projection_writes(session_id TEXT); CREATE TRIGGER record_projection_update AFTER UPDATE ON session_search BEGIN INSERT INTO projection_writes VALUES(new.session_id); END;');
+  db.exec('CREATE TABLE projection_writes(session_id TEXT); CREATE TRIGGER record_session_update AFTER UPDATE ON sessions BEGIN INSERT INTO projection_writes VALUES(new.id); END; CREATE TRIGGER record_cursor_update AFTER UPDATE ON source_cursors BEGIN INSERT INTO projection_writes VALUES(new.session_id); END; CREATE TRIGGER record_projection_update AFTER UPDATE ON session_search BEGIN INSERT INTO projection_writes VALUES(new.session_id); END;');
   expect((await index.refreshAll())[0].state).toBe('completed');
   expect(db.prepare('SELECT count(*) FROM projection_writes').pluck().get()).toBe(0);
   db.prepare('UPDATE session_search SET dirty=1,search_text=? WHERE session_id=?').run('stale',a.id);

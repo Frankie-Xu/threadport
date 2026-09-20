@@ -4,6 +4,8 @@ import { redactSecrets } from '../redact.js';
 import { encodeCursor, fold, parseSearch, searchTime, type SearchInput, type SearchItem, type SearchMatch, type SearchPage } from '../search/contracts.js';
 interface Row {id:string;sessionId:string|null;taskId:string|null;title:string;objective:string;projectId:string|null;projectName:string|null;workspaceId:string|null;workspacePath:string|null;agent:'claude'|'codex'|null;activity:string|null}
 export function registerSearchFunctions(db:Database.Database):void{
+ // V8 uses optimized substring search, including embedded NUL; cache text is already ASCII-folded.
+ db.function('tp_search_contains',{deterministic:true},(text:string,term:string)=>Number(text.includes(term)));
  db.function('tp_search_time',{deterministic:true},searchTime);
  db.function('tp_search_redact',{deterministic:true},(value:unknown)=>redactSecrets(typeof value==='string'?value:'').text);
 }
@@ -42,7 +44,7 @@ export function searchHistory(db:Database.Database,input:SearchInput):SearchPage
    const grams=characters.length>=3&&!term.includes('\0')?[...new Set(characters.slice(0,-2).map((_,i)=>characters.slice(i,i+3).join('')))]:[];
    const candidate=grams.length?`d.searchRowid IN (SELECT rowid FROM session_search_fts WHERE session_search_fts MATCH @grams${index}) AND `:'';
    if(grams.length)values[`grams${index}`]=grams.map(gram=>'"'+gram.replaceAll('"','""')+'"').join(' AND ');
-   values[`term${index}`]=term;clauses.push(`(instr(lower(d.title),@term${index})>0 OR instr(lower(d.objective),@term${index})>0 OR (d.searchDirty=0 AND ${candidate}EXISTS(SELECT 1 FROM session_search cache WHERE cache.rowid=d.searchRowid AND instr(cache.search_text,@term${index})>0)) OR (d.searchDirty<>0 AND EXISTS(SELECT 1 FROM events e WHERE e.session_id=d.sessionId AND instr(lower(e.search_text),@term${index})>0)))`);});
+   values[`term${index}`]=term;clauses.push(`(instr(lower(d.title),@term${index})>0 OR instr(lower(d.objective),@term${index})>0 OR (d.searchDirty=0 AND ${candidate}EXISTS(SELECT 1 FROM session_search cache WHERE cache.rowid=d.searchRowid AND tp_search_contains(cache.search_text,@term${index})=1)) OR (d.searchDirty<>0 AND EXISTS(SELECT 1 FROM events e WHERE e.session_id=d.sessionId AND instr(lower(e.search_text),@term${index})>0)))`);});
   if(query.after){values.afterTime=query.after.activity??'';values.afterId=query.after.id;clauses.push("(coalesce(d.activity,'')<@afterTime OR (coalesce(d.activity,'')=@afterTime AND d.id>@afterId))");}
   const rows=db.prepare(`${documents} SELECT id,sessionId,taskId,title,objective,projectId,projectName,workspaceId,workspacePath,agent,activity FROM documents d WHERE ${clauses.join(' AND ')} ORDER BY coalesce(activity,'') DESC,id ASC LIMIT @limit`).all(values) as Row[];
   const hasMore=rows.length>query.limit;rows.length=Math.min(rows.length,query.limit);

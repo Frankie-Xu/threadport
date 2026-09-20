@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { mkdtemp, mkdir, writeFile, appendFile, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -55,3 +55,14 @@ it('stops at the global event budget and rolls back the over-budget session and 
  try{seed.exec("INSERT INTO sessions(id,metadata_json) VALUES('capacity','{}'); WITH RECURSIVE numbers(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM numbers WHERE n<100000) INSERT INTO events(id,session_id,ordinal,body_json,search_text) SELECT 'seed-'||n,'capacity',n,'{}','' FROM numbers;");
  const service=new IndexService(store);services.push(service);const result=await service.refresh('source');expect(result.state).toBe('failed');expect(result.warnings).toContain('INDEX_LIMIT');expect(store.listIndexedSessions('source')).toEqual([]);expect(seed.prepare('SELECT count(*) FROM events').pluck().get()).toBe(100000);}finally{seed.close();}
 },30000);
+
+it('renews ownership for write batches rather than every source record',async()=>{
+ const {store,path}=await setup();await writeFile(path,Array.from({length:20},(_,i)=>row(String(i))).join(''));
+ const renew=vi.spyOn(store,'renewIndexLease');const commit=vi.spyOn(store,'commitIndexPage');
+ const service=new IndexService(store);services.push(service);
+ try{
+  expect((await service.refresh('source')).state).toBe('completed');
+  expect(renew.mock.calls.length).toBe(commit.mock.calls.length);
+  expect(store.listEvents(store.listIndexedSessions('source')[0].id)).toHaveLength(20);
+ }finally{renew.mockRestore();commit.mockRestore();}
+});
