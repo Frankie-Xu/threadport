@@ -364,3 +364,13 @@ T09 已实现的搜索 SDK、返回字段、字面量 AND 与游标失效语义�
 T10-A 的捕获预算、原始内容摘要、不可变存储与不完整原因见 [当前工作区快照](12-workspace-verification.md)。T10-B 提供比较报告，T10-C 接通 verify CLI。Capsule v1 保持冻结；CLI 仅通过 kind=other 且 locator=`threadport:workspace-snapshot:<id>` 的单一 evidence 引用选择本地已保存快照。无引用或无本地记录返回 unverifiable，CLI 投影中的 snapshotId/workspaceId/scope 可为 null（未知），不得伪造完整范围；详见上述文档。
 
 T14-A 实现补充：continue 在真实终端也可把 prepared 包完成审批，仍展示完整预览并要求明确键入 CONTINUE。launch_attempt 对外提供 errorCode 和可空 targetExitCode，实际 Agent 非零返回 CLI 5/TARGET_EXITED；私有 approval 运行元数据保存 owner PID，仅用于保守检测观察中断，不属于可导出包。详见[本地流程](13-local-server.md)。
+
+## 9. Agent control plane v0.3 observe/receipt boundary
+
+控制平面事件使用 `threadport.control-event.v1`。事件账本追加保存来源、覆盖度、任务/会话/run 标识、可选 source ordinal、发生时间与记录时间；payload 只允许长度受限的已脱敏值，拒绝 token、system prompt、hidden reasoning、完整日志和绝对路径字段。`occurredAt` 缺失保持 `null`，不使用记录时间冒充源时间。
+
+`rebuildControlState()` 是唯一投影入口。投影中的 `agent-reported`、`inferred` 和覆盖缺口不能升级为 confirmed；迟到、重复和相同 ID 的冲突事件保留 deterministic projection 与 attention。责任边必须有 evidence ID、范围、时间和操作者/来源。
+
+上下文清单使用 `threadport.context-manifest.v1`，每项标记 `included`、`summarized`、`filtered`、`omitted` 或 `unavailable`，并保存 digest、证据引用和可读性。Receipt 绑定 handoff、target session/run、manifest digest、expiry 和一次性 nonce；相同请求幂等，内容冲突返回 `REVISION_CONFLICT`。digest、target 或过期校验失败不能进入 confirmed。
+
+接管状态只能按 `requested -> stop-requested/stop-unavailable -> stop-confirmed -> snapshot-fixed -> successor-confirmed -> active` 前进。没有可靠 runner 控制接口时保留原责任方并显示 `stop-unavailable`；发出请求或超时不显示 stopped。旧 Capsule v1、旧 handoff v1 和旧命令的 JSON/stdout 形状保持不变。

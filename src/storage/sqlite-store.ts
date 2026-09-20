@@ -12,6 +12,7 @@ import { LaunchStore } from './launch-store.js';
 import { HandoffStore } from './handoff-store.js';
 import { MaintenanceStore } from './maintenance.js';
 import { BusinessStore } from './api-store.js';
+import { ControlPlaneStore } from './control-plane-store.js';
 const id = z.string().min(1).max(512);
 const date = z.string().datetime();
 const claim = z.object({ text: z.string(), origin: z.enum(['observed', 'user-confirmed', 'derived', 'unknown']), evidence: z.array(z.object({ sessionId: id, eventId: id }).strict()), updatedAt: date.nullable() }).strict();
@@ -30,6 +31,7 @@ export class SqliteStore extends IndexStore {
   launchStore():LaunchStore{return new LaunchStore(this.db);}
   handoffStore():HandoffStore{return new HandoffStore(this.db);}
   apiStore():BusinessStore{return new BusinessStore(this.db);}
+  controlPlane():ControlPlaneStore{return new ControlPlaneStore(this.db);}
   searchHistory(input:SearchInput={}):SearchPage{return this.run(()=>searchHistory(this.db,input));}
   getWorkspace(workspaceId:string):WorkspaceBinding|null {
     return this.run(()=>{const row=this.db.prepare('SELECT id,project_id AS projectId,canonical_root AS canonicalRoot FROM workspaces WHERE id=?').get(validate(id,workspaceId));return row?validate(bindingSchema,row):null;});

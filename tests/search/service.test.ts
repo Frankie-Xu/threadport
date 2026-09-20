@@ -85,3 +85,13 @@ it('preserves literal wildcard, slash, Unicode and NUL matching in the native ev
  for(const q of ['AfterNUL','prefix\0After','%','a_b','slash\\word','Ä','支付'])expect((await search.search({q,projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
  for(const q of ['aZb','slashword','100anything','不存在'])expect((await search.search({q,projectId:'p'})).items).toEqual([]);
 });
+it('maintains an invalidatable per-session search projection',async()=>{
+ const {search,dir,a}=await setup();const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));
+ try{
+  const before=db.prepare('SELECT search_text,dirty FROM session_search WHERE session_id=?').get(a.id) as {search_text:string;dirty:number};
+  expect(before.search_text).toContain('支付回调');expect(before.dirty).toBe(0);
+  db.prepare('UPDATE events SET search_text=? WHERE session_id=? AND ordinal=0').run('projection marker',a.id);
+  expect((db.prepare('SELECT dirty FROM session_search WHERE session_id=?').get(a.id) as {dirty:number}).dirty).toBe(1);
+ }finally{db.close();}
+ expect((await search.search({q:'projection marker',projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
+});
