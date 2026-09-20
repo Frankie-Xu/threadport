@@ -12,6 +12,7 @@ import { ZodError } from 'zod';
 import { registerHandoffRoutes } from './handoff-routes.js';
 import { registerBootstrap } from './bootstrap.js';
 import { errorBody } from './error-response.js';
+import { registerControlPlaneRoutes } from './control-plane-routes.js';
 /** Internal composition point for later routes and lifecycle tests. Owns these resources. */
 export function createLocalApp(store:Pick<SqliteStore,'statusCounts'|'close'>,indexer:Pick<IndexService,'stop'>,token:string,indexStatus:()=>IndexStatus){
  const app=Fastify({logger:false,trustProxy:false,bodyLimit:1024*1024,requestTimeout:30000,connectionTimeout:30000,forceCloseConnections:true,requestIdHeader:false,genReqId:()=>randomUUID(),ajv:{customOptions:{removeAdditional:false,coerceTypes:false}}});
@@ -22,7 +23,7 @@ export function createLocalApp(store:Pick<SqliteStore,'statusCounts'|'close'>,in
  app.setErrorHandler((error,request,reply)=>{
   if(error instanceof ZodError)return fail(reply,request,400,'INVALID_INPUT','Invalid request fields.');
   if(error instanceof DomainError){
-   const statuses:Partial<Record<DomainError['code'],number>>={INVALID_INPUT:400,NOT_FOUND:404,REVISION_CONFLICT:409,PROJECT_MISMATCH:409,SEARCH_STALE:409,REDACTION_REQUIRED:422,STORAGE_BUSY:503,INDEX_LIMIT:409,TARGET_UNSUPPORTED:422,CONTEXT_BUDGET_EXCEEDED:422,WORKSPACE_BUSY:409,LAUNCH_STATE_UNKNOWN:409,ASSERTION_CONFLICT:409,NEXT_ACTION_REVIEW_REQUIRED:422};
+   const statuses:Partial<Record<DomainError['code'],number>>={INVALID_INPUT:400,NOT_FOUND:404,REVISION_CONFLICT:409,PROJECT_MISMATCH:409,SEARCH_STALE:409,REDACTION_REQUIRED:422,STORAGE_BUSY:503,INDEX_LIMIT:409,TARGET_UNSUPPORTED:422,CONTEXT_BUDGET_EXCEEDED:422,WORKSPACE_BUSY:409,LAUNCH_STATE_UNKNOWN:409,ASSERTION_CONFLICT:409,NEXT_ACTION_REVIEW_REQUIRED:422,RECEIPT_DIGEST_MISMATCH:409,RECEIPT_TARGET_MISMATCH:409,STOP_UNAVAILABLE:409,CONTROL_COVERAGE_GAP:409,RECEIPT_NONCE_CONFLICT:409,TAKEOVER_CONFLICT:409};
    return reply.code(statuses[error.code]??500).send({error:{...errorBody(error.code,error.message,error.retryable),requestId:request.id}});
   }
   const code=(error as FastifyError).statusCode;
@@ -49,6 +50,7 @@ export async function startLocalServer(options:{dataDir?:string;demo?:boolean}={
  let resolveClosed!:()=>void;const closed=new Promise<void>(resolve=>{resolveClosed=resolve;});app.addHook('onClose',async()=>{resolveClosed();});
  registerBusinessRoutes(app,store,indexer);
  registerHandoffRoutes(app,store);
+ registerControlPlaneRoutes(app,store);
  registerDataRoutes(app,store,applicationDataDir(options),indexer,close);
  try{
   store.maintenance().prune();

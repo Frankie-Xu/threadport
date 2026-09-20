@@ -76,18 +76,18 @@ it('upgrades v3 search state transactionally and ignores unchanged projection up
   upgraded.prepare('UPDATE projects SET name=? WHERE id=?').run('Changed','p');expect(generation()).toBe(1);
  }finally{upgraded.close();}
 });
-it('builds and maintains the compact search event projection during migration',async()=>{
+it('replaces legacy search projections with the canonical dirty session cache during migration',async()=>{
  const dataDir=await dir();const {readFile}=await import('node:fs/promises');const old=new Database(join(dataDir,'threadport.sqlite'));
- for(const name of ['001-initial.sql','002-index-state.sql','003-task-management.sql','004-history-search.sql','005-launch-coordination.sql','006-assertions.sql','007-execution-observations.sql'])old.exec(await readFile(new URL('../../migrations/'+name,import.meta.url),'utf8'));
+ for(const name of ['001-initial.sql','002-index-state.sql','003-task-management.sql','004-history-search.sql','legacy-local/005-launch-coordination.sql','legacy-local/006-assertions.sql','legacy-local/007-execution-observations.sql'])old.exec(await readFile(new URL('../../migrations/'+name,import.meta.url),'utf8'));
  old.exec("INSERT INTO sessions(id,metadata_json) VALUES('s','{}'); INSERT INTO events VALUES('e','s',0,'{}','first'); PRAGMA user_version=7;");old.close();
  const upgraded=await openDatabase({dataDir});try{
   expect(upgraded.pragma('user_version',{simple:true})).toBe(SCHEMA_VERSION);
-  expect(upgraded.prepare('SELECT search_text FROM search_event_projection WHERE session_id=?').pluck().get('s')).toBe('first');
+  expect(upgraded.prepare('SELECT search_text FROM session_search WHERE session_id=?').pluck().get('s')).toBe('first');
   upgraded.prepare('UPDATE events SET search_text=? WHERE id=?').run('second','e');
-  expect(upgraded.prepare('SELECT search_text FROM search_event_projection WHERE session_id=?').pluck().get('s')).toBe('second');
+  expect(upgraded.prepare('SELECT dirty FROM session_search WHERE session_id=?').pluck().get('s')).toBe(1);
   upgraded.prepare('DELETE FROM events WHERE id=?').run('e');
   upgraded.prepare('DELETE FROM sessions WHERE id=?').run('s');
-  expect(upgraded.prepare('SELECT 1 FROM search_event_projection WHERE session_id=?').get('s')).toBeUndefined();
+  expect(upgraded.prepare('SELECT 1 FROM session_search WHERE session_id=?').get('s')).toBeUndefined();
  }finally{upgraded.close();}
 });
 
@@ -107,11 +107,108 @@ it('migrates overlapping legacy active attempts to unknown without losing reserv
 });
 it('upgrades schema 5 without changing task history and rolls back a failed assertion migration',async()=>{
  const dataDir=await dir();const {readFile}=await import('node:fs/promises');const old=new Database(join(dataDir,'threadport.sqlite'));
- for(const name of ['001-initial.sql','002-index-state.sql','003-task-management.sql','004-history-search.sql','005-launch-coordination.sql'])old.exec(await readFile(new URL('../../migrations/'+name,import.meta.url),'utf8'));
+ for(const name of ['001-initial.sql','002-index-state.sql','003-task-management.sql','004-history-search.sql','legacy-local/005-launch-coordination.sql'])old.exec(await readFile(new URL('../../migrations/'+name,import.meta.url),'utf8'));
  old.exec(`INSERT INTO projects VALUES('p','Project'); INSERT INTO tasks VALUES('t','p',1,'{}','2026-09-16T00:00:00Z'); INSERT INTO task_revisions(task_id,revision,changed_at,body_json) VALUES('t',1,'2026-09-16T00:00:00Z','{}'); PRAGMA user_version=5;`);
- const sql=await readFile(new URL('../../migrations/006-assertions.sql',import.meta.url),'utf8');
+ const sql=await readFile(new URL('../../migrations/legacy-local/006-assertions.sql',import.meta.url),'utf8');
  await expect(migrate(old,dataDir,[{version:6,sql:sql+'; SELECT * FROM missing_assertion_table;'}])).rejects.toMatchObject({code:'MIGRATION_FAILED'});
  expect(old.pragma('user_version',{simple:true})).toBe(5);expect(old.prepare("SELECT name FROM sqlite_master WHERE name='assertion_revisions'").get()).toBeUndefined();
  await migrate(old,dataDir);expect(old.prepare('SELECT body_json FROM task_revisions').pluck().get()).toBe('{}');
  old.exec(`INSERT INTO assertion_revisions VALUES('a','t',1,1,'{}')`);expect(()=>old.exec("UPDATE assertion_revisions SET body_json='null'")).toThrow(/immutable/);old.close();
+});
+
+const commonHistory = ['001-initial.sql', '002-index-state.sql', '003-task-management.sql', '004-history-search.sql'];
+const localHistory = [...commonHistory, 'legacy-local/005-launch-coordination.sql', 'legacy-local/006-assertions.sql', 'legacy-local/007-execution-observations.sql', 'legacy-local/008-search-projection.sql', 'legacy-local/009-search-event-projection.sql'];
+const mainHistory = [...commonHistory, '005-control-plane.sql', '006-session-search-projection.sql'];
+const canonicalHistory = [...mainHistory, '007-launch-coordination.sql', '008-assertions.sql', '009-execution-observations.sql'];
+async function historicalDatabase(files: string[], version: number, crlf = false) {
+ const dataDir = await dir();
+ const db = new Database(join(dataDir, 'threadport.sqlite'));
+ const { readFile } = await import('node:fs/promises');
+ for (const name of files.slice(0, version)) {
+  const sql = await readFile(new URL('../../migrations/' + name, import.meta.url), 'utf8');
+  db.exec(crlf ? sql.replace(/\r?\n/g, '\r\n') : sql);
+ }
+ db.pragma('foreign_keys=ON');
+ db.pragma(`user_version=${version}`);
+ db.exec(`INSERT INTO projects VALUES('p','Historical project');
+ INSERT INTO sessions(id,metadata_json) VALUES('s','{}');
+ INSERT INTO events VALUES('e','s',0,'{}','historical searchable evidence');
+ INSERT INTO tasks VALUES('t','p',1,'{}','2026-09-16T00:00:00Z');
+ INSERT INTO task_revisions(task_id,revision,changed_at,body_json) VALUES('t',1,'2026-09-16T00:00:00Z','{}');`);
+ return { dataDir, db };
+}
+
+it('recognizes historical migration schemas created from Windows CRLF checkouts', async () => {
+ const { dataDir, db } = await historicalDatabase(localHistory, 9, true);
+ try {
+  await migrate(db, dataDir);
+  expect(db.pragma('user_version', { simple: true })).toBe(SCHEMA_VERSION);
+  expect(db.prepare('SELECT search_text FROM events').pluck().get()).toBe('historical searchable evidence');
+ } finally { db.close(); }
+});
+
+for (const [lineage, files, versions] of [
+ ['main', mainHistory, [5, 6]],
+ ['local', localHistory, [5, 6, 7, 8, 9]],
+ ['canonical', canonicalHistory, [7, 8, 9]],
+] as const) {
+ for (const version of versions) {
+  it(`upgrades actual ${lineage} v${version} without relabeling or losing historical evidence`, async () => {
+   const { dataDir, db } = await historicalDatabase([...files], version);
+   try {
+    if (lineage === 'main') db.exec("INSERT INTO control_events(event_id,payload_digest,event_json,recorded_at) VALUES('control','digest','{}','2026-09-20')");
+    if (lineage === 'local' && version >= 6) db.exec("INSERT INTO assertion_revisions VALUES('assertion','t',1,1,'{}')");
+    if (lineage === 'local' && version >= 7) db.exec("INSERT INTO execution_observations VALUES('observation','t','s','h','{}')");
+    await migrate(db, dataDir);
+    expect(db.pragma('user_version', { simple: true })).toBe(SCHEMA_VERSION);
+    expect(db.prepare('SELECT search_text FROM events WHERE id=?').pluck().get('e')).toBe('historical searchable evidence');
+    expect(db.prepare('SELECT body_json FROM task_revisions').pluck().get()).toBe('{}');
+    if (lineage === 'main') expect(db.prepare('SELECT event_id FROM control_events').pluck().get()).toBe('control');
+    if (lineage === 'local' && version >= 6) expect(db.prepare('SELECT id FROM assertion_revisions').pluck().get()).toBe('assertion');
+    if (lineage === 'local' && version >= 7) expect(db.prepare('SELECT id FROM execution_observations').pluck().get()).toBe('observation');
+    expect(db.prepare("SELECT name FROM sqlite_master WHERE name IN ('search_event_projection','search_session_projection')").all()).toEqual([]);
+    expect(db.pragma('foreign_key_check')).toEqual([]);
+    const backups = await readdir(join(dataDir, 'backups'));
+    expect(backups).toHaveLength(1);
+    const backup = new Database(join(dataDir, 'backups', backups[0]!, 'backup.sqlite'), { readonly: true });
+    try { expect(backup.pragma('user_version', { simple: true })).toBe(version); }
+    finally { backup.close(); }
+    await migrate(db, dataDir);
+    expect(await readdir(join(dataDir, 'backups'))).toHaveLength(1);
+   } finally { db.close(); }
+  });
+ }
+}
+
+it('rejects ambiguous mixed and incomplete branch schemas before making any changes', async () => {
+ const { dataDir, db } = await historicalDatabase(localHistory, 6);
+ try {
+  db.exec('CREATE TABLE control_events(event_id TEXT)');
+  await expect(migrate(db, dataDir)).rejects.toMatchObject({ code: 'MIGRATION_FAILED' });
+  expect(db.pragma('user_version', { simple: true })).toBe(6);
+  expect(db.prepare('SELECT count(*) FROM events').pluck().get()).toBe(1);
+  db.exec('DROP TABLE control_events; DROP TRIGGER assertion_revision_immutable_update');
+  await expect(migrate(db, dataDir)).rejects.toMatchObject({ code: 'MIGRATION_FAILED' });
+  expect(db.pragma('user_version', { simple: true })).toBe(6);
+ } finally { db.close(); }
+});
+
+it('rolls back a failed real local lineage bridge and retains a restorable pre-upgrade backup', async () => {
+ const { dataDir, db } = await historicalDatabase(localHistory, 5);
+ try {
+  // Existing out-of-band data corruption must fail validation, not erase history.
+  db.pragma('foreign_keys=OFF');
+  db.exec("INSERT INTO task_sessions VALUES('missing-session','t')");
+  db.pragma('foreign_keys=ON');
+  await expect(migrate(db, dataDir)).rejects.toMatchObject({ code: 'MIGRATION_FAILED' });
+  expect(db.pragma('user_version', { simple: true })).toBe(5);
+  expect(db.prepare("SELECT name FROM sqlite_master WHERE name='control_events'").get()).toBeUndefined();
+  expect(db.prepare('SELECT session_id FROM task_sessions').pluck().get()).toBe('missing-session');
+  expect(db.prepare('SELECT search_text FROM events').pluck().get()).toBe('historical searchable evidence');
+  const backups = await readdir(join(dataDir, 'backups'));
+  expect(backups).toHaveLength(1);
+  const backup = new Database(join(dataDir, 'backups', backups[0]!, 'backup.sqlite'), { readonly: true });
+  try { expect(backup.pragma('user_version', { simple: true })).toBe(5); expect(backup.pragma('integrity_check', { simple: true })).toBe('ok'); }
+  finally { backup.close(); }
+ } finally { db.close(); }
 });

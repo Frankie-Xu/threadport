@@ -1,4 +1,6 @@
 import type { NormalizedEvent } from '../domain/models.js';
+import type { ControlEvent } from '../control-plane/contracts.js';
+import type { CoverageReport } from '../control-plane/coverage.js';
 export interface SourceCandidate { sourceId: string; path: string; agent: 'claude' | 'codex' }
 export interface PendingCall { id: string; command: string; cwd: string | null; startedAt: string | null }
 export interface ReadCursor {
@@ -16,7 +18,7 @@ export interface SourceSession {
   formatVersion: string | null; lastEventAt: string | null;
   status: 'ready' | 'partial' | 'unsupported' | 'missing' | 'error';
 }
-export interface SourceReadResult { session: SourceSession; events: NormalizedEvent[]; cursor: ReadCursor; warnings: string[]; hasMore: boolean }
+export interface SourceReadResult { session: SourceSession; events: NormalizedEvent[]; cursor: ReadCursor; warnings: string[]; hasMore: boolean; controlEvents?: ControlEvent[]; coverage?: CoverageReport }
 export interface SourceAdapter {
   readonly agent: 'claude' | 'codex'; readonly parserVersion: string;
   readonly diagnostics: readonly SourceDiagnostic[];

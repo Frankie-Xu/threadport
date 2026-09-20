@@ -5,6 +5,7 @@ import {
   type ApiClient,
   type Envelope,
   type TaskDetail,
+  type ControlState,
   useLoad,
   dateLabel,
   attentionLabel,
@@ -31,6 +32,10 @@ export function Detail({
   const detail = useLoad<Envelope<TaskDetail>>(
     api,
     "/tasks/" + encodeURIComponent(id),
+  );
+  const control = useLoad<Envelope<ControlState>>(
+    api,
+    "/tasks/" + encodeURIComponent(id) + "/control",
   );
   const value = detail.data?.data;
   const [editing, setEditing] = useState(false),
@@ -142,6 +147,29 @@ export function Detail({
             )}
           </section>
           <Assertions api={api} taskId={id} projectId={value.task.projectId} onSaved={()=>detail.reload()} onEvidence={setEvidence} seed={assertionSeed} onSeedConsumed={()=>setAssertionSeed(null)}/>
+          <section className="panel">
+            <h2>Handoff visibility</h2>
+            <p>
+              Responsibility and run state come from recorded evidence. Unknown
+              or agent-reported facts remain visible until verified.
+            </p>
+            {control.error && <ErrorNotice error={control.error} />}
+            {control.data?.data.responsibilities.length ? control.data.data.responsibilities.map((record) => (
+              <div className="source-row" key={record.id}>
+                <strong>{record.roles.executor ?? "Responsible party unknown"}</strong>
+                <StatusBadge>{record.status}</StatusBadge>
+                <p>Evidence: {record.evidenceIds.join(", ") || "none"}</p>
+              </div>
+            )) : <p>Responsible party is unknown; no confirmed responsibility edge is recorded.</p>}
+            {Object.entries(control.data?.data.sessions ?? {}).map(([sessionId, run]) => (
+              <p key={sessionId}>
+                Session {sessionId}: {run.runState} · {run.health} · last evidence {run.lastEvidenceId ?? "unknown"}
+              </p>
+            ))}
+            {control.data?.data.attention.filter((item) => item.status === "open").map((item) => (
+              <p className="notice" key={item.id}>{item.message}</p>
+            ))}
+          </section>
           <section className="panel">
             <h2>Source suggestions</h2>
             <p>

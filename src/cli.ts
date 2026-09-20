@@ -19,6 +19,7 @@ import { assertDestination, writeArtifact } from './storage.js';
 import { createHandoff, parseHandoff } from './handoff.js';
 import { ZodError } from 'zod';
 import { DomainError } from './domain/errors.js';
+import { runControlCommand, runReceiptCommand, runTakeoverCommand } from './cli-control.js';
 
 /** Local artifacts and explicitly confirmed terminal continuation; never execute next_action. */
 export interface CliIo {
@@ -84,7 +85,11 @@ function usage(): string {
     'threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id> [--mode native-resume|new-session] [--data-dir <path>]',
     'threadport ui [--data-dir <path>] [--no-open] [--demo]',
     'threadport doctor [--json] [--data-dir <path>]',
-    'threadport index --source <id> [--data-dir <path>]'
+    'threadport index --source <id> [--data-dir <path>]',
+    'threadport control status --task <id> [--data-dir <path>]',
+    'threadport control ingest --file <events.json> [--data-dir <path>]',
+    'threadport handoff receipt --id <handoff> ...',
+    'threadport takeover request|acknowledge ...'
   ].join('\n');
 }
 
@@ -95,6 +100,9 @@ export async function runCli(argv: string[], io: CliIo = { stdout: process.stdou
       io.stdout.write(`${usage()}\n`); return command ? 0 : 1;
     }
     if(command==='doctor'||command==='index'){const {runDataCommand}=await import('./cli-data.js');return runDataCommand(command,rest,io);}
+    if(command==='control') return runControlCommand(rest,io);
+    if(command==='takeover') return runTakeoverCommand(rest,io);
+    if(command==='handoff' && rest[0]==='receipt') return runReceiptCommand(rest,io);
     if (command === 'ui') {
       let parsed:ReturnType<typeof options>;
       try{parsed=options(rest,['data-dir'],['no-open','demo']);if(parsed.positional.length||parsed.enabled.has('demo')&&parsed.named['data-dir'])throw new Error('ui accepts no input path; --demo cannot use --data-dir.');}

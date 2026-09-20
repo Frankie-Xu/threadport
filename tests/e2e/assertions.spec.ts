@@ -20,6 +20,8 @@ test.beforeAll(async()=>{
 test.afterAll(async()=>{await server?.close();if(base)await rm(base,{recursive:true,force:true});});
 test('retains a conflicting draft, resolves explicit replacement, and compiles only the effective decision',async({page})=>{
  await page.goto(server.origin+'/?v=inbox&t='+taskId+'#token='+server.token);
+ await expect(page.getByRole('heading',{name:'Handoff visibility',exact:true})).toBeVisible();
+ await expect(page.getByText('Responsible party is unknown; no confirmed responsibility edge is recorded.',{exact:true})).toBeVisible();
  const add=async(text:string)=>{
   await page.getByRole('button',{name:'Add decision or constraint',exact:true}).click();await page.getByLabel('Decision topic',{exact:true}).fill('storage');await page.getByLabel('Decision text',{exact:true}).fill(text);
   await page.getByLabel('I confirm this as a current decision or constraint').check();await page.getByRole('button',{name:'Save assertion',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);

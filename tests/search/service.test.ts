@@ -79,15 +79,34 @@ it('normalizes offset dates and keeps invalid stored activity unknown rather tha
  const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));try{db.prepare('UPDATE sessions SET last_event_at=? WHERE id=?').run('2026-02-30T00:00:00Z',a.id);}finally{db.close();}
  expect((await search.search({projectId:'p'})).items[0].lastActivityAt).toBeNull();expect((await search.search({projectId:'p',from:'2026-01-01T00:00:00Z'})).items).toEqual([]);
 });
-it('preserves literal wildcard, slash, Unicode and NUL matching in the native event scan',async()=>{
+it('preserves literal wildcard, slash, Unicode and NUL matching in clean and dirty projections',async()=>{
  const {search,dir,a}=await setup();const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));
- try{db.prepare('UPDATE events SET search_text=? WHERE session_id=?').run('prefix\0AfterNUL 100% a_b slash\\word Ä ä 支付',a.id);}finally{db.close();}
- for(const q of ['AfterNUL','prefix\0After','%','a_b','slash\\word','Ä','支付'])expect((await search.search({q,projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
- for(const q of ['aZb','slashword','100anything','不存在'])expect((await search.search({q,projectId:'p'})).items).toEqual([]);
+ try{
+  const text='prefix\0AfterNUL 100% a_b slash\\word Ä ä 支付';
+  db.prepare('UPDATE events SET search_text=? WHERE session_id=?').run(text,a.id);
+  for(const dirty of [1,0]){
+   if(dirty===0)db.prepare('UPDATE session_search SET search_text=?,dirty=0 WHERE session_id=?').run(text,a.id);
+   for(const q of ['AfterNUL','prefix\0After','%','a_b','slash\\word','Ä','支付'])expect((await search.search({q,projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
+   for(const q of ['aZb','slashword','100anything','不存在'])expect((await search.search({q,projectId:'p'})).items).toEqual([]);
+  }
+ }finally{db.close();}
 });
 it('validates one stage timing sample per mixed benchmark search request',async()=>{
  const {validateSearchTimings}=await import('../../scripts/benchmark-validation.mjs');
  const samples=[{id:1},{id:2},{id:3}];
  expect(validateSearchTimings(samples,3)).toMatchObject({expected:3,observed:3,uniqueIds:3,duplicateIds:[],valid:true});
  expect(validateSearchTimings([...samples,{id:2}],3)).toMatchObject({observed:4,uniqueIds:3,duplicateIds:[2],valid:false});
+});
+it('maintains an invalidatable per-session search projection',async()=>{
+ const {search,dir,a}=await setup();const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));
+ try{
+  const before=db.prepare('SELECT search_text,dirty FROM session_search WHERE session_id=?').get(a.id) as {search_text:string;dirty:number};
+  expect(before.search_text).toContain('支付回调');expect(before.dirty).toBe(0);
+  db.prepare('UPDATE events SET search_text=? WHERE session_id=? AND ordinal=0').run('projection marker',a.id);
+  expect((db.prepare('SELECT dirty FROM session_search WHERE session_id=?').get(a.id) as {dirty:number}).dirty).toBe(1);
+ }finally{db.close();}
+ expect((await search.search({q:'projection marker',projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
+ const missing=new Database(join(dir,'data','threadport.sqlite'));
+ try{missing.prepare('DELETE FROM session_search WHERE session_id=?').run(a.id);}finally{missing.close();}
+ expect((await search.search({q:'projection marker',projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
 });
