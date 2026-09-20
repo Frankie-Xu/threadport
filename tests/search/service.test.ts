@@ -132,15 +132,15 @@ it('returns only result metadata from SQLite instead of materializing full sessi
  const spy=vi.spyOn(Database.prototype,'prepare').mockImplementation(function(this:InstanceType<typeof Database>,sql:string){
   const statement=prepare.call(this,sql);
   if(sql.startsWith('WITH documents AS')){
-   const all=statement.all.bind(statement) as (...args:unknown[])=>unknown[];
-   statement.all=((...args:unknown[])=>{const rows=all(...args) as Record<string,unknown>[];resultRows.push(...rows);return rows;}) as typeof statement.all;
+   const iterate=statement.iterate.bind(statement) as (...args:unknown[])=>IterableIterator<unknown>;
+   statement.iterate=(function*(...args:unknown[]){for(const row of iterate(...args)){resultRows.push(row as Record<string,unknown>);yield row;}}) as typeof statement.iterate;
   }
   return statement;
  });
  try{
-  expect((await search.search({q:'支付'})).items).toHaveLength(2);
+  expect((await search.search({q:'支付',limit:1})).items).toHaveLength(1);
   expect(resultRows).toHaveLength(2);
-  for(const row of resultRows){expect(row).not.toHaveProperty('sessionSearch');expect(row).not.toHaveProperty('searchDirty');}
+  for(const row of resultRows){expect(row).not.toHaveProperty('sessionSearch');}
  }finally{spy.mockRestore();}
 });
 

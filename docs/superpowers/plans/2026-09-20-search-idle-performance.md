@@ -18,12 +18,12 @@
 - [ ] In src/storage/search-store.ts replace SELECT * with the explicit Row metadata fields used by result assembly; sessionSearch and searchDirty remain SQL predicate inputs only.
 - [ ] Add a regression in tests/search/service.test.ts that captures the statement result and proves projection text is not returned.
 - [ ] Fold session_search.search_text with SQLite lower() when rebuilding and during migration 011; remove lower() from clean-cache query predicates. Original event text remains unchanged. Test schema 10 upgrade with NUL/Unicode and preserve dirty fallback.
-- [ ] Maintain FTS rows through session_search insert/update/delete triggers in migration 011. For terms of at least three code points without NUL, intersect quoted trigram candidates and retain instr() verification. Load full cache text only after candidate selection. Test quote/emoji/NUL/dirty/missing and non-contiguous trigram false positives.
+- [ ] Maintain FTS rows through session_search insert/update/delete triggers in migration 011. For terms of at least three code points without NUL, intersect quoted trigram candidates and retain instr() verification. Stream metadata in keyset order, load cache text only for candidates, and stop after limit + 1 matches. Test quote/emoji/NUL/dirty/missing and non-contiguous trigram false positives.
 - [ ] Run search tests and fixed-capacity benchmark.
 
 ## Task 2: Eliminate unchanged projection reconstruction
 
-- [ ] In src/storage/index-store.ts reconstruct only after reset, nonempty event writes, or missing/dirty projection. Keep cursor and metadata validation and updates.
+- [ ] In src/storage/index-store.ts reconstruct only after reset, nonempty event writes, or missing/dirty projection. Keep cursor and metadata validation; skip all writes for identical clean pages. Remove per-record lease writes while preserving heartbeat and transactional ownership fencing.
 - [ ] Test unchanged refresh leaves session_search untouched; dirty and missing projection are repaired even without new events.
 - [ ] Run search/indexing/migration tests, then the full check and browser/package checks.
 
