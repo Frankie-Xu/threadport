@@ -48,18 +48,22 @@ export class IndexStore {
   if(input.events.length>100||session.sourceId!==sourceId||input.events.some(event=>event.sessionId!==session.id))throw new DomainError('INVALID_INPUT','Invalid index batch identity or size.');deriveTask(input.events);
   const warnings=parse(z.array(z.string().regex(/^[A-Z_]+$/)).max(32),input.warnings);
   this.run(()=>this.db.transaction(()=>{
-   this.renewIndexLease(sourceId,owner);
+   if(!this.db.prepare('SELECT 1 FROM index_leases WHERE source_id=? AND owner=? AND expires_at>?').get(sourceId,owner,Date.now()))throw new DomainError('INDEX_STALE','Scan ownership expired; retry this source.');
    const actual=this.db.prepare('SELECT cursor_json FROM source_cursors WHERE session_id=?').pluck().get(session.id)??null;
    if(actual!==(expected?JSON.stringify(expected):null))throw new DomainError('INDEX_STALE','Index cursor changed; reload before committing.');
    if(!reset&&expected&&(cursor.byteOffset<expected.byteOffset||cursor.nextOrdinal<expected.nextOrdinal||cursor.fileIdentity!==expected.fileIdentity))throw new DomainError('INDEX_STALE','A changed source requires an explicit index reset.');
-   const bound=this.db.prepare('SELECT project_id,workspace_id,source_id FROM sessions WHERE id=?').get(session.id) as {project_id:string|null;workspace_id:string|null;source_id:string|null}|undefined;
+   const bound=this.db.prepare('SELECT project_id,workspace_id,source_id,metadata_json FROM sessions WHERE id=?').get(session.id) as {project_id:string|null;workspace_id:string|null;source_id:string|null;metadata_json:string}|undefined;
    if(bound?.source_id&&bound.source_id!==sourceId)throw new DomainError('INVALID_INPUT','Session belongs to another source.');
    const saved={...session,status:input.hasMore&&session.status==='ready'?'partial':session.status,projectId:bound?.project_id??session.projectId,workspaceId:bound?.workspace_id??session.workspaceId};
+   const projectionClean=!reset&&input.events.length===0&&this.db.prepare('SELECT 1 FROM session_search WHERE session_id=? AND dirty=0').get(session.id);
+   // A checkpoint-verified no-op needs no WAL writes, including lease churn.
+   if(projectionClean&&actual===JSON.stringify(cursor)&&bound?.metadata_json===JSON.stringify({session:saved,warnings}))return;
+   this.renewIndexLease(sourceId,owner);
    this.db.prepare('INSERT INTO sessions(id,source_id,vendor_id,source_path,project_id,workspace_id,last_event_at,metadata_json) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET source_id=excluded.source_id,vendor_id=excluded.vendor_id,source_path=excluded.source_path,last_event_at=excluded.last_event_at,metadata_json=excluded.metadata_json').run(session.id,sourceId,session.vendorSessionId,session.sourcePath,saved.projectId,saved.workspaceId,session.lastEventAt,JSON.stringify({session:saved,warnings}));
    if(reset)this.db.prepare('DELETE FROM events WHERE session_id=?').run(session.id);
    for(const event of input.events){const ownerSession=this.db.prepare('SELECT session_id FROM events WHERE id=?').pluck().get(event.id);if(ownerSession!==undefined&&ownerSession!==session.id)throw new DomainError('INVALID_INPUT','Event belongs to another session.');this.db.prepare('INSERT INTO events(id,session_id,ordinal,body_json,search_text) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET ordinal=excluded.ordinal,body_json=excluded.body_json,search_text=excluded.search_text').run(event.id,session.id,event.ordinal,JSON.stringify(event),[event.text,...event.relativePaths].join('\n'));}
-   this.db.prepare(`INSERT INTO session_search(session_id,search_text,dirty)
-     SELECT ?,COALESCE((SELECT group_concat(search_text,char(10)) FROM (SELECT search_text FROM events WHERE session_id=? ORDER BY ordinal)),''),0
+   if(!projectionClean)this.db.prepare(`INSERT INTO session_search(session_id,search_text,dirty)
+     SELECT ?,lower(COALESCE((SELECT group_concat(search_text,char(10)) FROM (SELECT search_text FROM events WHERE session_id=? ORDER BY ordinal)),'')),0
      ON CONFLICT(session_id) DO UPDATE SET search_text=excluded.search_text,dirty=0`).run(session.id,session.id);
    this.db.prepare('INSERT INTO source_cursors(session_id,file_identity,byte_offset,parser_version,cursor_json) VALUES(?,?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET file_identity=excluded.file_identity,byte_offset=excluded.byte_offset,parser_version=excluded.parser_version,cursor_json=excluded.cursor_json').run(session.id,cursor.fileIdentity,cursor.byteOffset,cursor.parserVersion,JSON.stringify(cursor));
    if((this.db.prepare('SELECT count(*) FROM events').pluck().get() as number)>100000||(this.db.prepare('SELECT coalesce(sum(byte_offset),0) FROM source_cursors').pluck().get() as number)>1024*1024*1024)throw new DomainError('INDEX_LIMIT','Index capacity reached; narrow the allowed sources.');

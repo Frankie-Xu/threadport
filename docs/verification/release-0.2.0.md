@@ -5,7 +5,7 @@
 | 门禁 | 状态 | 证据与解锁条件 |
 | --- | --- | --- |
 | T15 本地工作台 | L2 集成 | PR #49/#50 三平台自动 CI；不等于真实 Agent 认证 |
-| T16 性能预算 | HOLD | [固定容量实测](performance-beta.md)：三个独立轮次 API p95 375.12/910.60/456.14ms；第三轮 UI 593.70ms，均未证明达标 |
+| T16 性能预算 | HOLD | [最新优化验收](search-idle-performance-2026-09-20.md)：两平台搜索与空闲 CPU 已达标；Ubuntu 首次索引 78.22s 仍超 60s |
 | T17 数据生命周期 | L2 集成，#52/#53/#54 已合并 | [分包记录](t17-data-lifecycle.md)；删除失败、并发与关闭已通过本地回归 |
 | T18 真实平台/Agent | HOLD | [24 格矩阵](agent-matrix-beta.md)：旧包 3/24 格已运行（2 pass、1 with issue），21 格未运行 |
 | T19 安装包 | 集成验证 | [产物流程](package-rc.md)；开发包已验证；最终 RC 仍依赖真实认证 |

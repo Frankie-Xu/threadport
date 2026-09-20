@@ -57,3 +57,7 @@
 ## 2026-09-18 final candidate-bound rerun
 
 候选提交 `6db8c716b8702383e864c74359c83e2abc522c61` 在同一 Apple M1 / macOS 25.6 arm64 / Node 26.5.0 固定容量数据集上重新执行了 `node scripts/benchmark.mjs --browser`；完整原始结果见 [候选绑定 JSON](performance/w3-node26-final-6db8c71.json)。索引 26.45s、API 搜索 p95 324.85ms、浏览器模式 API/UI p95 362.60ms、status p95 8.85ms、冷启动 p95 256.22ms、增量 8.46s、峰值 RSS 200.39MiB、取消 6.15ms；200 条阶段样本为 200 个唯一 ID、无重复。API 搜索仍超过 300ms，决定保持 HOLD。Node 26 与 Ubuntu 同候选证据仍不能替代 Node 24 发布门禁。
+
+## 2026-09-20 搜索与空闲 CPU 优化
+
+运行时代码 `2e4ef51` 的 macOS/Ubuntu Node 24 固定容量验收：API p95 43.46/59.04ms、UI p95 79.40/93.70ms、空闲 CPU 中位数 0.128/0.082%，均达标。macOS 全部门槛通过；Ubuntu 首次索引 78.22s 超过 60s，因此整体性能仍 HOLD。完整实现、全部失败实验和两平台原始记录见 [优化验收](search-idle-performance-2026-09-20.md)。原数据量、查询和门槛未改变；这些结果不能替代真实 Agent 与外部用户认证。

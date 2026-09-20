@@ -20,6 +20,7 @@ try {
   assert(packed.files.some(file => file.path === 'dist/src/index.js'));
   assert(packed.files.some(file => file.path === 'migrations/legacy-local/009-search-event-projection.sql'));
   assert(packed.files.some(file => file.path === 'migrations/010-unify-search-projection.sql'));
+  assert(packed.files.some(file => file.path === 'migrations/011-fold-session-search.sql'));
   assert(packed.files.some(file => file.path === 'dist/web/index.html'));
   assert(packed.files.some(file => file.path.startsWith('dist/web/assets/') && file.path.endsWith('.js')));
   assert(packed.files.some(file => file.path.startsWith('dist/web/assets/') && file.path.endsWith('.css')));

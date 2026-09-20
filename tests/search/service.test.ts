@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -82,11 +82,11 @@ it('normalizes offset dates and keeps invalid stored activity unknown rather tha
 it('preserves literal wildcard, slash, Unicode and NUL matching in clean and dirty projections',async()=>{
  const {search,dir,a}=await setup();const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));
  try{
-  const text='prefix\0AfterNUL 100% a_b slash\\word Ä ä 支付';
+  const text='prefix\0AfterNUL 100% a_b slash\\word Ä ä 支付 quote"term 🙂emoji abcd';
   db.prepare('UPDATE events SET search_text=? WHERE session_id=?').run(text,a.id);
   for(const dirty of [1,0]){
-   if(dirty===0)db.prepare('UPDATE session_search SET search_text=?,dirty=0 WHERE session_id=?').run(text,a.id);
-   for(const q of ['AfterNUL','prefix\0After','%','a_b','slash\\word','Ä','支付'])expect((await search.search({q,projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
+   if(dirty===0)db.prepare('UPDATE session_search SET search_text=lower(?),dirty=0 WHERE session_id=?').run(text,a.id);
+   for(const q of ['AfterNUL','prefix\0After','%','a_b','slash\\word','Ä','支付','quote"term','🙂emoji','abcd'])expect((await search.search({q,projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
    for(const q of ['aZb','slashword','100anything','不存在'])expect((await search.search({q,projectId:'p'})).items).toEqual([]);
   }
  }finally{db.close();}
@@ -109,4 +109,48 @@ it('maintains an invalidatable per-session search projection',async()=>{
  const missing=new Database(join(dir,'data','threadport.sqlite'));
  try{missing.prepare('DELETE FROM session_search WHERE session_id=?').run(a.id);}finally{missing.close();}
  expect((await search.search({q:'projection marker',projectId:'p'})).items.map(i=>i.sessionId)).toEqual([a.id]);
+});
+it('does not rewrite a clean projection on unchanged scans and repairs dirty or missing projections',async()=>{
+ const {store,dir,a}=await setup();const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));
+ const index=new IndexService(store);
+ try{
+  db.exec('CREATE TABLE projection_writes(session_id TEXT); CREATE TRIGGER record_session_update AFTER UPDATE ON sessions BEGIN INSERT INTO projection_writes VALUES(new.id); END; CREATE TRIGGER record_cursor_update AFTER UPDATE ON source_cursors BEGIN INSERT INTO projection_writes VALUES(new.session_id); END; CREATE TRIGGER record_projection_update AFTER UPDATE ON session_search BEGIN INSERT INTO projection_writes VALUES(new.session_id); END;');
+  expect((await index.refreshAll())[0].state).toBe('completed');
+  expect(db.prepare('SELECT count(*) FROM projection_writes').pluck().get()).toBe(0);
+  db.prepare('UPDATE session_search SET dirty=1,search_text=? WHERE session_id=?').run('stale',a.id);
+  expect((await index.refreshAll())[0].state).toBe('completed');
+  expect(db.prepare('SELECT search_text,dirty FROM session_search WHERE session_id=?').get(a.id)).toMatchObject({search_text:expect.stringContaining('支付回调'),dirty:0});
+  db.prepare('DELETE FROM session_search WHERE session_id=?').run(a.id);
+  expect((await index.refreshAll())[0].state).toBe('completed');
+  expect(db.prepare('SELECT search_text,dirty FROM session_search WHERE session_id=?').get(a.id)).toMatchObject({search_text:expect.stringContaining('支付回调'),dirty:0});
+ }finally{await index.stop();db.close();}
+});
+
+it('returns only result metadata from SQLite instead of materializing full session text',async()=>{
+ const {search}=await setup();const {default:Database}=await import('better-sqlite3');
+ const prepare=Database.prototype.prepare;const resultRows:Record<string,unknown>[]=[];
+ const spy=vi.spyOn(Database.prototype,'prepare').mockImplementation(function(this:InstanceType<typeof Database>,sql:string){
+  const statement=prepare.call(this,sql);
+  if(sql.startsWith('WITH documents AS')){
+   const iterate=statement.iterate.bind(statement) as (...args:unknown[])=>IterableIterator<unknown>;
+   statement.iterate=(function*(...args:unknown[]){for(const row of iterate(...args)){resultRows.push(row as Record<string,unknown>);yield row;}}) as typeof statement.iterate;
+  }
+  return statement;
+ });
+ try{
+  expect((await search.search({q:'支付',limit:1})).items).toHaveLength(1);
+  expect(resultRows).toHaveLength(2);
+  for(const row of resultRows){expect(row).not.toHaveProperty('sessionSearch');}
+ }finally{spy.mockRestore();}
+});
+
+it('uses trigrams only as candidates and verifies the full literal term',async()=>{
+ const {search,dir,a}=await setup();const {default:Database}=await import('better-sqlite3');const db=new Database(join(dir,'data','threadport.sqlite'));
+ try{
+  const text='abc bcd';
+  db.prepare('UPDATE events SET search_text=? WHERE session_id=?').run(text,a.id);
+  db.prepare('UPDATE session_search SET search_text=?,dirty=0 WHERE session_id=?').run(text,a.id);
+  expect((await search.search({q:'abcd',projectId:'p'})).items).toEqual([]);
+  expect((await search.search({q:'abc',projectId:'p'})).items.map(item=>item.sessionId)).toEqual([a.id]);
+ }finally{db.close();}
 });

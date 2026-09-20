@@ -44,7 +44,7 @@ export class IndexService {
     try{
      while(true){
       signal.throwIfAborted();if(++pages>100000)throw new DomainError('INDEX_LIMIT','Source page limit reached; narrow the source.');
-      this.store.renewIndexLease(sourceId,owner);
+      // The heartbeat renews during reads; every write batch fences ownership in its transaction.
       const page=await adapter.read({candidate,cursor,maxEvents:100-batchEvents.length,signal});signal.throwIfAborted();
       for(const warning of page.warnings)this.warn(progress,warning);
       if(page.warnings.includes('SOURCE_RESET')){batchEvents=[];reset=true;}

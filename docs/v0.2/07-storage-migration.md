@@ -39,3 +39,9 @@ restoreBackup 检查备份完整性，只创建不存在的 threadport.sqlite；
 ## 2026-09-16 增量
 
 当前统一 schema 为 10：保留主线 005 控制平面与 006 会话搜索投影，007 增加工作区运行占用/恢复，008 增加决定修订，009 保存执行观测，010 清理本地旧搜索缓存。本地历史 v5–v9 与主线 v5/v6 曾复用版本号，升级先识别实际 schema，再创建备份并在单事务中补齐缺失功能；未知或混合结构拒绝升级，保留原库。已有事件、人工任务与证据不会因清理派生缓存而删除。旧程序不能打开新 schema，回退须恢复对应升级前备份，不能手工降低版本号。详见 [统一升级与验收记录](../verification/unified-main-refactor-2026-09-20.md)。
+
+## Schema 11：检索缓存大小写预处理
+
+迁移 011 添加由触发器维护的 FTS5 trigram 候选索引，并将 session_search.search_text 按 SQLite lower() 的 ASCII 规则预处理，后续仅在事件变化、重置、缓存缺失或 dirty 时重建。原始 events.search_text 保留大小写用于高亮；dirty 缓存继续回退到原始事件查询。完整未变化批次在检查租约、游标与元数据后跳过 WAL 写入；心跳与变更批次仍负责续租。升级仍先备份，在事务内更新 user_version；schema 10 及历史分支都按既有谱系检查后升级。回退到 schema 10 程序需要恢复升级前备份，不能修改 user_version 冒充兼容。
+
+三个及以上 Unicode 字符且不含 NUL 的查询词用 trigram 求候选交集，最终仍以字面子串匹配校验，避免将不连续的 trigram 当作命中；较短词及 NUL 词沿用直接扫描。FTS 索引只存检索缓存的派生信息，不读取私有 event body。
