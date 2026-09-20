@@ -1,6 +1,6 @@
 # Search and idle CPU optimization
 
-Candidate validation is in progress; this document does not lift the stable-release HOLD.
+Search and idle CPU budgets pass on macOS and Ubuntu for runtime commit 2e4ef51. The overall stable-release HOLD remains because Ubuntu initial indexing and separate real-agent/user acceptance have not passed.
 
 The unchanged source scan rebuilt every session's complete search projection. It now rebuilds only after event writes/reset or when the projection is missing/dirty. Source checkpoints, metadata, leases and cursor checks remain active.
 
@@ -35,3 +35,21 @@ The V8 substring experiment was withdrawn: [macOS 0b9faa0](performance/search-id
 The replacement streams ordered metadata, builds trigram candidate sets once per term, verifies exact literals and stops after collecting one page plus its continuation sentinel. This keeps transaction/cursor semantics and bounds text reads for common queries. The benchmark profiler measures iterator steps and candidate/verification statements as query time, preserving one unique sample per request.
 
 [Ordered development run](performance/search-idle-2026-09-20/09-ordered-development.json): macOS Node 24, API/UI p95 43.28/78.50ms, idle CPU 0.128%, index 35.24s, RSS 308.73MiB. All budgets pass. This is a dirty-tree development result; clean candidate and Ubuntu evidence are still required.
+
+## Clean runtime candidate 2e4ef51
+
+| Metric | macOS Node 24.18.1 | Ubuntu Node 24.20.0 | Budget |
+| --- | ---: | ---: | ---: |
+| Search API p95 | 43.46 ms | 59.04 ms | <=300 ms |
+| Browser search p95 | 79.40 ms | 93.70 ms | <=500 ms |
+| Idle CPU median | 0.128% | 0.082% | <=2% |
+| Initial index | 30.51 s | 78.22 s | <=60 s |
+| Peak RSS | 283.03 MiB | 287.50 MiB | <=400 MiB |
+| Incremental visibility | 0.53 s | 1.13 s | <=20 s |
+| Cancellation | 3.55 ms | 3.60 ms | <=2000 ms |
+
+[macOS raw evidence](performance/search-idle-2026-09-20/10-macos-2e4ef51.json) passes every budget; [Ubuntu raw evidence](performance/search-idle-2026-09-20/11-ubuntu-2e4ef51.json) fails only initial indexing. Both reports bind clean commit `2e4ef51` and validate 200 unique timing samples. [Ubuntu workflow](https://github.com/Frankie-Xu/threadport/actions/runs/35530648982). Shared runners and this local machine are not controlled fixed reference hardware; results are separate, not pooled.
+
+Full local `npm run check` passed: 82 files / 514 tests, types, build, formatting, documentation links and redaction. [PR #65](https://github.com/Frankie-Xu/threadport/pull/65) carries final three-platform CI, browser, coverage and isolated-install status. Later evidence/documentation commits do not change this measured runtime.
+
+The requested search and idle CPU optimizations are validated; this is not a stable-release certification. Initial-index performance remains visible as a separate HOLD item, with no relaxed thresholds.
