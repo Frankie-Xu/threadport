@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Threadport 开发完成报告</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#121a2b;--panel2:#18233a;--text:#eef3ff;--muted:#aebbd3;--ok:#69e3a0;--warn:#ffd166;--line:#2d3c5b;--blue:#7eb5ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 12% 0,#1d3159 0,transparent 36%),var(--bg);color:var(--text);font:15px/1.6 Inter,Segoe UI,Arial,sans-serif}.wrap{max-width:1120px;margin:0 auto;padding:42px 24px 72px}header{border-bottom:1px solid var(--line);padding-bottom:28px}h1{font-size:38px;line-height:1.12;margin:8px 0 12px;letter-spacing:-.7px}h2{font-size:20px;margin:0 0 14px}h3{font-size:16px;margin:0 0 8px;color:var(--blue)}p{margin:0 0 12px}.eyebrow{text-transform:uppercase;letter-spacing:1.7px;color:var(--blue);font-size:12px;font-weight:700}.lede{color:var(--muted);font-size:18px;max-width:850px}.meta{display:flex;flex-wrap:wrap;gap:18px;color:var(--muted);margin-top:16px;font-size:13px}.grid{display:grid;gap:16px;margin-top:24px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.card{background:linear-gradient(145deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 12px 32px #0003}.kpi .value{font-size:32px;font-weight:800;margin:4px 0}.kpi .label{color:var(--muted);font-size:13px}.ok{color:var(--ok)}.warn{color:var(--warn)}.muted{color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:10px 8px}th{color:var(--muted);font-weight:600}ul{margin:8px 0 0;padding-left:20px}li{margin:7px 0}.tag{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 9px;font-size:12px;color:var(--muted)}.status{font-weight:700;color:var(--ok)}.status.hold{color:var(--warn)}footer{margin-top:26px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:18px}@media(max-width:760px){.kpis,.two{grid-template-columns:1fr 1fr}}@media(max-width:480px){.kpis,.two{grid-template-columns:1fr}.wrap{padding:28px 16px}h1{font-size:30px}}
+</style>
+</head>
+<body><main class="wrap">
+<header><div class="eyebrow">Threadport · Development delivery</div><h1>控制平面证据链与历史搜索优化</h1><p class="lede">本次交付补齐了任务交接、运行状态、回执、责任关系和接管的可验证边界，并为会话搜索增加可失效的聚合投影。代码、测试、构建、文档和打包检查均已完成；完整 200 MB 基准仍在当前 Windows 环境的索引阶段超时，因此保留为发布前的性能门槛。</p><div class="meta"><span>日期：2026-09-20</span><span>分支：codex/fix-release-gates</span><span class="status">状态：实现完成，性能门槛待复核</span></div></header>
+<section class="grid kpis">
+<div class="card kpi"><div class="label">单元/集成测试</div><div class="value ok">404</div><div class="label">61 个测试文件，0 失败</div></div>
+<div class="card kpi"><div class="label">端到端测试</div><div class="value ok">6/6</div><div class="label">Playwright 场景全部通过</div></div>
+<div class="card kpi"><div class="label">搜索 p95</div><div class="value">128.004 ms</div><div class="label">500 会话 / 50,000 事件 / 100 查询</div></div>
+<div class="card kpi"><div class="label">依赖漏洞</div><div class="value ok">0</div><div class="label">npm ci 审计结果</div></div>
+</section>
+<section class="grid two">
+<article class="card"><h2>已完成的修改</h2><h3>控制平面</h3><ul><li>新增控制事件账本、状态 reducer、来源覆盖、运行观察、责任关系、交接清单、回执和接管状态机。</li><li>增加 Fastify API、CLI 子命令、公共导出和任务详情页的交接可见性。</li><li>修正跨 1000 条事件的读取截断、责任结束状态、已确认执行者的来源信任边界，以及停止请求失败/超时后的 <code>stop-unavailable</code> 状态。</li><li>增加幂等重放、nonce 冲突、回执目标绑定、敏感文本/路径脱敏和 payload 严格校验。</li></ul><h3>搜索与存储</h3><ul><li>新增 schema v6 的 <code>session_search</code> 聚合投影；索引提交后刷新，事件直接变更通过 dirty 标记回退到安全扫描。</li><li>保留 WAL 写入可见性、游标失效和级联删除语义，并增加回归测试。</li></ul></article>
+<article class="card"><h2>验证结果</h2><table><thead><tr><th>检查</th><th>实测结果</th></tr></thead><tbody><tr><td><code>npm test -- --maxWorkers=2</code></td><td class="ok">61 files / 404 tests passed</td></tr><tr><td><code>npm run test:e2e</code></td><td class="ok">6 passed</td></tr><tr><td><code>npm run typecheck</code></td><td class="ok">exit 0</td></tr><tr><td><code>npm run build</code></td><td class="ok">exit 0</td></tr><tr><td><code>npm run check:docs</code></td><td class="ok">223 local destinations / 77 Markdown files</td></tr><tr><td><code>npm run check:pack</code></td><td class="ok">package smoke passed, 216 files, SHA-256 <code>538e0883…0b99</code></td></tr><tr><td><code>npm run check:redaction</code></td><td class="ok">3 exported artifacts scanned</td></tr><tr><td><code>node scripts/benchmark-search.mjs</code></td><td class="ok">p95 128.004 ms；相同基线约 149.35 ms</td></tr><tr><td><code>npm run bench</code></td><td class="hold">HOLD：固定 200 MB 数据集在 indexing 阶段超时，未推断通过指标</td></tr></tbody></table></article>
+</section>
+<section class="grid two">
+<article class="card"><h2>风险与限制</h2><ul><li><strong class="warn">性能门槛未关闭：</strong>完整基准在本机索引阶段超时，不能据此宣布大数据容量通过。</li><li>尚未在真实 Claude/Codex 生产日志、Windows/Ubuntu 矩阵及外部用户环境完成验证。</li><li>控制平面提供可审计的观察、回执和接管边界；无法把没有可靠 stop controller 的第三方 agent 强制停止。</li><li>本报告只包含实际执行结果，不将未运行的指标或平台结果视为通过。</li></ul></article>
+<article class="card"><h2>后续步骤</h2><ol><li>在安静的基准机上重跑完整 200 MB benchmark，记录索引耗时、搜索延迟和资源峰值。</li><li>用真实 Claude/Codex 样本及 Windows/Ubuntu 运行矩阵补齐 source coverage 与 handoff roundtrip 验证。</li><li>完成 PR 审查后再决定是否把性能门槛从 HOLD 调整为 release-ready。</li></ol></article>
+</section>
+<section class="card" style="margin-top:16px"><h2>验证分布</h2><p class="muted">本图只展示实际通过计数，不把它解释为质量比例。</p><div class="chart" id="verification-chart" role="img" aria-label="404 unit tests, 6 end to end tests, and 216 package files"></div></section>
+<footer>证据来源：当前工作区命令输出、测试报告和打包 smoke 检查。报告为单文件 HTML，无外部 CSS、脚本或网络依赖。</footer>
+</main></body></html>
+<script>
+window.Charts=window.Charts||{};
+Charts.line=function(id){
+  const host=document.getElementById(id); if(!host)return;
+  const values=[404,6,216], labels=['Vitest','E2E','Package files'];
+  const max=404, w=960, h=210, pad=36, innerW=w-pad*2, innerH=h-pad*2;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('viewBox',`0 0 ${w} ${h}`); svg.setAttribute('width','100%'); svg.setAttribute('height','210'); svg.setAttribute('aria-hidden','true');
+  values.forEach((value,index)=>{const x=pad+(index+.5)*innerW/values.length;const barW=innerW/values.length*.56;const barH=Math.max(2,value/max*innerH);const y=pad+innerH-barH;const rect=document.createElementNS(svg.namespaceURI,'rect');rect.setAttribute('x',String(x-barW/2));rect.setAttribute('y',String(y));rect.setAttribute('width',String(barW));rect.setAttribute('height',String(barH));rect.setAttribute('rx','4');rect.setAttribute('fill','#7eb5ff');svg.appendChild(rect);const valueText=document.createElementNS(svg.namespaceURI,'text');valueText.setAttribute('x',String(x));valueText.setAttribute('y',String(Math.max(18,y-8)));valueText.setAttribute('text-anchor','middle');valueText.setAttribute('fill','#eef3ff');valueText.textContent=String(value);svg.appendChild(valueText);const label=document.createElementNS(svg.namespaceURI,'text');label.setAttribute('x',String(x));label.setAttribute('y',String(h-8));label.setAttribute('text-anchor','middle');label.setAttribute('fill','#aebbd3');label.textContent=labels[index];svg.appendChild(label);});
+  host.appendChild(svg);
+};
+Charts.line('verification-chart');
+</script>
+
+
+
+

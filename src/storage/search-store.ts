@@ -2,7 +2,7 @@ import type Database from 'better-sqlite3';
 import { DomainError } from '../domain/errors.js';
 import { redactSecrets } from '../redact.js';
 import { encodeCursor, fold, parseSearch, searchTime, type SearchInput, type SearchItem, type SearchMatch, type SearchPage } from '../search/contracts.js';
-interface Row {id:string;sessionId:string|null;taskId:string|null;title:string;objective:string;projectId:string|null;projectName:string|null;workspaceId:string|null;workspacePath:string|null;agent:'claude'|'codex'|null;activity:string|null}
+interface Row {id:string;sessionId:string|null;taskId:string|null;title:string;objective:string;projectId:string|null;projectName:string|null;workspaceId:string|null;workspacePath:string|null;agent:'claude'|'codex'|null;activity:string|null;sessionSearch:string|null;searchDirty:number}
 export function registerSearchFunctions(db:Database.Database):void{
  db.function('tp_search_time',{deterministic:true},searchTime);
  db.function('tp_search_redact',{deterministic:true},(value:unknown)=>redactSecrets(typeof value==='string'?value:'').text);
@@ -12,12 +12,12 @@ const documents=`WITH documents AS (
  tp_search_redact(json_extract(t.body_json,'$.title')) AS title,tp_search_redact(json_extract(t.body_json,'$.objective.text')) AS objective,
  p.id AS projectId,p.name AS projectName,w.id AS workspaceId,w.canonical_root AS workspacePath,
  coalesce(src.agent,json_extract(s.metadata_json,'$.session.agent')) AS agent,
- tp_search_time(s.last_event_at) AS activity
- FROM sessions s LEFT JOIN task_sessions ts ON ts.session_id=s.id LEFT JOIN tasks t ON t.id=ts.task_id
+ tp_search_time(s.last_event_at) AS activity,ss.search_text AS sessionSearch,coalesce(ss.dirty,1) AS searchDirty
+ FROM sessions s LEFT JOIN session_search ss ON ss.session_id=s.id LEFT JOIN task_sessions ts ON ts.session_id=s.id LEFT JOIN tasks t ON t.id=ts.task_id
  LEFT JOIN projects p ON p.id=coalesce(s.project_id,t.project_id) LEFT JOIN workspaces w ON w.id=s.workspace_id LEFT JOIN sources src ON src.id=s.source_id
  UNION ALL
  SELECT 't:'||t.id,NULL,t.id,tp_search_redact(json_extract(t.body_json,'$.title')),tp_search_redact(json_extract(t.body_json,'$.objective.text')),
- p.id,p.name,NULL,NULL,NULL,NULL FROM tasks t JOIN projects p ON p.id=t.project_id WHERE NOT EXISTS(SELECT 1 FROM task_sessions ts WHERE ts.task_id=t.id)
+ p.id,p.name,NULL,NULL,NULL,NULL,NULL,NULL FROM tasks t JOIN projects p ON p.id=t.project_id WHERE NOT EXISTS(SELECT 1 FROM task_sessions ts WHERE ts.task_id=t.id)
 )`;
 function snippet(field:SearchMatch['field'],eventId:string|null,text:string,terms:string[],focus:string):SearchMatch|null{
  const lowered=fold(text);const offsets=[lowered.indexOf(focus)].filter(index=>index>=0);if(!offsets.length)return null;
@@ -35,7 +35,7 @@ export function searchHistory(db:Database.Database,input:SearchInput):SearchPage
   if(query.after&&query.after.generation!==generation)throw new DomainError('SEARCH_STALE','Search data changed; restart the search without a cursor.');
   const values:Record<string,string|number|null>={project:query.projectId,agent:query.agent,from:query.from,to:query.to,limit:query.limit+1};
   const clauses=['(@project IS NULL OR d.projectId=@project)','(@agent IS NULL OR d.agent=@agent)','(@from IS NULL OR d.activity>=@from)','(@to IS NULL OR d.activity<=@to)'];
-  query.terms.forEach((term,index)=>{values[`term${index}`]=term;clauses.push(`(instr(lower(d.title),@term${index})>0 OR instr(lower(d.objective),@term${index})>0 OR EXISTS(SELECT 1 FROM events e WHERE e.session_id=d.sessionId AND instr(lower(e.search_text),@term${index})>0))`);});
+  query.terms.forEach((term,index)=>{values[`term${index}`]=term;clauses.push(`(instr(lower(d.title),@term${index})>0 OR instr(lower(d.objective),@term${index})>0 OR (d.searchDirty=0 AND instr(lower(coalesce(d.sessionSearch,'')),@term${index})>0) OR (d.searchDirty<>0 AND EXISTS(SELECT 1 FROM events e WHERE e.session_id=d.sessionId AND instr(lower(e.search_text),@term${index})>0)))`);});
   if(query.after){values.afterTime=query.after.activity??'';values.afterId=query.after.id;clauses.push("(coalesce(d.activity,'')<@afterTime OR (coalesce(d.activity,'')=@afterTime AND d.id>@afterId))");}
   const rows=db.prepare(`${documents} SELECT * FROM documents d WHERE ${clauses.join(' AND ')} ORDER BY coalesce(activity,'') DESC,id ASC LIMIT @limit`).all(values) as Row[];
   const hasMore=rows.length>query.limit;rows.length=Math.min(rows.length,query.limit);

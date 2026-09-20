@@ -106,11 +106,12 @@ export function createJsonlSource(options:SourceOptions & {agent:'claude'|'codex
     cursor.metadata={cwd,sessionId:session.id,vendorSessionId:session.vendorSessionId,formatVersion:session.formatVersion,lastEventAt:session.lastEventAt};
     session.status=warnings.size?'partial':recognized?'ready':'unsupported';
     if(warnings.has('MULTIPLE_SESSION_IDS')||(!recognized&&warnings.has('UNKNOWN_EVENT')))session.status='unsupported';
-    return {session,events,cursor,warnings:[...warnings],hasMore:more};
+    return {session,events,cursor,warnings:[...warnings],hasMore:more,controlEvents:[],coverage:{sourceId:options.sourceId,parserVersion,coverage:warnings.size?'partial':recognized?'partial':'none',fields:recognized?['session','message']:[],gaps:recognized?['parent/run relationship is not present in the supported log format']:['source format was not recognized'],warnings:[...warnings]}};
    }catch(error){
     input.signal.throwIfAborted();if(error instanceof DomainError)throw error;
     const code=(error as NodeJS.ErrnoException).code;session.status=code==='ENOENT'?'missing':'error';
-    return {session,events:[],cursor,warnings:[code==='ENOENT'?'SOURCE_MISSING':code==='EACCES'?'SOURCE_PERMISSION_DENIED':'SOURCE_READ_FAILED'],hasMore:false};
+    const warning=code==='ENOENT'?'SOURCE_MISSING':code==='EACCES'?'SOURCE_PERMISSION_DENIED':'SOURCE_READ_FAILED';
+    return {session,events:[],cursor,warnings:[warning],hasMore:false,controlEvents:[],coverage:{sourceId:options.sourceId,parserVersion,coverage:'none',fields:[],gaps:[warning === 'SOURCE_MISSING' ? 'source was deleted or is unavailable' : 'source could not be read'],warnings:[warning]}};
    }
   }
  };

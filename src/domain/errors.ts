@@ -2,7 +2,7 @@
 export class DomainError extends Error {
   get retryable(): boolean { return this.code === 'STORAGE_BUSY' || this.code === 'REVISION_CONFLICT'; }
 
-  constructor(readonly code: 'INVALID_INPUT' | 'STORAGE_BUSY' | 'MIGRATION_FAILED' | 'IO_FAILED' | 'REVISION_CONFLICT' | 'INDEX_STALE' | 'INDEX_LIMIT' | 'NOT_FOUND' | 'PROJECT_MISMATCH' | 'REDACTION_REQUIRED' | 'SEARCH_STALE' | 'TARGET_UNSUPPORTED' | 'TARGET_EXITED', message: string) {
+  constructor(readonly code: 'INVALID_INPUT' | 'STORAGE_BUSY' | 'MIGRATION_FAILED' | 'IO_FAILED' | 'REVISION_CONFLICT' | 'INDEX_STALE' | 'INDEX_LIMIT' | 'NOT_FOUND' | 'PROJECT_MISMATCH' | 'REDACTION_REQUIRED' | 'SEARCH_STALE' | 'TARGET_UNSUPPORTED' | 'TARGET_EXITED' | 'RECEIPT_DIGEST_MISMATCH' | 'RECEIPT_TARGET_MISMATCH' | 'STOP_UNAVAILABLE' | 'CONTROL_COVERAGE_GAP' | 'RECEIPT_NONCE_CONFLICT' | 'TAKEOVER_CONFLICT', message: string) {
     super(message);
     this.name = 'DomainError';
   }

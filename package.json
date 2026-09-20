@@ -43,6 +43,10 @@
     "./server": {
       "types": "./dist/src/server/index.d.ts",
       "import": "./dist/src/server/index.js"
+    },
+    "./control-plane": {
+      "types": "./dist/src/control-plane/contracts.d.ts",
+      "import": "./dist/src/control-plane/contracts.js"
     }
   },
   "files": [
@@ -58,8 +62,9 @@
     "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json",
     "check:pack": "node scripts/pack-smoke.mjs",
+    "check:redaction": "node scripts/check-redaction.mjs",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run build && npm test && npm run check:docs",
+    "check": "npm run typecheck && npm run build && npm test && npm run check:docs && npm run check:redaction",
     "check:docs": "node scripts/check-doc-links.mjs",
     "test:e2e": "npm run build && tsc -p tsconfig.e2e.json && playwright test",
     "bench": "npm run build --silent && node scripts/benchmark.mjs",
