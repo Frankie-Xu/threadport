@@ -4,13 +4,13 @@ import Database from 'better-sqlite3';
 import { DomainError } from '../domain/errors.js';
 import { privateDirectory } from '../platform/paths.js';
 
-export const SCHEMA_VERSION = 10;
+export const SCHEMA_VERSION = 11;
 export interface Migration { version: number; sql: string }
 
 const commonFiles = ['001-initial.sql', '002-index-state.sql', '003-task-management.sql', '004-history-search.sql'];
 const mainFiles = ['005-control-plane.sql', '006-session-search-projection.sql'];
 const localFiles = ['005-launch-coordination.sql', '006-assertions.sql', '007-execution-observations.sql', '008-search-projection.sql', '009-search-event-projection.sql'].map(name => `legacy-local/${name}`);
-const canonicalFiles = [...commonFiles, ...mainFiles, '007-launch-coordination.sql', '008-assertions.sql', '009-execution-observations.sql', '010-unify-search-projection.sql'];
+const canonicalFiles = [...commonFiles, ...mainFiles, '007-launch-coordination.sql', '008-assertions.sql', '009-execution-observations.sql', '010-unify-search-projection.sql', '011-fold-session-search.sql'];
 interface SchemaObject { type: string; name: string; sql: string }
 interface Lineage { version: number; local: boolean; objects: SchemaObject[] }
 interface Catalog { sql: Map<string, string>; lineages: Lineage[]; names: Set<string> }
@@ -76,7 +76,7 @@ export async function migrate(db: Database.Database, dataDir: string, supplied?:
     if (lineage?.local && current >= 5) {
       // Local v5-v9 reused released main version numbers. Bridge by schema identity,
       // never by relabeling user_version or replaying already-applied local DDL.
-      const files = [...mainFiles, ...localFiles.slice(current - 4, 3), '010-unify-search-projection.sql'];
+      const files = [...mainFiles, ...localFiles.slice(current - 4, 3), '010-unify-search-projection.sql', '011-fold-session-search.sql'];
       pending = [{ version: SCHEMA_VERSION, sql: files.map(name => catalog!.sql.get(name)!).join('\n') }];
     } else {
       pending = canonicalFiles.slice(current).map((name, index) => ({ version: current + index + 1, sql: catalog!.sql.get(name)! }));

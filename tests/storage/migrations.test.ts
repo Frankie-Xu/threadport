@@ -212,3 +212,15 @@ it('rolls back a failed real local lineage bridge and retains a restorable pre-u
   finally { backup.close(); }
  } finally { db.close(); }
 });
+
+it('folds schema 10 cached text without changing original evidence or dirty state',async()=>{
+ const {dataDir,db}=await historicalDatabase([...canonicalHistory,'010-unify-search-projection.sql'],10);
+ try{
+  const text='Before\0AfterNUL Ä 支付';
+  db.prepare('UPDATE events SET search_text=? WHERE id=?').run(text,'e');
+  db.prepare('UPDATE session_search SET search_text=?,dirty=0 WHERE session_id=?').run(text,'s');
+  await migrate(db,dataDir);
+  expect(db.prepare('SELECT search_text FROM events WHERE id=?').pluck().get('e')).toBe(text);
+  expect(db.prepare('SELECT search_text,dirty FROM session_search WHERE session_id=?').get('s')).toEqual({search_text:'before\0afternul Ä 支付',dirty:0});
+ }finally{db.close();}
+});
