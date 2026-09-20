@@ -131,7 +131,7 @@ ThreadPort does not transfer hidden chain-of-thought, does not upload session da
 
 ### Editable tasks SDK
 
-The `threadport/tasks` entry supports manual task fields, revision conflicts, session associations and reversible lifecycle/archive changes. See [task management](docs/v0.2/09-task-management.md) for redaction preview, project boundaries and completion activity semantics. UI integration follows in the implementation plan.
+The `threadport/tasks` entry supports manual task fields, revision conflicts, session associations and reversible lifecycle/archive changes. See [task management](docs/v0.2/09-task-management.md) for redaction preview, project boundaries and completion activity semantics. The local workbench includes these editing controls.
 
 ### History search SDK
 
@@ -148,4 +148,18 @@ Start the local entry page with `threadport ui --no-open`, or use `threadport ui
 
 Prepare a task continuation with `threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id>`, then run `threadport continue --handoff <uuid>` in your terminal (use the same optional `--data-dir` for both). Continue displays the complete context, target and workspace, requires typing `CONTINUE`, verifies again, and claims the handoff once before inheriting the terminal. Non-TTY use and `--yes` are rejected. Target nonzero exits are recorded separately and return CLI exit 5; a clean process exit does not mark the task complete. See the [version matrix](docs/compatibility.md) and [local workflows](docs/v0.2/13-local-server.md). Real cross-Agent certification is still pending; the workbench uses synthetic browser acceptance; actual vendor certification remains separate.
 
+Prepared handoffs now assess each recorded command against its own historical workspace snapshot. Changed code marks a known historical outcome stale; the original exit code stays intact. Missing snapshot or environment evidence stays unknown, and incomplete execution evidence stays unverified. Native logs currently lack historical snapshot bindings, so they do not gain current test certification. Aggregate warnings include older commands whose excerpts were omitted. Required context that exceeds 32 KiB returns `CONTEXT_BUDGET_EXCEEDED` (HTTP 422 / CLI exit 2), without truncating constraints. See the [evidence decision](docs/adr/0009-command-evidence-applicability.md) and [report-to-code audit](docs/verification/report-v0.2-audit.md).
+
 Bundled browser dependency notices are included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### Runtime remediation status
+
+See the [current remediation record](docs/verification/remediation-progress-2026-09-16.md) for exact commits and checks. Terminal consent binds a frozen launch plan: canonical executable identity, version, argv, cwd, context transport, expiry and nonce. These are checked again before one-use consumption. Inherited Agent settings/interpreters and the final filesystem-to-exec race remain outside complete control.
+
+Runs sharing one application data directory reserve the canonical workspace across processes and handoffs. Independent data directories do not coordinate; concurrent use of the same workspace through multiple stores is unsupported. Lost observers retain an `unknown` reservation. Use `threadport inspect-run --handoff <uuid>` and, only after checking the target has stopped, `threadport recover-run --handoff <uuid>` with the same data directory. Recovery requires a terminal and the displayed `RELEASE <nonce>` phrase, records the evidence and does not retry the consumed handoff. Schema 7 includes the additive runtime, assertion and execution-observation migrations; older binaries refuse the upgraded database.
+
+Workbench snapshots use raw.v2 / scope.v1: sensitive filenames are excluded before content reads, incomplete captures block preparation, and ignored path counts are visible. Internal leaf symlinks contribute link text only. External links, submodules, non-UTF8 paths and unborn repositories cannot produce a complete snapshot. Older scope versions cannot match new captures. See the [reading policy](docs/adr/0012-workspace-reading-policy.md); its filename heuristic does not detect every secret, and legacy artifact extraction has a separate boundary.
+
+### Reviewed decisions and conflicts
+
+The task workbench now keeps an immutable decision/constraint history. Save suggestions as candidates, explicitly confirm an entry, and select the entries it replaces. Different confirmed choices for the same topic and overlapping scope are shown as conflicts; you can also mark a conflict across topics. Resolve conflicts before preparing continuation. A concurrent save keeps your draft and offers an explicit baseline refresh. Missing source evidence is labeled unavailable without erasing your confirmation. See the [assertion decision](docs/adr/0013-assertion-ledger.md) and current verification record above.

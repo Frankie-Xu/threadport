@@ -1,0 +1,45 @@
+{
+  "immediateGitMatch": false,
+  "objective": "Implement A.",
+  "constraints": [],
+  "decisions": [
+    {
+      "decision": "I will use SQLite."
+    }
+  ],
+  "status": "active",
+  "failures": [
+    {
+      "summary": "Command failed: npm test",
+      "resolution": "Retried `npm test` and it passed."
+    }
+  ],
+  "tests": [
+    {
+      "command": "npm test",
+      "status": "failed"
+    },
+    {
+      "command": "npm test",
+      "status": "passed"
+    },
+    {
+      "command": "npm test",
+      "status": "failed"
+    }
+  ],
+  "portableFiles": [
+    {
+      "path": "index.ts",
+      "action": "modified"
+    },
+    {
+      "path": "index.ts",
+      "action": "modified"
+    }
+  ],
+  "gitMatchWithCurrent": false,
+  "validateExit": 0,
+  "validateOutput": "valid\n",
+  "notes": "Synthetic probes; no real user sessions or secrets accessed."
+}

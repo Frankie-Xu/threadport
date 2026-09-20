@@ -12,8 +12,3 @@ describe('control plane storage',()=>{
  it('replays all events beyond one page',async()=>{const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});try{const cp=store.controlPlane();const events=Array.from({length:1001},(_,i)=>ev(`page-${i}`,{ordinal:i,taskId:'task-page'}));expect(cp.appendEvents(events)).toMatchObject({inserted:expect.arrayContaining(['page-1000'])});expect(cp.readAllEvents()).toHaveLength(1001);}finally{store.close();}});
  it('rejects malformed responsibility and observation records',async()=>{const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});try{const cp=store.controlPlane();expect(()=>cp.saveResponsibility({id:'r',taskId:'t',scope:'task',roles:{executor:'C:\\secret'},status:'confirmed',evidenceIds:[],confirmedAt:null})).toThrowError(expect.objectContaining({code:'INVALID_INPUT'}));expect(()=>cp.saveRunObservation({observationId:'o',runId:'r',sessionId:null,runState:'not-a-state' as never,health:'current',observedAt:null,evidenceId:null})).toThrowError(expect.objectContaining({code:'INVALID_INPUT'}));}finally{store.close();}});
 });
-
-
-
-
-

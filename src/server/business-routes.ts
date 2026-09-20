@@ -1,3 +1,4 @@
+import { registerAssertionRoutes } from './assertion-routes.js';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { randomUUID,createHash } from 'node:crypto';
@@ -10,17 +11,24 @@ import { createTaskSchema,taskPatchSchema } from '../tasks/contracts.js';
 import { SearchService } from '../search/service.js';
 import { DomainError } from '../domain/errors.js';
 import { detectTargetCapabilities } from '../targets.js';
-import { taskDto,eventDto,claimDto,runDto } from './dto.js';
+import { taskDto,eventDtoWithInnerEvidence,claimDto,runDto } from './dto.js';
 import { publicText } from '../privacy.js';
-const id=z.string().min(1).max(512).regex(/^[A-Za-z0-9][A-Za-z0-9:._-]*$/);
+import { innerObservationSchema } from '../evidence/observations.js';
+import { idSchema, taskRevisionSchema } from '../contracts/identifiers.js';
+const id=idSchema.regex(/^[A-Za-z0-9][A-Za-z0-9:._-]*$/);
 const pagination={limit:z.coerce.number().int().min(1).max(100).default(50),cursor:z.string().max(2048).optional()};
 const empty=z.object({}).strict();
 const p=(request:{params:unknown})=>z.object({id}).strict().parse(request.params).id;
-const revision=z.number().int().positive().safe();
+const revision=taskRevisionSchema;
 async function directory(root:string){if(!isAbsolute(root))throw new DomainError('INVALID_INPUT','Choose an absolute directory.');const info=await lstat(root);if(!info.isDirectory()||info.isSymbolicLink())throw new DomainError('INVALID_INPUT','Choose a physical directory.');const canonical=await realpath(root);if(canonical===parse(canonical).root)throw new DomainError('INVALID_INPUT','Choose a narrower directory.');return canonical;}
 export function registerBusinessRoutes(app:FastifyInstance,store:SqliteStore,indexer:IndexService){
+ registerAssertionRoutes(app,store);
  const api=store.apiStore(),tasks=new TaskService(store),search=new SearchService(store);
- const jobs=new Map<string,{sourceIds:string[];key:string;results:Map<string,IndexProgress>}>();
+ const jobRetentionMs = 10 * 60 * 1000;
+ type IndexJob = { sourceIds:string[];key:string;results:Map<string,IndexProgress>;createdAt:number;finishedAt?:number };
+ const jobs=new Map<string,IndexJob>();
+ const isTerminal=(state:IndexProgress['state'])=>!['queued','running'].includes(state);
+ const pruneJobs=(now=Date.now())=>{for(const [jobId,job] of jobs)if(job.finishedAt!==undefined&&now-job.finishedAt>=jobRetentionMs)jobs.delete(jobId);};
  app.get('/api/v1/projects',async request=>{empty.parse(request.query);return{data:api.projects().map(row=>({id:row.id,name:publicText(row.name)}))};});
  app.get('/api/v1/workspaces',async request=>{const q=z.object({projectId:id.optional()}).strict().parse(request.query);return{data:api.workspaces(q.projectId)};});
  app.post('/api/v1/workspaces',async(request,reply)=>{const body=z.object({projectId:id.optional(),root:z.string().max(32768),confirmBinding:z.literal(true)}).strict().parse(request.body);const root=await directory(body.root);return reply.code(201).send({data:api.bindWorkspace(root,body.projectId,basename(root).slice(0,120))});});
@@ -28,16 +36,19 @@ export function registerBusinessRoutes(app:FastifyInstance,store:SqliteStore,ind
  app.post('/api/v1/sources',async(request,reply)=>{const body=z.object({agent:z.enum(['claude','codex']),root:z.string().max(32768)}).strict().parse(request.body);const root=await directory(body.root);const source={id:'source-'+createHash('sha256').update(body.agent+'\0'+root).digest('hex').slice(0,32),agent:body.agent,roots:[root],enabled:true,parserVersion:`${body.agent}-jsonl-v1`};store.saveSource(source);return reply.code(201).send({data:source});});
  app.delete('/api/v1/sources/:id',async request=>{const source=p(request);z.object({confirmation:z.literal(true)}).strict().parse(request.body);await indexer.cancelAndWait(source);api.revokeSource(source);return{data:{id:source,revoked:true}};});
  app.post('/api/v1/index-jobs',async(request,reply)=>{
+  pruneJobs();
   const sourceIds=[...new Set(z.object({sourceIds:z.array(id).min(1).max(20)}).strict().parse(request.body).sourceIds)].sort();
   for(const sourceId of sourceIds)if(!store.getSource(sourceId)?.enabled)throw new DomainError('NOT_FOUND','Enabled source does not exist.');
   const key=JSON.stringify(sourceIds);const existing=[...jobs].find(([,job])=>job.key===key&&job.results.size<job.sourceIds.length);
   if(existing)return reply.code(202).send({data:{jobId:existing[0]}});
-  if(jobs.size>=1000){const finished=[...jobs].find(([,job])=>job.results.size===job.sourceIds.length);if(finished)jobs.delete(finished[0]);else throw new DomainError('STORAGE_BUSY','Too many active jobs.');}
-  const jobId=randomUUID();const job={sourceIds,key,results:new Map<string,IndexProgress>()};jobs.set(jobId,job);for(const source of sourceIds)void indexer.refresh(source).then(result=>{job.results.set(source,result);}).catch(()=>{job.results.set(source,{sourceId:source,state:'failed',files:0,events:0,failures:1,warnings:['INDEX_FAILED']});});
+  if(jobs.size>=1000){const finished=[...jobs].find(([,job])=>job.finishedAt!==undefined);if(finished)jobs.delete(finished[0]);else throw new DomainError('STORAGE_BUSY','Too many active jobs.');}
+  const jobId=randomUUID();const job:IndexJob={sourceIds,key,results:new Map<string,IndexProgress>(),createdAt:Date.now()};jobs.set(jobId,job);
+  const record=(source:string,result:IndexProgress)=>{job.results.set(source,result);if(job.results.size===job.sourceIds.length)job.finishedAt=Date.now();};
+  for(const source of sourceIds)void indexer.refresh(source).then(result=>record(source,result)).catch(()=>record(source,{sourceId:source,state:'failed',files:0,events:0,failures:1,warnings:['INDEX_FAILED']}));
   return reply.code(202).send({data:{jobId}});
  });
- app.get('/api/v1/index-jobs/:id',async request=>{const jobId=p(request),job=jobs.get(jobId);if(!job)throw new DomainError('NOT_FOUND','Job does not exist.');return{data:{jobId,progress:job.sourceIds.map(sourceId=>{const progress=job.results.get(sourceId)??indexer.progress(sourceId);return{sourceId,state:progress?.state??'queued',files:progress?.files??0,events:progress?.events??0,failures:progress?.failures??0,warnings:progress?.warnings??[]};})}};});
- app.delete('/api/v1/index-jobs/:id',async request=>{const jobId=p(request),job=jobs.get(jobId);if(!job)throw new DomainError('NOT_FOUND','Job does not exist.');if(request.body!==undefined)empty.parse(request.body);await Promise.all(job.sourceIds.filter(source=>!job.results.has(source)).map(source=>indexer.cancelAndWait(source)));return{data:{jobId,cancelled:true}};});
+ app.get('/api/v1/index-jobs/:id',async request=>{pruneJobs();const jobId=p(request),job=jobs.get(jobId);if(!job)throw new DomainError('NOT_FOUND','Job does not exist.');return{data:{jobId,progress:job.sourceIds.map(sourceId=>{const progress=job.results.get(sourceId)??indexer.progress(sourceId);return{sourceId,state:progress?.state??'queued',files:progress?.files??0,events:progress?.events??0,failures:progress?.failures??0,warnings:progress?.warnings??[]};})}};});
+ app.delete('/api/v1/index-jobs/:id',async request=>{pruneJobs();const jobId=p(request),job=jobs.get(jobId);if(!job)throw new DomainError('NOT_FOUND','Job does not exist.');if(request.body!==undefined)empty.parse(request.body);await Promise.all(job.sourceIds.filter(source=>!job.results.has(source)).map(async source=>{await indexer.cancelAndWait(source);const progress=indexer.progress(source);if(progress)job.results.set(source,progress);}));const progress=job.sourceIds.map(sourceId=>{const value=job.results.get(sourceId)??indexer.progress(sourceId);return{sourceId,state:value?.state??'queued',files:value?.files??0,events:value?.events??0,failures:value?.failures??0,warnings:value?.warnings??[]};});if(progress.every(value=>isTerminal(value.state))){job.finishedAt??=Date.now();jobs.delete(jobId);}return{data:{jobId,cancelled:true,progress}};});
  app.get('/api/v1/tasks',async request=>{const q=z.object({...pagination,q:z.string().max(1024).default(''),projectId:id.optional(),lifecycle:z.enum(['active','paused','completed']).optional(),archived:z.enum(['true','false']).default('false').transform(value=>value==='true')}).strict().parse(request.query);const page=api.taskPage(q);return{data:await Promise.all(page.data.map(async task=>({...taskDto(task),attention:(await tasks.detail(task.id)).resolved.attention,lastActivityAt:api.taskActivity(task.id)}))),nextCursor:page.nextCursor};});
  app.post('/api/v1/tasks',async(request,reply)=>reply.code(201).send({data:taskDto(await tasks.create(createTaskSchema.parse(request.body)))}));
  app.get('/api/v1/tasks/:id',async request=>{const detail=await tasks.detail(p(request));return{data:{task:taskDto(detail.task),sessionIds:detail.sessionIds,sessions:api.taskSessions(detail.task.id),files:(()=>{const value=api.fileEvidence(detail.task.id);return{items:value.items.map(item=>({...item,path:publicText(item.path)})),hasMore:value.hasMore};})(),derived:{objective:detail.derived.objective?claimDto(detail.derived.objective):null,constraints:detail.derived.constraints.map(claimDto),latestRuns:detail.derived.latestRuns.map(runDto),attention:detail.derived.attention},resolved:{objective:detail.resolved.objective?claimDto(detail.resolved.objective):null,constraints:detail.resolved.constraints.map(claimDto),nextAction:detail.resolved.nextAction?claimDto(detail.resolved.nextAction):null,lifecycle:detail.resolved.lifecycle,archived:detail.resolved.archived,attention:detail.resolved.attention}}};});
@@ -50,7 +61,13 @@ export function registerBusinessRoutes(app:FastifyInstance,store:SqliteStore,ind
   const sessionId=p(request);if(!store.getSessionBinding(sessionId))throw new DomainError('NOT_FOUND','Session does not exist.');
   const q=z.object({...pagination,eventId:id.optional()}).strict().refine(value=>!(value.eventId&&value.cursor)).parse(request.query);const generation=api.generation();let offset=q.eventId?api.eventOffset(sessionId,q.eventId):0;
   if(q.cursor){try{const value=JSON.parse(Buffer.from(q.cursor,'base64url').toString('utf8'));if(value.generation!==generation)throw new DomainError('SEARCH_STALE','Events changed; restart pagination.');if(value.sessionId!==sessionId||value.limit!==q.limit||!Number.isSafeInteger(value.offset)||value.offset<0)throw new Error();offset=value.offset;}catch(error){if(error instanceof DomainError)throw error;throw new DomainError('INVALID_INPUT','Invalid event cursor.');}}
-  const rows=store.listEvents(sessionId,q.limit+1,offset);return{data:rows.slice(0,q.limit).map(eventDto),nextCursor:rows.length>q.limit?Buffer.from(JSON.stringify({generation,sessionId,limit:q.limit,offset:offset+q.limit})).toString('base64url'):null};
+  const rows=store.listEvents(sessionId,q.limit+1,offset);return{data:rows.slice(0,q.limit).map(eventDtoWithInnerEvidence),nextCursor:rows.length>q.limit?Buffer.from(JSON.stringify({generation,sessionId,limit:q.limit,offset:offset+q.limit})).toString('base64url'):null};
+ });
+ app.post('/api/v1/sessions/:id/inner-observations',async(request,reply)=>{
+  const sessionId=p(request);
+  const body=z.object({eventId:id,kind:z.enum(['command','test']),result:innerObservationSchema}).strict().parse(request.body);
+  const event=store.saveInnerObservation(sessionId,body.eventId,body.kind,body.result);
+  return reply.code(201).send({data:eventDtoWithInnerEvidence(event)});
  });
  app.get('/api/v1/targets',async request=>{empty.parse(request.query);return{data:await detectTargetCapabilities()};});
 }

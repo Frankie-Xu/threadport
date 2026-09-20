@@ -1,0 +1,108 @@
+{
+  "schema": "threadport.local-validation.v1",
+  "collectedAt": "2026-09-18T18:06:25.664Z",
+  "candidateSha": "62529d67de0bf3456c2712bb7c815a07977adced",
+  "workingTree": {
+    "state": "dirty",
+    "dirty": true,
+    "statusDigest": "7141cc8424ba6be071b30d058553df19a006cbb414d62fc416dd65b06d13a079"
+  },
+  "runtime": {
+    "node": "v26.5.0",
+    "npm": "11.17.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "kernel": "25.6.0"
+  },
+  "probes": {
+    "chrome": true,
+    "docker": true
+  },
+  "steps": [
+    {
+      "id": "source-check",
+      "title": "Source typecheck, build, tests, and docs",
+      "command": {
+        "executable": "npm",
+        "args": [
+          "run",
+          "check"
+        ]
+      },
+      "status": "passed",
+      "exitCode": 0,
+      "startedAt": "2026-09-18T18:04:49.787Z",
+      "finishedAt": "2026-09-18T18:05:34.640Z",
+      "stdoutDigest": "8166db83316d4e211b1cfbde87fb92ebae245f5f497504f9deb12ee4a3a1dbbe",
+      "stderrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "browser-e2e",
+      "title": "Production browser flow",
+      "command": {
+        "executable": "npm",
+        "args": [
+          "run",
+          "test:e2e"
+        ]
+      },
+      "status": "failed",
+      "exitCode": 1,
+      "startedAt": "2026-09-18T18:05:34.640Z",
+      "finishedAt": "2026-09-18T18:06:09.528Z",
+      "stdoutDigest": "15d34752aaa50c67dd722063e9febdb0c49d324ea516ab257721ff6eec109633",
+      "stderrDigest": "311f3804452e08e84d42da99db33c9a2f8bc0f797aba5cfd3f6040929cfbc58f",
+      "errorCode": "EXIT_1"
+    },
+    {
+      "id": "package-smoke",
+      "title": "Isolated package smoke test",
+      "command": {
+        "executable": "npm",
+        "args": [
+          "run",
+          "test:package"
+        ]
+      },
+      "status": "failed",
+      "exitCode": 1,
+      "startedAt": "2026-09-18T18:06:09.528Z",
+      "finishedAt": "2026-09-18T18:06:25.174Z",
+      "stdoutDigest": "be48a7b5ab5a8b7d2606e69078816f9e7d41aaae601fa5f265e2e99b10399606",
+      "stderrDigest": "273d986b150a7c82e2ce92afb8a8f3d1f486a00ce10b322468f563426f9ed820",
+      "errorCode": "EXIT_1"
+    },
+    {
+      "id": "linux-container",
+      "title": "Linux Node 24 container check",
+      "command": {
+        "executable": "docker",
+        "args": [
+          "run",
+          "--rm",
+          "-v",
+          "<workspace>:/work:ro",
+          "-w",
+          "/work",
+          "node:24-bookworm",
+          "npm",
+          "run",
+          "check"
+        ]
+      },
+      "status": "failed",
+      "exitCode": 254,
+      "startedAt": "2026-09-18T18:06:25.174Z",
+      "finishedAt": "2026-09-18T18:06:25.664Z",
+      "stdoutDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrDigest": "420441f0f478078b2321d40237867c14a48b92f46ee6ca7893c5690a3ac8ebda",
+      "errorCode": "EXIT_254"
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 3,
+    "skipped": 0,
+    "status": "failed"
+  }
+}

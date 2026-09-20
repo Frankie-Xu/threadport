@@ -93,7 +93,7 @@ await expect(confirmHandoff({
 
 ## 4. 性能与资源预算
 
-这些是首版工程目标，尚未测得；T16 创建确定性数据生成器与 benchmark，并保存机器信息、数据规模、5 次冷启动和 100 次查询的结果。
+下表是固定工程门槛。T16 已实现数据生成器与 benchmark；已有三轮搜索测量均未证明达标，见 [原始性能记录](../verification/performance-beta.md)。需继续保存机器信息、数据规模、5 次冷启动和 100 次查询结果。
 
 参考机：macOS arm64 / Ubuntu x64，至少 4 核、8 GiB 内存、SSD，Node 24；报告实际 CPU/内存/OS，不把不同机器数字当可直接比较。
 
@@ -133,16 +133,17 @@ CI 不以共享 runner 的毫秒级浮动阻断普通 PR；容量超限、无界
 
 | 脚本 | 定义 | 执行时点 |
 | --- | --- | --- |
-| `npm run check` | format:check + lint + typecheck + core/web build + Vitest 单元/集成 + docs links | 每个 PR |
-| `npm run test:e2e` | Playwright 合成数据浏览器核心流程 | 涉及 UI/API/完整闭环的 PR，RC 必跑 |
-| `npm run test:package` | pack → 临时目录安装 → CLI/UI assets/库导入 smoke | 包配置、原生依赖变更；每个 RC |
+| `npm run check` | typecheck + core/web build + Vitest 单元/集成 + docs links；当前未配置独立 format/lint 脚本 | 每个 PR |
+| `npm run test:e2e` | core/web build + E2E 类型编译 + Playwright 合成浏览器核心流程 | 涉及 UI/API/完整闭环的 PR，RC 必跑 |
+| `npm run test:package` | pack → 隔离安装 → CLI/公开类型/原生 SQLite → 安装后真实浏览器编辑、刷新持久化与 loopback 断言 | 包配置、原生依赖变更；每个 RC |
+| `npm run check:pack` | 同一安装流程的无浏览器检查 | 兼容 smoke；不能替代 RC 浏览器验证 |
 | `npm run bench` | 固定合成容量数据集、输出 JSON 结果 | beta 和 RC；性能敏感变更 |
 
 CI required check 继续保留名为 `check` 的汇总 job，依赖所有必须 job，任一失败/取消不允许汇总成功。Node24 Ubuntu 核心测试每 PR；macOS arm64 Ubuntu x64 的发布 tarball smoke 每 RC；Windows 旧 CLI 回归单独列明，未认证新 UI/runner 不扩大宣传。行动前核实 GitHub runner 架构，不能把 Intel macOS CI 当 arm64 认证。
 
-浏览器 Playwright Chromium 自动化；Safari/WebKit 的 UI 基本流程 RC 补测，不声明所有浏览器版本。单元测试收集仅 `tests/**/*.test.ts`，排除 `tests/e2e/**`、dist、node_modules；Playwright 使用 `.spec.ts`。不要因构建输出让测试运行两遍。
+浏览器 Playwright Chromium 自动化；本机可用 `THREADPORT_TEST_CHROME=1` 选择系统 Chrome。缺少浏览器是环境缺口，断言失败是产品/测试失败，两者分别记录，不跳过后宣称通过。Safari/WebKit 的 UI 基本流程 RC 补测，不声明所有浏览器版本。单元测试收集仅 `tests/**/*.test.ts`，排除 `tests/e2e/**`、dist、node_modules；Playwright 使用 `.spec.ts`。不要因构建输出让测试运行两遍。
 
-覆盖率不作为唯一门槛。新纯领域模块目标分支覆盖 ≥85%，索引幂等、revision 冲突、确认失效、迁移恢复的命名场景必须存在；没有行为价值的快照、常量 getter、简单样式无需为凑百分比加测试。
+覆盖率不作为唯一门槛。`npm run test:coverage` 使用 V8 对 `src/**/*.ts` 进行插桩，并执行仓库基线：行、语句、函数覆盖率至少 70%，分支覆盖率至少 60%。新纯领域模块目标分支覆盖 ≥85%，索引幂等、revision 冲突、确认失效、迁移恢复的命名场景必须存在；没有行为价值的快照、常量 getter、简单样式无需为凑百分比加测试。
 
 ## 7. RC 审查记录模板
 

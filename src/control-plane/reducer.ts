@@ -124,7 +124,3 @@ export function rebuildControlState(events: Iterable<ControlEvent>): ControlStat
   state.attention.sort((a,b) => a.id.localeCompare(b.id));
   eventLogs.set(state, [...unique.values()]); return state;
 }
-
-
-
-

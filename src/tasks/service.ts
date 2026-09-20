@@ -6,7 +6,7 @@ import type { SqliteStore } from '../storage/sqlite-store.js';
 import { createTaskSchema, previewTaskPatch, taskId as idSchema, taskRevision, validateTaskInput, type CreateTaskInput, type TaskPatch } from './contracts.js';
 export { previewTaskPatch } from './contracts.js';
 export type { TaskPatch, CreateTaskInput } from './contracts.js';
-export type TaskPort=Pick<SqliteStore,'listTasks'|'getTask'|'saveTask'|'sessionIds'|'readTaskContext'>;
+export type TaskPort=Pick<SqliteStore,'listTasks'|'getTask'|'saveTask'|'sessionIds'|'readTaskContext'|'assertionStore'>;
 /** User mutations only; indexing cannot call this service implicitly. */
 export class TaskService {
   constructor(private readonly store:TaskPort){}
@@ -40,7 +40,7 @@ export class TaskService {
   async detail(id:string){
     validateTaskInput(idSchema,id);const context=this.store.readTaskContext(id);const derived=deriveTask(context.events);
     if(context.newActivity)derived.attention.push('ACTIVITY_AFTER_COMPLETION');
-    return {task:context.task,sessionIds:context.sessionIds,derived,resolved:resolveTaskState(context.task,derived)};
+    return {assertions:this.store.assertionStore().view(id),task:context.task,sessionIds:context.sessionIds,derived,resolved:resolveTaskState(context.task,derived)};
   }
   private current(id:string,revision:number):Task{
     validateTaskInput(idSchema,id);validateTaskInput(taskRevision,revision);

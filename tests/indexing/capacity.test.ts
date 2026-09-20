@@ -118,4 +118,6 @@ it("cancels after the current bounded batch, starts no further reads and resumes
   expect(readsAtCancel).toBeLessThan(200);
   expect((await index.refresh("source")).state).toBe("completed");
   expect(store.listEvents(session.id, 1000)).toHaveLength(1000);
-}, 30000);
+// This timeout includes fixture setup and resuming all 1,000 events on Windows
+// shared runners. The cancellation response budget remains the 2,000ms assertion.
+}, process.platform === 'win32' ? 60000 : 30000);

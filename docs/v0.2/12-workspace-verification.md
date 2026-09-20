@@ -1,6 +1,6 @@
 # 当前工作区快照
 
-T10-A 提供捕获和持久化 SDK。比较报告与 verify CLI 分别属于 T10-B/T10-C，本页不把它们标为已实现。
+已提供捕获/持久化、比较 SDK 和 verify CLI。2026-09-16 R04 引入版本化读取边界，见 [ADR 0012](../adr/0012-workspace-reading-policy.md)。
 
 ```js
 import { openStore } from 'threadport/storage';
@@ -22,25 +22,25 @@ try {
 
 ## 范围与预算
 
-每份快照包含应用生成 id、workspaceId、当前捕获开始时间 capturedAt、HEAD、digest、bindingDigest、algorithm、scope、incompleteReasons。算法 `threadport.workspace.raw.v1`，scope 为 `head-tracked-diff-untracked`；与旧 Capsule dirty_diff_hash 不能混用。bindingDigest 对绑定的 project/workspace ID、canonical root、Git dir/common dir 与目录设备/inode 做摘要，供后续比较区分身份；不输出原始私有路径。
+每份快照包含应用生成 id、workspaceId、当前捕获开始时间 capturedAt、HEAD、digest、bindingDigest、algorithm、policy、scope、omissions、incompleteReasons。新算法 `threadport.workspace.raw.v2`，策略 `threadport.workspace.scope.v1`，scope 为 `head-tracked-diff-untracked`；与旧 Capsule dirty_diff_hash 不能混用。bindingDigest 对绑定的 project/workspace ID、canonical root、Git dir/common dir 与目录设备/inode 做摘要，供后续比较区分身份；不输出原始私有路径。
 
-实现读取 HEAD commit、完整 index 清单（含 mode/object ID/stage）、tracked 工作树文件原始内容/可执行位、未忽略 untracked 路径/内容与删除状态。通过这些信息覆盖 HEAD、暂存区和工作树差异；不依赖 Git patch 展示参数。为防止文件过滤器执行，不调用 git diff/status，不做内容规范化。Git 原生清单配合文件元数据提供状态复查。因此 CRLF 等原始字节改变也改变摘要，不能把它当作 Git clean-filter 规范化摘要。
+实现读取 HEAD commit、完整 index 清单（含 mode/object ID/stage）、tracked 工作树文件原始内容/可执行位、未忽略 untracked 路径/内容与删除状态。通过这些信息覆盖 HEAD、暂存区和工作树差异；不依赖 Git patch 展示参数。为防止文件过滤器执行，不调用 git diff/status，不做内容规范化。Git 原生清单配合文件元数据提供状态复查。因此 CRLF 等原始字节改变也改变摘要，不能把它当作 Git clean-filter 规范化摘要。每个路径组件先用 `lstat()` 保留符号链接本身，再用 `realpath()` 判定边界；Windows junction 与 POSIX 目录 symlink 的越界后代统一返回 `SYMLINK_OUTSIDE`，内部祖先链接返回 `SYMLINK_UNSUPPORTED`，不会打开链接目标。
 
-默认最多 10000 路径、合计 64 MiB 工作树内容（tracked + untracked）。limits.maxFiles/maxBytes 只能调低，不能绕过上限。Git 命令每次输出最多 1 MiB、最多 5 秒；单次捕获包括重试共享 30 秒期限。内容以 64 KiB 缓冲区读取，不保存源码、patch 或文件内容副本。忽略文件、Git 内部对象内容、目录权限/ACL、业务正确性不在比较范围；submodule、symlink 和非常规文件不能完整捕获，返回 READ_FAILED，不下钻其内容。
+默认最多 10000 路径、合计 64 MiB 工作树内容（tracked + untracked）。limits.maxFiles/maxBytes 只能调低，不能绕过上限。Git 命令每次输出最多 1 MiB、最多 5 秒；单次捕获包括重试共享 30 秒期限。内容以 64 KiB 缓冲区读取，不保存源码、patch 或文件内容副本。忽略文件、Git 内部对象内容、目录权限/ACL、业务正确性不在比较范围；submodule 返回 SUBMODULE_UNSUPPORTED；内部叶子 symlink 只读取链接文本，外部目标返回 SYMLINK_OUTSIDE，链式链接拒绝；非常规文件返回 READ_FAILED。敏感路径在打开前被排除并返回 SENSITIVE_EXCLUDED，ignored 条目计数可见。
 
 ## 完整性和失败
 
 捕获前后复查 HEAD、index、untracked 清单和目录身份；每个文件检查打开前/后与最终审计的 device/inode/mode/size/mtime/ctime。发现变化最多重试一次，第二次仍变化为 RACED。预先或读取中取消会拒绝 Promise，SnapshotService 不保存取消的结果；期限或容量超限为 LIMIT_EXCEEDED。
 
-原因包括 WORKSPACE_UNBOUND、SOURCE_MISSING、READ_FAILED、LIMIT_EXCEEDED、RACED、NO_GIT、NO_COMMIT。不完整结果 digest 为 null，未完成的 head/bindingDigest 保守为 null；原因不附带原始文件错误或机器路径。这里只返回捕获结果，不产生 matched/drifted 验证结论。
+原因包括 WORKSPACE_UNBOUND、SOURCE_MISSING、READ_FAILED、LIMIT_EXCEEDED、RACED、NO_GIT、NO_COMMIT、SENSITIVE_EXCLUDED、SUBMODULE_UNSUPPORTED、PATH_ENCODING_UNSUPPORTED、SYMLINK_OUTSIDE、SYMLINK_UNSUPPORTED。不完整结果 digest 为 null，未完成的 head/bindingDigest 保守为 null；原因不附带原始文件错误或机器路径。这里只返回捕获结果，不产生 matched/drifted 验证结论。
 
-Git 使用固定只读子命令，移除继承的 GIT_* 重定向，关闭 fsmonitor、可选锁、提示与 lazy fetch；不执行 hooks、diff/textconv/clean/process 过滤器。工作树路径检查禁止已检测到的符号链接及祖先越界，打开时使用平台可用的 O_NOFOLLOW，并复核身份。这是尽力一致性读取，不是文件系统原子快照或抵御任意恶意路径竞态的操作系统隔离；不能声称捕获后文件不会继续变化。已知未完整范围从不生成可用摘要。
+Git 使用固定只读子命令，移除继承的 GIT_* 重定向，关闭 fsmonitor、可选锁、提示与 lazy fetch；不执行 hooks、diff/textconv/clean/process 过滤器。工作树路径检查禁止符号链接祖先及链接越界，打开时使用平台可用的 O_NOFOLLOW，并复核身份。这是尽力一致性读取，不是文件系统原子快照或抵御任意恶意路径竞态的操作系统隔离；不能声称捕获后文件不会继续变化。已知未完整范围从不生成可用摘要。
 
 ## 持久化、兼容与回滚
 
 `getWorkspace(id)` 返回绑定或 null；`saveSnapshot(snapshot, expectedWorkspace?)` 校验 JSON、工作区外键与可选绑定，已存在相同记录可重复保存，不同内容禁止覆盖同一 ID；`getSnapshot(id)` 返回校验后的快照或 null。
 
-沿用已有 snapshots 表，数据库仍为 schema 4，无迁移。当前快照不会补写历史 CommandRun.snapshotId，不会把旧测试认证为当前有效。旧 readGitState、Capsule v1 和 CLI 行为保持原状。
+快照沿用已有 snapshots 表；R03 已将当前数据库升级为 schema 5。R04 本身不增加迁移。当前快照不会补写历史 CommandRun.snapshotId，不会把旧测试认证为当前有效。旧 readGitState、Capsule v1 和 CLI 行为保持原状。
 
 本包的文件、实际测试及回滚关系见 [T10-A 验收](../verification/t10-a-snapshot.md)。消费者未合并时可单独 revert 本包，快照数据保留；消费者出现后先处理依赖，不降级数据库。比较及 CLI 的后续工作见 [T10 包计划](../superpowers/plans/2026-09-14-t10-work-packages.md)。
 
@@ -49,7 +49,8 @@ Git 使用固定只读子命令，移除继承的 GIT_* 重定向，关闭 fsmon
 `import { verifyWorkspace } from 'threadport/workspace'`；调用 `await verifyWorkspace(snapshot, binding, options?)`。binding 是人工登记的 WorkspaceBinding（或 null），options 沿用捕获的预算与取消信号。读取当前状态不保存新快照，也不修改传入快照。
 
 - 完整历史快照与当前捕获的 workspaceId、物理绑定身份一致，且 HEAD、指纹相同才返回 `matched`。
-- 完整且绑定一致时，HEAD 不同返回 `drifted / HEAD_CHANGED`；同 HEAD 指纹不同返回 `drifted / CONTENT_CHANGED`。raw.v1 指纹包含 HEAD，因此 HEAD 变化时不能单凭它断言文件也变了。
+- 完整且绑定一致时，HEAD 不同返回 `drifted / HEAD_CHANGED`；同 HEAD 指纹不同返回 `drifted / CONTENT_CHANGED`。raw.v1/raw.v2 指纹包含 HEAD，因此 HEAD 变化时不能单凭它断言文件也变了。
+- algorithm 或 policy 不同返回 `unverifiable / SCOPE_CHANGED`，旧记录保持可读但不能直接匹配新快照。
 - 任一捕获不完整、未绑定、ID/项目/物理根或 worktree 身份不符返回 `unverifiable`。缺失、失读、超限、持续并发变化分别保留安全原因；不完整性优先于差异判断。
 
 报告包含原 snapshotId、workspaceId、verifiedAt、scope 和去重原因。当前聚合指纹无法定位单个变化文件，因此不编造 path 或输出本地绝对路径、底层异常。`matched` 只证明已声明范围的本次比较，不证明业务正确或历史测试仍有效；沿用 A 的 best-effort 读取限制。
@@ -86,8 +87,8 @@ capsule.evidence.push({
 await writeFile(outputOutsideWorkspace, serializeCapsule(capsule));
 ```
 
-读取本地保存的绑定后，CLI 核对 `--project` 的真实路径，再调用 B；不会使用 Capsule 中的 `.` 或旧机器路径猜测绑定。CLI 以 SQLite readonly/fileMustExist 打开已有 schema 4，不建库、不迁移、不保存新快照；数据库损坏或版本不兼容返回 5，请用兼容版本处理。SQLite 可能维护自身 WAL 共享内存文件，因此应用数据目录应独立于被验证仓库。
+读取本地保存的绑定后，CLI 核对 `--project` 的真实路径，再调用 B；不会使用 Capsule 中的 `.` 或旧机器路径猜测绑定。CLI 以 SQLite readonly/fileMustExist 打开已有当前 schema 5，不建库、不迁移、不保存新快照；数据库损坏或版本不兼容返回 5，请用兼容版本处理。SQLite 可能维护自身 WAL 共享内存文件，因此应用数据目录应独立于被验证仓库。
 
 没有引用、数据库不存在或引用记录不存在时返回 unverifiable；报告 snapshotId 可为 null，workspaceId/scope 为 null，表示没有可声明的范围。不能用虚构 ID 或完整范围填空。已有快照时报告遵循 B；未绑定、根目录不符、移动/失读等不会返回 matched；捕获结束再检查绑定是否变更。
 
-回滚 C：确认后续消费者后，通过 PR revert C 的 squash 提交；保留 A/B SDK、schema 4、快照、绑定和既有 Capsule evidence 数据。旧版本会把该 evidence 当普通证据，不会自动执行它。撤销公开 verify 命令是回滚的用户可见变化。
+回滚 C：确认后续消费者后，通过 PR revert C 的 squash 提交；保留 A/B SDK、当前 schema、快照、绑定和既有 Capsule evidence 数据。旧版本会把该 evidence 当普通证据，不会自动执行它。撤销公开 verify 命令是回滚的用户可见变化。

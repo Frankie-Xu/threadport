@@ -7,3 +7,7 @@ coverage/
 .env.*
 !.env.example
 
+.firecrawl/
+
+# Generated local validation and package artifacts
+/output/

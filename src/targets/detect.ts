@@ -8,7 +8,7 @@ export interface ProbeOptions extends TargetDetectionOptions {probe?:(executable
 export interface Inspection {executable:string|null;installed:boolean;version:string|null;help:string;extraHelp:string;reason:string|null}
 const probe=async(executable:string,args:string[])=> (await execute(executable,args,{shell:false,encoding:'utf8',timeout:5000,maxBuffer:256*1024,windowsHide:true})).stdout;
 /** Fixed read-only arguments. Discovery/probing never implies login or a successful continuation. */
-export async function inspect(agent:TargetAgent,versionPattern:RegExp,acceptedVersion:string,options:ProbeOptions,extraHelpArgs?:string[]):Promise<Inspection>{
+export async function inspect(agent:TargetAgent,versionPattern:RegExp,acceptedVersions:string|readonly string[],options:ProbeOptions,extraHelpArgs?:string[]):Promise<Inspection>{
  const detected=(await detectTargets(options)).find(target=>target.agent===agent)!;
  const base:Inspection={executable:detected.executable??null,installed:detected.available,version:null,help:'',extraHelp:'',reason:detected.reason};
  if(!detected.executable)return base;
@@ -17,7 +17,8 @@ export async function inspect(agent:TargetAgent,versionPattern:RegExp,acceptedVe
  try{
   const candidate=versionPattern.exec((await run(detected.executable,['--version'])).trim())?.[1]??null;
   const version=candidate&&candidate.length<=80&&publicText(candidate)===candidate?candidate:null;
-  if(version!==acceptedVersion)return {...base,version,reason:'unverified_version'};
+  const accepted=typeof acceptedVersions==='string'?[acceptedVersions]:acceptedVersions;
+  if(!version||!accepted.includes(version))return {...base,version,reason:'unverified_version'};
   const [help,extraHelp]=await Promise.all([run(detected.executable,['--help']),extraHelpArgs?run(detected.executable,extraHelpArgs):Promise.resolve('')]);
   return {...base,version,help,extraHelp,reason:null};
  }catch{return {...base,reason:'probe_failed'};}

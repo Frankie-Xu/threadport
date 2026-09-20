@@ -8,7 +8,7 @@ import {
   reconnectClient,
   dateLabel,
 } from "./api.js";
-import { ErrorNotice, useAction } from "./components.js";
+import { ErrorNotice, Modal, useAction } from "./components.js";
 import { WorkspaceForm } from "./features/onboarding/workspace.js";
 import { Settings } from "./features/settings/settings.js";
 import { CreateTask } from "./features/inbox/create-task.js";
@@ -24,6 +24,7 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
     [search, setSearchInput] = useState(params.get("q") ?? ""),
     searchRef = useRef<HTMLInputElement>(null);
   const [link, setLink] = useState("");
+  const [expired, setExpired] = useState(false);
   const reconnect = useAction();
   useEffect(() => {
     const pop = () => setSearch(location.search);
@@ -47,7 +48,7 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
   useEffect(() => {
     if (api)
       api.onExpired = () =>
-        setApi((current) => (current === api ? null : current));
+        setExpired(true);
     return () => {
       if (api) api.onExpired = undefined;
     };
@@ -60,14 +61,13 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
     history.pushState(null, "", "/?" + next);
     setSearch(location.search);
   };
-  if (!api)
-    return (
+  const reconnectForm = (
       <main className="reconnect">
         <p className="eyebrow">THREADPORT · LOCAL</p>
         <h1>Reconnect to your terminal</h1>
         <p>
           Paste the link printed by your running ThreadPort service. Your tasks
-          and search filters are preserved.
+          and search filters are preserved. Unsaved edits stay open while you reconnect.
         </p>
         <form
           onSubmit={(e) => {
@@ -75,7 +75,7 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
             void reconnect.run(async () => {
               const client = reconnectClient(link);
               setLink("");
-              if (client) setApi(client);
+              if (client) { setApi(client); setExpired(false); }
             });
           }}
         >
@@ -94,7 +94,10 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
         </form>
       </main>
     );
+  if (!api) return reconnectForm;
   return (
+    <>
+    {expired && <Modal title="Reconnect to your terminal" onClose={() => { setExpired(false); return true; }}>{reconnectForm}</Modal>}
     <Shell
       api={api}
       params={params}
@@ -107,6 +110,7 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
       setSearchInput={setSearchInput}
       searchRef={searchRef}
     />
+    </>
   );
 }
 function Shell({

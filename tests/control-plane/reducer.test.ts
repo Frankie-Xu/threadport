@@ -56,4 +56,3 @@ describe('control plane reducer', () => {
   expect(rebuildControlState([confirmed, report]).responsibilities[0]).toMatchObject({ status: 'confirmed', roles: { executor: 's1' } });
  });
 });
-

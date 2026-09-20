@@ -1,0 +1,39 @@
+{
+  "schema": "threadport.local-environment.v1",
+  "collectedAt": "2026-09-18T16:51:59.157Z",
+  "candidateSha": "c08e61f8add9ce2e9e7b4712272cfe62728fc56d",
+  "runtime": {
+    "node": "v24.18.1",
+    "npm": "11.16.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "kernel": "25.6.0"
+  },
+  "tools": {
+    "docker": {
+      "available": true,
+      "version": "Docker version 29.6.2, build dfc4efb1e2",
+      "server": "29.5.2 linux/aarch64"
+    },
+    "codex": {
+      "available": true,
+      "version": "codex-cli 0.155.0-alpha.9"
+    },
+    "claude": {
+      "available": false,
+      "version": null
+    }
+  },
+  "localChecks": {
+    "source": "npm run check",
+    "browser": "THREADPORT_TEST_CHROME=1 npm run test:e2e",
+    "package": "THREADPORT_TEST_CHROME=1 npm run test:package",
+    "linuxContainer": "git archive HEAD | docker run --rm -i -w /work node:24-bookworm bash -lc \"tar -x && npm ci && npm run check\""
+  },
+  "externalOnly": [
+    "windows-node24-ci",
+    "real-agent-continuation",
+    "original-36-scenario-attachment",
+    "external-user-observation"
+  ]
+}

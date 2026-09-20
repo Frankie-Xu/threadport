@@ -35,3 +35,7 @@ await restoreBackup('/old-data/backups/v1-example/backup.sqlite', '/new-recovery
 ```
 
 restoreBackup 检查备份完整性，只创建不存在的 threadport.sqlite；已有文件拒绝覆盖。确认新目录数据后，通过 openStore 的 dataDir 显式切换。不要在服务运行中替换原库，不要仅复制运行库主文件而忽略 WAL。旧包不认识新 user_version 时应使用兼容包，或恢复到新的旧版本目录。恢复函数不自动停止服务或切换配置。
+
+## 2026-09-16 增量
+
+当前统一 schema 为 10：保留主线 005 控制平面与 006 会话搜索投影，007 增加工作区运行占用/恢复，008 增加决定修订，009 保存执行观测，010 清理本地旧搜索缓存。本地历史 v5–v9 与主线 v5/v6 曾复用版本号，升级先识别实际 schema，再创建备份并在单事务中补齐缺失功能；未知或混合结构拒绝升级，保留原库。已有事件、人工任务与证据不会因清理派生缓存而删除。旧程序不能打开新 schema，回退须恢复对应升级前备份，不能手工降低版本号。详见 [统一升级与验收记录](../verification/unified-main-refactor-2026-09-20.md)。

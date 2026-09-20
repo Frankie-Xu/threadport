@@ -1,5 +1,7 @@
 # T18 真实 Agent 矩阵：HOLD
 
+**证据时效：** 下方 CLI 接口与真实接续记录属于各自记录的旧安装包/版本，不认证后续运行时修复。当前提交、自动回归和待验收边界见 [整改状态](remediation-progress-2026-09-16.md)。
+
 这不是全矩阵认证通过报告。2026-09-15 已通过实际安装包运行 macOS Codex→Codex 的三个隔离任务；第一次绝对命令路径脱敏导致 exit127，Agent回退后完成，后续用例使用可移植命令。其余21格未运行。当前 Codex 0.154.0-alpha.6.2 已登录；本机 Claude 不在 PATH，先前临时安装已不存在；Docker 服务未运行，尚无 Ubuntu 真实 Agent 条件。
 
 每格需记录最终候选 SHA、安装包 SHA-256、OS/Node/Agent 版本、native-resume 或 new-session 模式、正确工作目录、完整人工约束、预设下一步的实际产物和用户确认。一次 exit 0 不能视作任务成功。首次失败保留，再按所属模块修复并记录重测。只保存匿名元数据，不提交原始私人日志。
@@ -40,3 +42,7 @@
 第一场景的绝对 Node 命令被预览脱敏为 external 引用，首次运行 exit127；Agent用 node 回退成功，独立 Node24 重跑成功。这项准备问题明确保留，不能写为首次零失败；后两场景在确认前改为可移植命令。Agent登录shell可使用其配置的Node，ThreadPort运行时与最终独立复核均为Node24。
 
 没有新增 bypass 参数或修改全局权限；继承当前账号配置，仅对本次自行创建、已核验的三个 fixture 目录接受信任提示。真实源索引仍报告 partial/unknown 事件，未宣称完整解析该版本所有事件。没有提交原始日志、会话UUID、临时私人路径或认证材料。此为开发代理观察，外部用户验证排除；Claude/cross-Agent/Ubuntu仍需真实环境，矩阵总门槛 HOLD。
+
+## 2026-09-19 当前 Codex 接口探测
+
+在候选工作树上对本机 `codex-cli 0.155.0-alpha.9` 仅执行 `--version`、`--help` 和 `resume --help`。帮助文本匹配 `--cd <DIR>`、`resume [SESSION_ID] [PROMPT]`，因此运行时能力探测返回 `installed=true`、`newSessionWithContext=true`、`nativeResume=true`、`auth=unknown`。这更新了可探测的接口版本白名单，但没有运行真实会话，也没有把任意 exit 0 或帮助匹配写成接续通过；24 格矩阵和真实 Codex 证据状态保持 HOLD。

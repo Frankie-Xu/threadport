@@ -53,7 +53,7 @@ export function normalizeBlock(input:{block:RecordValue;row:RecordValue;role:'us
   // Missing, null, or malformed exits remain unknown; only explicit observed integers count.
   let exitCode=typeof explicit==='number'&&Number.isSafeInteger(explicit)?explicit:null;
   if(block.is_error===true){warnings.add('TOOL_REPORTED_ERROR');if(exitCode===0){exitCode=null;warnings.add('CONFLICTING_COMMAND_RESULT');}}
-  return {...base,kind:'command',...text,commandRun:{...call,sessionId,ordinal,exitCode,completedAt:base.occurredAt,eventId:base.id,snapshotId:null}};
+   return {...base,kind:'command',...text,commandRun:{...call,sessionId,ordinal,exitCode,completedAt:base.occurredAt,eventId:base.id,snapshotId:null}};
  }
  warnings.add('UNKNOWN_BLOCK');return null;
 }

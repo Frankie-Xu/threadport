@@ -9,4 +9,3 @@ export function abandonedChildFixture():ControlEvent[]{return [event('lineage.re
 export function stopUnavailableFixture():ControlEvent[]{return [event('attention.opened',{kind:'stop-unavailable',severity:'warning',message:'No reliable stop control is available.'})];}
 export function forgedReceiptFixture():ControlEvent[]{return [event('receipt.confirmed',{receipt:{receiptId:'receipt-forged',handoffId:'h1',targetSessionId:'wrong',targetRunId:'wrong',manifestDigest:'b'.repeat(64),stage:'verified-complete',nonce:'forged-nonce-1234',expiresAt:'2026-09-21T00:00:00.000Z'}},{source:{kind:'agent-report',sourceId:'fixture',parserVersion:'fixture-v1',coverage:'partial'}})];}
 export const controlPlaneFixtures={normalThreeSession:normalThreeSessionFixture,targetNotStarted:targetNotStartedFixture,lateDuplicate:lateDuplicateFixture,changedFile:changedFileFixture,abandonedChild:abandonedChildFixture,stopUnavailable:stopUnavailableFixture,forgedReceipt:forgedReceiptFixture};
-

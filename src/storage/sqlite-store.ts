@@ -1,3 +1,5 @@
+import { ObservationStore } from './observation-store.js';
+import { AssertionStore } from './assertion-store.js';
 import {deleteOwnedData} from './delete-data.js';
 import type Database from 'better-sqlite3';
 import { z } from 'zod';
@@ -13,11 +15,10 @@ import { HandoffStore } from './handoff-store.js';
 import { MaintenanceStore } from './maintenance.js';
 import { BusinessStore } from './api-store.js';
 import { ControlPlaneStore } from './control-plane-store.js';
-const id = z.string().min(1).max(512);
-const date = z.string().datetime();
-const claim = z.object({ text: z.string(), origin: z.enum(['observed', 'user-confirmed', 'derived', 'unknown']), evidence: z.array(z.object({ sessionId: id, eventId: id }).strict()), updatedAt: date.nullable() }).strict();
-const taskSchema = z.object({ id, projectId: id, revision: z.number().int().positive().safe(), title: z.string().min(1), objective: claim, constraints: z.array(claim), nextAction: claim, lifecycle: z.enum(['active', 'paused', 'completed']), archived: z.boolean(), createdAt: date, updatedAt: date }).strict();
-const taskWriteSchema = taskSchema.extend({ title: z.string().min(1).max(120).refine(value => value.trim().length > 0), objective: claim.extend({ text: z.string().max(8000) }), constraints: z.array(claim.extend({ text: z.string().max(2000) })).max(50), nextAction: claim.extend({ text: z.string().max(4000) }) });
+import { innerObservationSchema, type InnerAgentObservation } from '../evidence/observations.js';
+import { idSchema } from '../contracts/identifiers.js';
+import { taskSchema, taskWriteSchema } from '../contracts/task.js';
+const id = idSchema;
 function validate<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value); if (!parsed.success) throw new DomainError('INVALID_INPUT', 'Invalid storage input.'); return parsed.data;
 }
@@ -27,6 +28,8 @@ function page(limit: number, offset: number) {
 /** Infrastructure boundary. Callers supply already redacted task fields; Store validates shape and atomicity. */
 export class SqliteStore extends IndexStore {
   constructor(db:Database.Database){super(db);registerSearchFunctions(db);}
+  observationStore():ObservationStore{return new ObservationStore(this.db);}
+  assertionStore():AssertionStore{return new AssertionStore(this.db,this);}
   maintenance():MaintenanceStore{return new MaintenanceStore(this.db);}
   launchStore():LaunchStore{return new LaunchStore(this.db);}
   handoffStore():HandoffStore{return new HandoffStore(this.db);}
@@ -87,6 +90,33 @@ export class SqliteStore extends IndexStore {
   }
   getSessionBinding(sessionId: string): {id:string;projectId:string|null;workspaceId:string|null} | null {
     return this.run(() => this.db.prepare('SELECT id,project_id AS projectId,workspace_id AS workspaceId FROM sessions WHERE id=?').get(validate(id,sessionId)) as {id:string;projectId:string|null;workspaceId:string|null}|undefined ?? null);
+  }
+  saveInnerObservation(sessionId:string,eventId:string,kind:'command'|'test',input:InnerAgentObservation):NormalizedEvent {
+    const result=innerObservationSchema.parse(input);
+    if(result.eventId!==eventId||result.kind!==kind)throw new DomainError('INVALID_INPUT','Inner observation identity does not match the request.');
+    return this.run(()=>this.db.transaction(()=>{
+      const session=this.db.prepare('SELECT id,workspace_id AS workspaceId FROM sessions WHERE id=?').get(sessionId) as {id:string;workspaceId:string|null}|undefined;
+      if(!session)throw new DomainError('NOT_FOUND','Session does not exist.');
+      const id=`inner:${eventId}`;
+      let stored:InnerAgentObservation=result;
+      const snapshotIds=[result.workspace.beforeSnapshotId,result.workspace.afterSnapshotId].filter((value):value is string=>value!==null);
+      const foreign=snapshotIds.some(snapshotId=>{
+        const snapshot=this.db.prepare('SELECT workspace_id AS workspaceId FROM snapshots WHERE id=?').get(snapshotId) as {workspaceId:string}|undefined;
+        return !!snapshot && (session.workspaceId===null || snapshot.workspaceId!==session.workspaceId);
+      });
+      if(foreign)stored={...result,status:'unknown',exitCode:null,workspace:{...result.workspace,beforeSnapshotId:null,afterSnapshotId:null},environment:{...result.environment,digest:null,complete:false}};
+      const existing=this.db.prepare('SELECT session_id,body_json FROM events WHERE id=?').get(id) as {session_id:string;body_json:string}|undefined;
+      if(existing){
+        if(existing.session_id!==sessionId)throw new DomainError('INVALID_INPUT','Event belongs to another session.');
+        const body=JSON.parse(existing.body_json) as NormalizedEvent;
+        if(JSON.stringify(body.innerObservation)!==JSON.stringify(stored))throw new DomainError('INVALID_INPUT','Event already contains a different observation.');
+        return body;
+      }
+      const ordinal=this.db.prepare('SELECT coalesce(max(ordinal),-1)+1 FROM events WHERE session_id=?').pluck().get(sessionId) as number;
+      const event:NormalizedEvent={id,sessionId,ordinal,occurredAt:stored.completedAt??stored.startedAt,kind:kind,text:'Imported structured inner observation.',commandRun:null,relativePaths:[],omitted:false,innerObservation:stored};
+      this.db.prepare('INSERT INTO events(id,session_id,ordinal,body_json,search_text) VALUES(?,?,?,?,?)').run(event.id,event.sessionId,event.ordinal,JSON.stringify(event),event.text);
+      return event;
+    }).immediate());
   }
   listUnassignedSessions(limit=100,offset=0): {id:string;projectId:string|null;workspaceId:string|null}[] {
     page(limit,offset);

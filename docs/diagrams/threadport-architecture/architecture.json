@@ -1,0 +1,321 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "ThreadPort · 本地任务工作台架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1260,
+      725
+    ],
+    "repository": {
+      "url": "https://github.com/Frankie-Xu/threadport",
+      "revision": "7f57a7917130014870a478951e4b650f97f3dd41"
+    }
+  },
+  "components": [
+    {
+      "id": "allowed-logs",
+      "type": "external",
+      "label": "本地会话日志",
+      "sublabel": "显式配置 · 只读访问",
+      "pos": [
+        50,
+        70
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/sources/registry.ts"
+        }
+      ]
+    },
+    {
+      "id": "source-adapters",
+      "type": "backend",
+      "label": "Source adapters",
+      "sublabel": "Claude / Codex 解析与规范化",
+      "pos": [
+        370,
+        70
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/sources/jsonl-source.ts"
+        }
+      ]
+    },
+    {
+      "id": "incremental-index",
+      "type": "backend",
+      "label": "增量索引",
+      "sublabel": "分批提交 · 游标 · 取消",
+      "pos": [
+        690,
+        70
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/indexing/service.ts"
+        }
+      ]
+    },
+    {
+      "id": "local-store",
+      "type": "database",
+      "label": "SQLite Store",
+      "sublabel": "人工修订 / 事件 / 接续记录",
+      "pos": [
+        1010,
+        70
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/storage/sqlite-store.ts"
+        }
+      ]
+    },
+    {
+      "id": "browser-workbench",
+      "type": "frontend",
+      "label": "浏览器工作台",
+      "sublabel": "React · 收件箱 / 搜索 / 详情",
+      "pos": [
+        50,
+        320
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "web/src/app.tsx"
+        }
+      ]
+    },
+    {
+      "id": "loopback-api",
+      "type": "backend",
+      "label": "本地 HTTP API",
+      "sublabel": "Fastify · 127.0.0.1 · token",
+      "pos": [
+        370,
+        320
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/server/app.ts"
+        }
+      ]
+    },
+    {
+      "id": "application-cases",
+      "type": "backend",
+      "label": "应用用例",
+      "sublabel": "Task / Search / Handoff",
+      "pos": [
+        690,
+        320
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/handoff/prepare.ts"
+        }
+      ]
+    },
+    {
+      "id": "workspace-check",
+      "type": "backend",
+      "label": "工作区验证",
+      "sublabel": "只读 Git 快照 · 漂移检查",
+      "pos": [
+        1010,
+        320
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/workspace/verify.ts"
+        }
+      ]
+    },
+    {
+      "id": "terminal-cli",
+      "type": "frontend",
+      "label": "终端 CLI",
+      "sublabel": "continue · 全文复核与确认",
+      "pos": [
+        50,
+        570
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/cli-continue.ts"
+        }
+      ]
+    },
+    {
+      "id": "target-runner",
+      "type": "security",
+      "label": "Target runner",
+      "sublabel": "能力探测 · 唯一启动权",
+      "pos": [
+        370,
+        570
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/targets/launch.ts"
+        }
+      ]
+    },
+    {
+      "id": "destination-agent",
+      "type": "external",
+      "label": "Claude / Codex CLI",
+      "sublabel": "目的端权限与模型连接",
+      "pos": [
+        690,
+        570
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "src/targets/registry.ts"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "logs-to-source",
+      "from": "allowed-logs",
+      "to": "source-adapters",
+      "label": "读取"
+    },
+    {
+      "id": "source-to-index",
+      "from": "source-adapters",
+      "to": "incremental-index",
+      "label": "规范化事件"
+    },
+    {
+      "id": "index-to-store",
+      "from": "incremental-index",
+      "to": "local-store",
+      "label": "事务写入"
+    },
+    {
+      "id": "ui-to-api",
+      "from": "browser-workbench",
+      "to": "loopback-api",
+      "label": "Bearer API"
+    },
+    {
+      "id": "api-to-cases",
+      "from": "loopback-api",
+      "to": "application-cases",
+      "label": "调用"
+    },
+    {
+      "id": "cases-to-store",
+      "from": "application-cases",
+      "to": "local-store",
+      "label": "查询 / 保存"
+    },
+    {
+      "id": "cases-to-workspace",
+      "from": "application-cases",
+      "to": "workspace-check",
+      "label": "验证",
+      "labelDy": 28
+    },
+    {
+      "id": "ui-to-terminal",
+      "from": "browser-workbench",
+      "to": "terminal-cli",
+      "label": "用户复制命令",
+      "labelAt": [
+        145,
+        485
+      ]
+    },
+    {
+      "id": "cli-to-runner",
+      "from": "terminal-cli",
+      "to": "target-runner",
+      "label": "CONTINUE"
+    },
+    {
+      "id": "runner-to-agent",
+      "from": "target-runner",
+      "to": "destination-agent",
+      "label": "shell:false"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "本地读取与存储",
+      "items": [
+        "单 npm 包 · Node 24 · 模块化单体",
+        "只扫描已配置来源；人工修订独立保留"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "接续确认边界",
+      "items": [
+        "预览固定摘要、revision 与有效期",
+        "CLI 从同一 Store 复核后启动；日志命令仅作证据"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "导出与支持范围",
+      "items": [
+        "Capsule v1 + task-handoff.v1；显式原子导出",
+        "开发快照 0.2.0-dev.0；真实认证与性能仍有门槛"
+      ]
+    }
+  ]
+}

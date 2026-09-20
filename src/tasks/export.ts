@@ -50,6 +50,10 @@ export function exportTask(
         : ["No saved constraints."]),
       "",
       claim("Source objective suggestion", detail.derived.objective),
+      "## Decision and constraint ledger",
+      "Candidates are not instructions. Conflicting confirmations require explicit resolution.",
+      ...detail.assertions.entries.map(entry=>fence(`${entry.kind} / ${entry.topic} / ${entry.state} / ${entry.applicability} / source ${entry.sourceAvailability}\n${entry.text}`)),
+      ...detail.assertions.conflicts.map(conflict=>fence(`Unresolved topic: ${conflict.topic}; entries: ${conflict.ids.join(', ')}`)),
       "## Observed commands",
       "",
       ...runs.map(

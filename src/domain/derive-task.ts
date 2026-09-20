@@ -8,13 +8,14 @@ const timestamp = z.string().datetime().nullable();
 const ordinal = z.number().int().nonnegative().safe();
 const eventSchema: z.ZodType<NormalizedEvent> = z.object({
   id, sessionId: id, ordinal, occurredAt: timestamp,
-  kind: z.enum(['user-message', 'assistant-message', 'file-change', 'command']),
+  kind: z.enum(['user-message', 'assistant-message', 'file-change', 'command', 'test']),
   text: z.string(), relativePaths: z.array(z.string()), omitted: z.boolean(),
   commandRun: z.object({
     id, sessionId: id, ordinal, command: z.string().min(1), cwd: z.string().nullable(),
     exitCode: z.number().int().safe().nullable(), startedAt: timestamp, completedAt: timestamp,
     eventId: id, snapshotId: id.nullable(),
   }).strict().nullable(),
+  innerObservation: z.unknown().optional(),
 }).strict().refine(event => event.commandRun === null || (event.kind === 'command'
   && event.commandRun.eventId === event.id && event.commandRun.sessionId === event.sessionId
   && event.commandRun.ordinal === event.ordinal));
