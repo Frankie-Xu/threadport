@@ -93,3 +93,31 @@ it('never reassociates a reused ambiguous tool ID with a later successful result
  await writeFile(path,[...calls,{type:'user',sessionId:'synthetic',message:{content:[{type:'tool_result',tool_use_id:'duplicate',content:{output:'ok',exit_code:0}}]}}].map(x=>JSON.stringify(x)).join('\n')+'\n');
  const result=await collect(adapter,candidate);expect(result.events.some(e=>e.commandRun?.exitCode===0)).toBe(false);expect(result.page.warnings).toContain('DUPLICATE_TOOL_ID');
 });
+it('fills one bounded page across records and resumes a partial block with a fresh adapter',async()=>{
+ const {root,path,adapter,candidate}=await setup();
+ const prefix=user('prefix '+'x'.repeat(6000));
+ const blocks=JSON.stringify({type:'assistant',sessionId:'synthetic',message:{content:[{type:'text',text:'B'},{type:'text',text:'C'},{type:'text',text:'D'}]}})+'\n';
+ await writeFile(path,prefix+blocks+user('tail'));
+ const first=await adapter.read({candidate,cursor:null,maxEvents:3,signal:signal()});
+ expect(first.events.map(e=>e.text)).toEqual([expect.stringContaining('prefix'),'B','C']);
+ expect(first.cursor.byteOffset).toBe(Buffer.byteLength(prefix));expect(first.cursor.blockOffset).toBe(2);
+ const reopened=createClaudeSource({sourceId:'allowed',roots:[root]});
+ const rest=await collect(reopened,candidate,first.cursor,3);
+ expect(rest.events.map(e=>e.text)).toEqual(['D','tail']);expect(rest.page.warnings).not.toContain('SOURCE_RESET');
+ const single=await collect(adapter,candidate,null,1);
+ expect([...first.events,...rest.events]).toEqual(single.events);
+});
+it('retains the prior cursor and metadata when a later record fails during a batch',async()=>{
+ const {root,path,adapter,candidate}=await setup();await writeFile(path,user('before'));
+ const before=await collect(adapter,candidate);
+ await appendFile(path,JSON.stringify({type:'metadata',sessionId:'synthetic',version:'uncommitted'})+'\n'+user('fail'));
+ const {createJsonlSource}=await import('../../src/sources/jsonl-source.js');
+ const failing=createJsonlSource({sourceId:'allowed',roots:[root],agent:'claude',parserVersion:'claude-jsonl-v1',translate:row=>{
+  if(row.type==='user')throw Object.assign(new Error('synthetic read failure'),{code:'EIO'});return row;
+ }});
+ const failed=await failing.read({candidate,cursor:before.page.cursor,maxEvents:10,signal:signal()});
+ expect(failed.events).toEqual([]);expect(failed.session.status).toBe('error');expect(failed.cursor).toEqual(before.page.cursor);
+ expect(failed.session.formatVersion).toBe(before.page.session.formatVersion);expect(JSON.stringify(failed)).not.toContain('uncommitted');
+ const resumed=await collect(adapter,candidate,before.page.cursor);
+ expect(resumed.events.map(event=>event.text)).toEqual(['fail']);expect(resumed.page.session.formatVersion).toBe('uncommitted');
+});

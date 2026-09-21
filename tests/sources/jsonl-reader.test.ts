@@ -42,3 +42,22 @@ it('aborts an in-flight oversized-line scan without advancing the caller cursor'
  const reading=readJsonl({path,root,cursor:null,maxRecords:1,signal:controller.signal});
  setTimeout(()=>controller.abort(),0);await expect(reading).rejects.toMatchObject({name:'AbortError'});
 });
+it('checkpoints a consumer stop and revisit at the exact consumed boundary',async()=>{
+ const {root,path}=await file('a'.repeat(6000)+'\nsecond\nthird\n');
+ const first=await readJsonl({path,root,cursor:null,maxRecords:100,signal:signal(),consumeLine:line=>line.text==='second'?'revisit':'continue'});
+ expect(first.cursor.byteOffset).toBe(6001);expect(first.hasMore).toBe(true);
+ const second=await readJsonl({path,root,cursor:first.cursor,maxRecords:100,signal:signal(),consumeLine:()=> 'stop'});
+ expect(second.lines.map(line=>line.text)).toEqual(['second']);expect(second.warnings).not.toContain('SOURCE_RESET');
+ const third=await readJsonl({path,root,cursor:second.cursor,maxRecords:100,signal:signal()});
+ expect(third.lines.map(line=>line.text)).toEqual(['third']);expect(third.hasMore).toBe(false);
+});
+it('notifies consumers of resets and aborts the page when a consumer cancels or throws',async()=>{
+ const {root,path}=await file('old\n');const first=await readJsonl({path,root,cursor:null,maxRecords:1,signal:signal()});
+ await writeFile(path,'new\n');const resets:boolean[]=[];
+ await readJsonl({path,root,cursor:first.cursor,maxRecords:10,signal:signal(),consumeLine:(_,reset)=>{resets.push(reset);return 'continue';}});
+ expect(resets).toEqual([true]);
+ const controller=new AbortController();
+ await expect(readJsonl({path,root,cursor:null,maxRecords:10,signal:controller.signal,consumeLine:()=>{controller.abort();return 'continue';}})).rejects.toMatchObject({name:'AbortError'});
+ await expect(readJsonl({path,root,cursor:null,maxRecords:10,signal:signal(),consumeLine:()=>{throw new Error('consumer failed');}})).rejects.toThrow('consumer failed');
+ expect((await readJsonl({path,root,cursor:null,maxRecords:10,signal:signal()})).lines.map(line=>line.text)).toEqual(['new']);
+});
