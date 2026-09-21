@@ -2,7 +2,7 @@ import { opendir, lstat, realpath } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 import { DomainError } from '../domain/errors.js';
-import { inside, readJsonl, validateCursor } from './jsonl-reader.js';
+import { inside, readJsonl, validateCursor, type JsonlLine, type JsonlLineDecision } from './jsonl-reader.js';
 import { bounded, normalizeBlock, record, stableId, timestamp } from './claude-events.js';
 import type { ReadCursor, SourceAdapter, SourceCandidate, SourceDiagnostic, SourceReadResult, SourceSession } from './contracts.js';
 export interface SourceOptions {sourceId:string;roots:readonly string[];onDiagnostic?:(diagnostic:SourceDiagnostic)=>void}
@@ -53,54 +53,65 @@ export function createJsonlSource(options:SourceOptions & {agent:'claude'|'codex
    if(prior&&prior.nextOrdinal>100000)throw new DomainError('INVALID_INPUT','Invalid session event cursor.');
    if(typeof input.candidate.path!=='string'||!input.candidate.path||input.candidate.path.length>32768||input.candidate.agent!==options.agent||input.candidate.sourceId!==options.sourceId||!Number.isSafeInteger(input.maxEvents)||input.maxEvents<1||input.maxEvents>1000)throw new DomainError('INVALID_INPUT','Invalid source candidate or page limit.');
    const session:SourceSession={id:prior?.metadata?.sessionId??stableId(options.agent,options.sourceId,resolve(input.candidate.path)),sourceId:options.sourceId,agent:options.agent,vendorSessionId:prior?.metadata?.vendorSessionId??null,projectId:null,workspaceId:null,sourcePath:resolve(input.candidate.path),parserVersion:parserVersion,formatVersion:prior?.metadata?.formatVersion??null,lastEventAt:prior?.metadata?.lastEventAt??null,status:'ready'};
+   const priorMetadata={vendorSessionId:session.vendorSessionId,formatVersion:session.formatVersion,lastEventAt:session.lastEventAt};
    let cursor:ReadCursor=prior??{fileIdentity:'',byteOffset:0,nextOrdinal:0,parserVersion:parserVersion};
    try{
     const root=await allowed(input.candidate.path);
     session.sourcePath=await realpath(input.candidate.path);session.id=stableId(options.agent,options.sourceId,session.sourcePath);
     if(prior?.metadata?.sessionId&&prior.metadata.sessionId!==session.id)throw new DomainError('INVALID_INPUT','Cursor belongs to another source session.');
-    const page=await readJsonl({path:input.candidate.path,root,cursor:prior,maxRecords:1,signal:input.signal,parserVersion});
-    const reset=page.warnings.includes('SOURCE_RESET');if(reset){session.vendorSessionId=null;session.formatVersion=null;session.lastEventAt=null;}
-    let cwd=reset?null:prior?.metadata?.cwd??null;
-    const warnings=new Set([...(reset?[]:prior?.warnings??[]),...page.warnings]);
-    let recognized=reset?false:prior?.recognized??false;
-    const pending=new Map((reset?[]:prior?.pendingCalls??[]).map(call=>[call.id,call]));
-    const events:SourceReadResult['events']=[];let ordinal=reset?0:prior?.nextOrdinal??0;
-    cursor={...page.cursor,nextOrdinal:ordinal};let more=page.hasMore;
-    const line=page.lines[0];
-    if(line?.text?.trim()){
-     let row:unknown;try{row=JSON.parse(line.text);}catch{warnings.add('INVALID_JSON');}
-     if(record(row)&&options.translate)row=options.translate(row,{...prior?.metadata,vendorSessionId:session.vendorSessionId,formatVersion:session.formatVersion,lastEventAt:session.lastEventAt,cwd});
-     if(record(row)){
-      if(row.type==='metadata'){
-       recognized=true;if(typeof row.sessionId==='string'){const vendor=bounded(row.sessionId,512).text;if(session.vendorSessionId&&session.vendorSessionId!==vendor)warnings.add('MULTIPLE_SESSION_IDS');else session.vendorSessionId=vendor;}
-       if(typeof row.version==='string')session.formatVersion=bounded(row.version,128).text;
-       if(typeof row.cwd==='string'){const value=bounded(row.cwd,4096);cwd=value.omitted?'[REDACTED:oversize-cwd]':value.text;}else if(row.cwd===null)cwd=null;
-      }else if(row.type==='user'||row.type==='assistant'){
-       recognized=true;const role=row.type;
-       const vendor=typeof row.sessionId==='string'?bounded(row.sessionId,512):null;
-       if(vendor&&!vendor.omitted){if(session.vendorSessionId&&session.vendorSessionId!==vendor.text){warnings.add('MULTIPLE_SESSION_IDS');}else session.vendorSessionId=vendor.text;}else warnings.add('MISSING_SESSION_ID');
-       if(typeof row.version==='string')session.formatVersion=bounded(row.version,128).text;
-       const time=timestamp(row.timestamp);if(time)session.lastEventAt=time;
-       const message=!warnings.has('MULTIPLE_SESSION_IDS')&&record(row.message)?row.message:{};
-       if(!warnings.has('MULTIPLE_SESSION_IDS')&&typeof message.content!=='string'&&!Array.isArray(message.content))warnings.add('UNSUPPORTED_MESSAGE');
-       const blocks=typeof message.content==='string'?[{type:'text',text:message.content}]:Array.isArray(message.content)?message.content:[];
-       if(blocks.length>256)warnings.add('BLOCK_LIMIT');
-       const from=reset?0:prior?.blockOffset??0;let index=from;
-       const recordHash=createHash('sha256').update(line.text).digest('hex');
-       for(;index<Math.min(blocks.length,256);index++){
-        input.signal.throwIfAborted();if(ordinal>=100000){warnings.add('EVENT_LIMIT');break;}const block=blocks[index];if(!record(block)){warnings.add('UNKNOWN_BLOCK');continue;}
-        const event=normalizeBlock({block,row,role,sessionId:session.id,offset:line.start,blockIndex:index,recordHash,ordinal,pending,warnings});
-        if(event){events.push(event);ordinal++;}
-        if(events.length>=input.maxEvents){index++;break;}
-       }
-       if(index<Math.min(blocks.length,256)){
-        cursor.byteOffset=line.start;cursor.blockOffset=index;more=!warnings.has('EVENT_LIMIT');
-        cursor.checkpoint={...page.cursor.checkpoint!,tailHash:reset||!prior?createHash('sha256').update('').digest('hex'):prior.checkpoint?.tailHash??createHash('sha256').update('').digest('hex')};
-       }
-      }else warnings.add('UNKNOWN_EVENT');
-     }else if(row!==undefined)warnings.add('UNKNOWN_EVENT');
-    }
-    cursor.nextOrdinal=ordinal;cursor.pendingCalls=[...pending.values()];cursor.recognized=recognized;
+    let cwd=prior?.metadata?.cwd??null;
+    const warnings=new Set(prior?.warnings??[]);
+    let recognized=prior?.recognized??false;
+    const pending=new Map((prior?.pendingCalls??[]).map(call=>[call.id,call]));
+    const events:SourceReadResult['events']=[];let ordinal=prior?.nextOrdinal??0;
+    let blockOffset:number|undefined;let resetApplied=false;
+    const resetState=()=>{
+     session.vendorSessionId=null;session.formatVersion=null;session.lastEventAt=null;
+     cwd=null;warnings.clear();warnings.add('SOURCE_RESET');recognized=false;pending.clear();ordinal=0;resetApplied=true;
+    };
+    const consumeLine=(line:JsonlLine,reset:boolean):JsonlLineDecision=>{
+     input.signal.throwIfAborted();if(reset&&!resetApplied)resetState();
+     if(line?.text?.trim()){
+      let row:unknown;try{row=JSON.parse(line.text);}catch{warnings.add('INVALID_JSON');}
+      if(record(row)&&options.translate)row=options.translate(row,{...prior?.metadata,vendorSessionId:session.vendorSessionId,formatVersion:session.formatVersion,lastEventAt:session.lastEventAt,cwd});
+      if(record(row)){
+       if(row.type==='metadata'){
+        recognized=true;if(typeof row.sessionId==='string'){const vendor=bounded(row.sessionId,512).text;if(session.vendorSessionId&&session.vendorSessionId!==vendor)warnings.add('MULTIPLE_SESSION_IDS');else session.vendorSessionId=vendor;}
+        if(typeof row.version==='string')session.formatVersion=bounded(row.version,128).text;
+        if(typeof row.cwd==='string'){const value=bounded(row.cwd,4096);cwd=value.omitted?'[REDACTED:oversize-cwd]':value.text;}else if(row.cwd===null)cwd=null;
+       }else if(row.type==='user'||row.type==='assistant'){
+        recognized=true;const role=row.type;
+        const vendor=typeof row.sessionId==='string'?bounded(row.sessionId,512):null;
+        if(vendor&&!vendor.omitted){if(session.vendorSessionId&&session.vendorSessionId!==vendor.text){warnings.add('MULTIPLE_SESSION_IDS');}else session.vendorSessionId=vendor.text;}else warnings.add('MISSING_SESSION_ID');
+        if(typeof row.version==='string')session.formatVersion=bounded(row.version,128).text;
+        const time=timestamp(row.timestamp);if(time)session.lastEventAt=time;
+        const message=!warnings.has('MULTIPLE_SESSION_IDS')&&record(row.message)?row.message:{};
+        if(!warnings.has('MULTIPLE_SESSION_IDS')&&typeof message.content!=='string'&&!Array.isArray(message.content))warnings.add('UNSUPPORTED_MESSAGE');
+        const blocks=typeof message.content==='string'?[{type:'text',text:message.content}]:Array.isArray(message.content)?message.content:[];
+        if(blocks.length>256)warnings.add('BLOCK_LIMIT');
+        const from=!reset&&line.start===prior?.byteOffset?prior.blockOffset??0:0;let index=from;
+        const recordHash=createHash('sha256').update(line.text).digest('hex');
+        for(;index<Math.min(blocks.length,256);index++){
+         input.signal.throwIfAborted();if(ordinal>=100000){warnings.add('EVENT_LIMIT');break;}const block=blocks[index];if(!record(block)){warnings.add('UNKNOWN_BLOCK');continue;}
+         const event=normalizeBlock({block,row,role,sessionId:session.id,offset:line.start,blockIndex:index,recordHash,ordinal,pending,warnings});
+         if(event){events.push(event);ordinal++;}
+         if(events.length>=input.maxEvents){index++;break;}
+        }
+        if(index<Math.min(blocks.length,256)){
+         blockOffset=index;return 'revisit';
+        }
+       }else warnings.add('UNKNOWN_EVENT');
+      }else if(row!==undefined)warnings.add('UNKNOWN_EVENT');
+     }
+     return events.length>=input.maxEvents?'stop':'continue';
+    };
+    // Normalize while the validated file is open, so one read can fill an event batch.
+    const page=await readJsonl({path:input.candidate.path,root,cursor:prior,maxRecords:Math.min(input.maxEvents,100),signal:input.signal,parserVersion,consumeLine});
+    if(page.warnings.includes('SOURCE_RESET')&&!resetApplied)resetState();
+    for(const warning of page.warnings)warnings.add(warning);
+    cursor={...page.cursor,nextOrdinal:ordinal,...(blockOffset===undefined?{}:{blockOffset})};
+    const more=page.hasMore&&!warnings.has('EVENT_LIMIT');
+    cursor.pendingCalls=[...pending.values()];cursor.recognized=recognized;
     // Incomplete tails are transient; do not persist their warning after completion.
     cursor.warnings=[...warnings].filter(x=>!['INCOMPLETE_LINE','INCOMPLETE_OVERSIZED_LINE','SOURCE_RESET'].includes(x));
     cursor.metadata={cwd,sessionId:session.id,vendorSessionId:session.vendorSessionId,formatVersion:session.formatVersion,lastEventAt:session.lastEventAt};
@@ -109,6 +120,8 @@ export function createJsonlSource(options:SourceOptions & {agent:'claude'|'codex
     return {session,events,cursor,warnings:[...warnings],hasMore:more,controlEvents:[],coverage:{sourceId:options.sourceId,parserVersion,coverage:warnings.size?'partial':recognized?'partial':'none',fields:recognized?['session','message']:[],gaps:recognized?['parent/run relationship is not present in the supported log format']:['source format was not recognized'],warnings:[...warnings]}};
    }catch(error){
     input.signal.throwIfAborted();if(error instanceof DomainError)throw error;
+    // No partially consumed page metadata may escape a failed read.
+    Object.assign(session,priorMetadata);
     const code=(error as NodeJS.ErrnoException).code;session.status=code==='ENOENT'?'missing':'error';
     const warning=code==='ENOENT'?'SOURCE_MISSING':code==='EACCES'?'SOURCE_PERMISSION_DENIED':'SOURCE_READ_FAILED';
     return {session,events:[],cursor,warnings:[warning],hasMore:false,controlEvents:[],coverage:{sourceId:options.sourceId,parserVersion,coverage:'none',fields:[],gaps:[warning === 'SOURCE_MISSING' ? 'source was deleted or is unavailable' : 'source could not be read'],warnings:[warning]}};

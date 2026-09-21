@@ -34,8 +34,10 @@ export async function checkpoint(file:FileHandle, offset:number, size:number):Pr
  return {headLength,headHash:digest(await bytes(file,0,headLength)),tailHash:digest(await bytes(file,Math.max(0,offset-4096),Math.min(offset,4096)))};
 }
 export interface JsonlLine { start:number; end:number; text:string|null; issue?:string }
+/** Revisit leaves the cursor at the record start when only some blocks were consumed. */
+export type JsonlLineDecision = 'continue' | 'stop' | 'revisit';
 export interface JsonlPage { lines:JsonlLine[]; cursor:ReadCursor; warnings:string[]; hasMore:boolean }
-export async function readJsonl(input:{path:string;root:string;cursor:ReadCursor|null;maxRecords:number;signal:AbortSignal;maxLineBytes?:number;maxFileBytes?:number;parserVersion?:string}):Promise<JsonlPage>{
+export async function readJsonl(input:{path:string;root:string;cursor:ReadCursor|null;maxRecords:number;signal:AbortSignal;consumeLine?:(line:JsonlLine,reset:boolean)=>JsonlLineDecision;maxLineBytes?:number;maxFileBytes?:number;parserVersion?:string}):Promise<JsonlPage>{
  const parserVersion=input.parserVersion??PARSER_VERSION;
  input.signal.throwIfAborted();const prior=validateCursor(input.cursor);
  const maxLine=input.maxLineBytes??LINE_BYTES, maxFile=input.maxFileBytes??FILE_BYTES;
@@ -67,9 +69,11 @@ export async function readJsonl(input:{path:string;root:string;cursor:ReadCursor
     if(newline<0)break;
     const lineEnd=position+newline+1;let text:string|null=null;let issue:string|undefined;
     if(oversized)issue='LINE_TOO_LARGE';else try{text=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(fragments)).replace(/\r$/,'');}catch{issue='INVALID_UTF8';}
-    lines.push({start,end:lineEnd,text,...(issue?{issue}:{})});if(issue)warnings.push(issue);
-    cursor.byteOffset=lineEnd;cursor.nextOrdinal++;start=lineEnd;total=0;oversized=false;fragments=[];index=newline+1;
-    if(lines.length>=input.maxRecords||lineEnd-offset>=4*1024*1024){stop=true;break;}
+    const line={start,end:lineEnd,text,...(issue?{issue}:{})};lines.push(line);if(issue)warnings.push(issue);
+    const decision=input.consumeLine?.(line,reset)??'continue';input.signal.throwIfAborted();
+    cursor.byteOffset=decision==='revisit'?start:lineEnd;if(decision!=='revisit')cursor.nextOrdinal++;
+    start=lineEnd;total=0;oversized=false;fragments=[];index=newline+1;
+    if(decision!=='continue'||lines.length>=input.maxRecords||lineEnd-offset>=4*1024*1024){stop=true;break;}
    }
    position+=bytesRead;
   }

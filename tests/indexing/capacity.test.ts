@@ -87,6 +87,7 @@ it("cancels after the current bounded batch, starts no further reads and resumes
   ]).get("source")!;
   let reads = 0,
     readsAtCancel = 0,
+    eventsAtCancel = 0,
     cancelAt = 0,
     cancelled = false;
   const index = new IndexService(store, {
@@ -101,6 +102,7 @@ it("cancels after the current bounded batch, starts no further reads and resumes
       if (!cancelled && progress.events >= 100) {
         cancelled = true;
         readsAtCancel = reads;
+        eventsAtCancel = progress.events;
         cancelAt = performance.now();
         index.cancel("source");
       }
@@ -113,9 +115,9 @@ it("cancels after the current bounded batch, starts no further reads and resumes
   expect(reads).toBe(readsAtCancel);
   expect(readsAtCancel).toBeGreaterThan(0);
   const session = store.listIndexedSessions("source")[0];
-  expect(store.listEvents(session.id, 1000)).toHaveLength(readsAtCancel);
-  expect(readsAtCancel).toBeGreaterThanOrEqual(100);
-  expect(readsAtCancel).toBeLessThan(200);
+  expect(store.listEvents(session.id, 1000)).toHaveLength(eventsAtCancel);
+  expect(eventsAtCancel).toBe(100);
+  expect(readsAtCancel).toBe(1);
   expect((await index.refresh("source")).state).toBe("completed");
   expect(store.listEvents(session.id, 1000)).toHaveLength(1000);
 // This timeout includes fixture setup and resuming all 1,000 events on Windows
