@@ -1,0 +1,2675 @@
+{
+  "schema": "threadport.benchmark.v1",
+  "sourceCommit": "829a862430de06a507eb922b122e5b184fbfb532",
+  "trackedChanges": false,
+  "at": "2026-09-21T13:19:03.811Z",
+  "machine": {
+    "os": "linux",
+    "release": "6.17.0-1022-azure",
+    "arch": "x64",
+    "cpu": "AMD EPYC 7763 64-Core Processor",
+    "cores": 4,
+    "memoryGiB": 15.614940643310547,
+    "node": "v24.20.0"
+  },
+  "dataset": {
+    "bytes": 209715200,
+    "sessions": 500,
+    "events": 50000,
+    "queries": 100,
+    "statusRequests": 100,
+    "coldStarts": 5
+  },
+  "metrics": {
+    "indexMs": 19112.075832000002,
+    "searchP95Ms": 57.77501800000027,
+    "browserSearchP95Ms": 93.89999999999418,
+    "statusP95Ms": 35.07474899999988,
+    "coldP95Ms": 380.277267999998,
+    "incrementMs": 210.86410999999862,
+    "peakRssMiB": 323.546875,
+    "idleCpuMedianPercent": 0.07116137579651143,
+    "cancelMs": 3.981909000001906
+  },
+  "limits": {
+    "indexMs": 60000,
+    "searchP95Ms": 300,
+    "browserSearchP95Ms": 500,
+    "statusP95Ms": 200,
+    "coldP95Ms": 3000,
+    "incrementMs": 20000,
+    "peakRssMiB": 400,
+    "idleCpuMedianPercent": 2,
+    "cancelMs": 2000
+  },
+  "failed": [],
+  "decision": "pass",
+  "indexStates": [
+    "completed"
+  ],
+  "cancelStates": [
+    "cancelled"
+  ],
+  "profile": {
+    "searchTimings": [
+      {
+        "phase": "search",
+        "id": 1,
+        "queryMs": 12.031634000002668,
+        "projectionMs": 1.056406000003335,
+        "assemblyMs": 2.7339299999912328,
+        "storageMs": 15.821969999997236
+      },
+      {
+        "phase": "search",
+        "id": 2,
+        "queryMs": 6.375140999993164,
+        "projectionMs": 0.8606660000041302,
+        "assemblyMs": 1.50494300000355,
+        "storageMs": 8.740750000000844
+      },
+      {
+        "phase": "search",
+        "id": 3,
+        "queryMs": 6.830699999998615,
+        "projectionMs": 0,
+        "assemblyMs": 1.2286669999994047,
+        "storageMs": 8.05936699999802
+      },
+      {
+        "phase": "search",
+        "id": 4,
+        "queryMs": 34.41939499996806,
+        "projectionMs": 1.4389609999780077,
+        "assemblyMs": 1.7873960000542866,
+        "storageMs": 37.64575200000036
+      },
+      {
+        "phase": "search",
+        "id": 5,
+        "queryMs": 6.837283999942883,
+        "projectionMs": 0.031358000000182074,
+        "assemblyMs": 1.0748180000555294,
+        "storageMs": 7.943459999998595
+      },
+      {
+        "phase": "search",
+        "id": 6,
+        "queryMs": 52.04315100000167,
+        "projectionMs": 0,
+        "assemblyMs": 1.5879349999995611,
+        "storageMs": 53.63108600000123
+      },
+      {
+        "phase": "search",
+        "id": 7,
+        "queryMs": 10.461071999965498,
+        "projectionMs": 43.383746999988944,
+        "assemblyMs": 1.346622000048228,
+        "storageMs": 55.19144100000267
+      },
+      {
+        "phase": "search",
+        "id": 8,
+        "queryMs": 11.666820000013104,
+        "projectionMs": 1.3876300000010815,
+        "assemblyMs": 1.733617999987473,
+        "storageMs": 14.788068000001658
+      },
+      {
+        "phase": "search",
+        "id": 9,
+        "queryMs": 7.215150999978505,
+        "projectionMs": 0.4758589999983087,
+        "assemblyMs": 1.0423870000231545,
+        "storageMs": 8.733396999999968
+      },
+      {
+        "phase": "search",
+        "id": 10,
+        "queryMs": 10.326812999981485,
+        "projectionMs": 0.6770390000128828,
+        "assemblyMs": 1.2253450000062003,
+        "storageMs": 12.229197000000568
+      },
+      {
+        "phase": "search",
+        "id": 11,
+        "queryMs": 11.499367000003986,
+        "projectionMs": 0.691770000008546,
+        "assemblyMs": 0.9572969999862835,
+        "storageMs": 13.148433999998815
+      },
+      {
+        "phase": "search",
+        "id": 12,
+        "queryMs": 5.889368000011018,
+        "projectionMs": 0.657229999989795,
+        "assemblyMs": 0.9502780000002531,
+        "storageMs": 7.496876000001066
+      },
+      {
+        "phase": "search",
+        "id": 13,
+        "queryMs": 6.3307110000096145,
+        "projectionMs": 0,
+        "assemblyMs": 0.9166989999903308,
+        "storageMs": 7.247409999999945
+      },
+      {
+        "phase": "search",
+        "id": 14,
+        "queryMs": 33.9579069999927,
+        "projectionMs": 1.3366929999938293,
+        "assemblyMs": 1.3732250000139175,
+        "storageMs": 36.66782500000045
+      },
+      {
+        "phase": "search",
+        "id": 15,
+        "queryMs": 6.836495000003197,
+        "projectionMs": 0.03470499999821186,
+        "assemblyMs": 1.0787419999978738,
+        "storageMs": 7.949941999999282
+      },
+      {
+        "phase": "search",
+        "id": 16,
+        "queryMs": 51.89980699996886,
+        "projectionMs": 0,
+        "assemblyMs": 1.6595650000308524,
+        "storageMs": 53.55937199999971
+      },
+      {
+        "phase": "search",
+        "id": 17,
+        "queryMs": 13.47213200002443,
+        "projectionMs": 49.501300999992964,
+        "assemblyMs": 1.5743379999803437,
+        "storageMs": 64.54777099999774
+      },
+      {
+        "phase": "search",
+        "id": 18,
+        "queryMs": 12.194277999991755,
+        "projectionMs": 1.4218249999976251,
+        "assemblyMs": 4.099233000008098,
+        "storageMs": 17.715335999997478
+      },
+      {
+        "phase": "search",
+        "id": 19,
+        "queryMs": 7.083847999998397,
+        "projectionMs": 0.5832200000004377,
+        "assemblyMs": 0.9888930000015534,
+        "storageMs": 8.655961000000389
+      },
+      {
+        "phase": "search",
+        "id": 20,
+        "queryMs": 10.234871000015119,
+        "projectionMs": 0.6819149999937508,
+        "assemblyMs": 0.981893999989552,
+        "storageMs": 11.898679999998421
+      },
+      {
+        "phase": "search",
+        "id": 21,
+        "queryMs": 10.30859000000055,
+        "projectionMs": 0.6623879999970086,
+        "assemblyMs": 0.8616380000021309,
+        "storageMs": 11.832615999999689
+      },
+      {
+        "phase": "search",
+        "id": 22,
+        "queryMs": 5.886881999995239,
+        "projectionMs": 0.6804859999865585,
+        "assemblyMs": 0.8878500000173517,
+        "storageMs": 7.4552179999991495
+      },
+      {
+        "phase": "search",
+        "id": 23,
+        "queryMs": 6.192705000012211,
+        "projectionMs": 0,
+        "assemblyMs": 0.8942749999878288,
+        "storageMs": 7.08698000000004
+      },
+      {
+        "phase": "search",
+        "id": 24,
+        "queryMs": 34.051453000003676,
+        "projectionMs": 1.30589799999143,
+        "assemblyMs": 1.3500680000070133,
+        "storageMs": 36.70741900000212
+      },
+      {
+        "phase": "search",
+        "id": 25,
+        "queryMs": 6.656434999986232,
+        "projectionMs": 0.030697000001964625,
+        "assemblyMs": 0.9545040000120935,
+        "storageMs": 7.64163600000029
+      },
+      {
+        "phase": "search",
+        "id": 26,
+        "queryMs": 51.35244299992701,
+        "projectionMs": 0,
+        "assemblyMs": 1.476234000074328,
+        "storageMs": 52.828677000001335
+      },
+      {
+        "phase": "search",
+        "id": 27,
+        "queryMs": 10.267266999999265,
+        "projectionMs": 43.49779400001353,
+        "assemblyMs": 1.0792919999876176,
+        "storageMs": 54.84435300000041
+      },
+      {
+        "phase": "search",
+        "id": 28,
+        "queryMs": 11.558897999992041,
+        "projectionMs": 1.3085120000068855,
+        "assemblyMs": 1.255384000003687,
+        "storageMs": 14.122794000002614
+      },
+      {
+        "phase": "search",
+        "id": 29,
+        "queryMs": 6.92469800001345,
+        "projectionMs": 0.48643900000388385,
+        "assemblyMs": 0.9728159999831405,
+        "storageMs": 8.383953000000474
+      },
+      {
+        "phase": "search",
+        "id": 30,
+        "queryMs": 10.178541000012046,
+        "projectionMs": 0.6779559999995399,
+        "assemblyMs": 1.0235669999856327,
+        "storageMs": 11.880063999997219
+      },
+      {
+        "phase": "search",
+        "id": 31,
+        "queryMs": 9.987829999980022,
+        "projectionMs": 0.668258000008791,
+        "assemblyMs": 0.8264340000096126,
+        "storageMs": 11.482521999998426
+      },
+      {
+        "phase": "search",
+        "id": 32,
+        "queryMs": 5.729715999994369,
+        "projectionMs": 0.7134389999991981,
+        "assemblyMs": 0.9125980000062555,
+        "storageMs": 7.355752999999822
+      },
+      {
+        "phase": "search",
+        "id": 33,
+        "queryMs": 6.279439000016282,
+        "projectionMs": 0,
+        "assemblyMs": 0.9797529999814287,
+        "storageMs": 7.259191999997711
+      },
+      {
+        "phase": "search",
+        "id": 34,
+        "queryMs": 33.70526200001041,
+        "projectionMs": 1.2874060000176542,
+        "assemblyMs": 1.3646269999735523,
+        "storageMs": 36.35729500000161
+      },
+      {
+        "phase": "search",
+        "id": 35,
+        "queryMs": 6.715421000022616,
+        "projectionMs": 0.030045999999856576,
+        "assemblyMs": 0.9556209999755083,
+        "storageMs": 7.701087999997981
+      },
+      {
+        "phase": "search",
+        "id": 36,
+        "queryMs": 51.15996600001017,
+        "projectionMs": 0,
+        "assemblyMs": 1.5480459999889717,
+        "storageMs": 52.708011999999144
+      },
+      {
+        "phase": "search",
+        "id": 37,
+        "queryMs": 10.323206999983086,
+        "projectionMs": 43.5824110000176,
+        "assemblyMs": 1.1365249999980733,
+        "storageMs": 55.04214299999876
+      },
+      {
+        "phase": "search",
+        "id": 38,
+        "queryMs": 11.712080000001151,
+        "projectionMs": 1.2921210000240535,
+        "assemblyMs": 1.274104999974952,
+        "storageMs": 14.278306000000157
+      },
+      {
+        "phase": "search",
+        "id": 39,
+        "queryMs": 7.068193999981304,
+        "projectionMs": 0.46811499999967054,
+        "assemblyMs": 1.01366500002041,
+        "storageMs": 8.549974000001384
+      },
+      {
+        "phase": "search",
+        "id": 40,
+        "queryMs": 10.131451000004745,
+        "projectionMs": 0.6401619999778632,
+        "assemblyMs": 0.970554000017728,
+        "storageMs": 11.742167000000336
+      },
+      {
+        "phase": "search",
+        "id": 41,
+        "queryMs": 10.062203999990743,
+        "projectionMs": 0.6265149999962887,
+        "assemblyMs": 0.828698000012082,
+        "storageMs": 11.517416999999114
+      },
+      {
+        "phase": "search",
+        "id": 42,
+        "queryMs": 5.6849529999744846,
+        "projectionMs": 0.6248820000182604,
+        "assemblyMs": 0.9079900000069756,
+        "storageMs": 7.217824999999721
+      },
+      {
+        "phase": "search",
+        "id": 43,
+        "queryMs": 6.288479999995616,
+        "projectionMs": 0,
+        "assemblyMs": 0.9008610000018962,
+        "storageMs": 7.189340999997512
+      },
+      {
+        "phase": "search",
+        "id": 44,
+        "queryMs": 34.023588000003656,
+        "projectionMs": 1.2693209999742976,
+        "assemblyMs": 1.3596360000228742,
+        "storageMs": 36.65254500000083
+      },
+      {
+        "phase": "search",
+        "id": 45,
+        "queryMs": 6.762348999971437,
+        "projectionMs": 0.030687000002217246,
+        "assemblyMs": 0.9340700000284414,
+        "storageMs": 7.727106000002095
+      },
+      {
+        "phase": "search",
+        "id": 46,
+        "queryMs": 51.086198000004515,
+        "projectionMs": 0,
+        "assemblyMs": 1.3091089999979886,
+        "storageMs": 52.395307000002504
+      },
+      {
+        "phase": "search",
+        "id": 47,
+        "queryMs": 10.468427999992855,
+        "projectionMs": 43.66458800000328,
+        "assemblyMs": 1.0553790000049048,
+        "storageMs": 55.18839500000104
+      },
+      {
+        "phase": "search",
+        "id": 48,
+        "queryMs": 11.799831000007543,
+        "projectionMs": 1.3189670000101614,
+        "assemblyMs": 1.2175359999819193,
+        "storageMs": 14.336333999999624
+      },
+      {
+        "phase": "search",
+        "id": 49,
+        "queryMs": 7.0790479999632225,
+        "projectionMs": 0.47163000000000466,
+        "assemblyMs": 0.9252670000350918,
+        "storageMs": 8.475944999998319
+      },
+      {
+        "phase": "search",
+        "id": 50,
+        "queryMs": 10.120001000013872,
+        "projectionMs": 0.6891479999903822,
+        "assemblyMs": 0.9861879999953089,
+        "storageMs": 11.795336999999563
+      },
+      {
+        "phase": "search",
+        "id": 51,
+        "queryMs": 10.285917000004702,
+        "projectionMs": 0.7016120000116643,
+        "assemblyMs": 0.8079279999838036,
+        "storageMs": 11.79545700000017
+      },
+      {
+        "phase": "search",
+        "id": 52,
+        "queryMs": 5.8170719999980065,
+        "projectionMs": 0.6795080000083544,
+        "assemblyMs": 0.9043669999955455,
+        "storageMs": 7.400947000001906
+      },
+      {
+        "phase": "search",
+        "id": 53,
+        "queryMs": 6.2523480000163545,
+        "projectionMs": 0,
+        "assemblyMs": 0.8625639999845589,
+        "storageMs": 7.114912000000913
+      },
+      {
+        "phase": "search",
+        "id": 54,
+        "queryMs": 34.02766100003646,
+        "projectionMs": 1.5047819999890635,
+        "assemblyMs": 1.376782999974239,
+        "storageMs": 36.90922599999976
+      },
+      {
+        "phase": "search",
+        "id": 55,
+        "queryMs": 6.704047999992326,
+        "projectionMs": 0.03059700000085286,
+        "assemblyMs": 0.9909480000060285,
+        "storageMs": 7.725592999999208
+      },
+      {
+        "phase": "search",
+        "id": 56,
+        "queryMs": 50.87157600008504,
+        "projectionMs": 0,
+        "assemblyMs": 1.2576039999148634,
+        "storageMs": 52.129179999999906
+      },
+      {
+        "phase": "search",
+        "id": 57,
+        "queryMs": 10.400230000010197,
+        "projectionMs": 44.02732399998786,
+        "assemblyMs": 1.0969500000028347,
+        "storageMs": 55.52450400000089
+      },
+      {
+        "phase": "search",
+        "id": 58,
+        "queryMs": 11.60909000000538,
+        "projectionMs": 1.281803999980184,
+        "assemblyMs": 1.2371700000148849,
+        "storageMs": 14.12806400000045
+      },
+      {
+        "phase": "search",
+        "id": 59,
+        "queryMs": 6.891279999967082,
+        "projectionMs": 0.4905059999982768,
+        "assemblyMs": 0.8453650000337802,
+        "storageMs": 8.22715099999914
+      },
+      {
+        "phase": "search",
+        "id": 60,
+        "queryMs": 10.088862999982666,
+        "projectionMs": 0.6251640000082261,
+        "assemblyMs": 0.9787780000078783,
+        "storageMs": 11.69280499999877
+      },
+      {
+        "phase": "search",
+        "id": 61,
+        "queryMs": 10.175834999998187,
+        "projectionMs": 0.6557180000090739,
+        "assemblyMs": 0.853196999993088,
+        "storageMs": 11.68475000000035
+      },
+      {
+        "phase": "search",
+        "id": 62,
+        "queryMs": 5.741006000007474,
+        "projectionMs": 0.6120829999963462,
+        "assemblyMs": 0.9209009999976843,
+        "storageMs": 7.273990000001504
+      },
+      {
+        "phase": "search",
+        "id": 63,
+        "queryMs": 6.459095000082016,
+        "projectionMs": 0,
+        "assemblyMs": 0.7878239999190555,
+        "storageMs": 7.246919000001071
+      },
+      {
+        "phase": "search",
+        "id": 64,
+        "queryMs": 33.61080699996819,
+        "projectionMs": 1.2363319999822124,
+        "assemblyMs": 1.250380000048608,
+        "storageMs": 36.09751899999901
+      },
+      {
+        "phase": "search",
+        "id": 65,
+        "queryMs": 6.714522999962355,
+        "projectionMs": 0.030687000002217246,
+        "assemblyMs": 0.8891630000362056,
+        "storageMs": 7.634373000000778
+      },
+      {
+        "phase": "search",
+        "id": 66,
+        "queryMs": 50.98602199994639,
+        "projectionMs": 0,
+        "assemblyMs": 1.2728310000529746,
+        "storageMs": 52.25885299999936
+      },
+      {
+        "phase": "search",
+        "id": 67,
+        "queryMs": 10.415365999997448,
+        "projectionMs": 43.44835499999317,
+        "assemblyMs": 1.0649390000071435,
+        "storageMs": 54.92865999999776
+      },
+      {
+        "phase": "search",
+        "id": 68,
+        "queryMs": 11.506925999998202,
+        "projectionMs": 1.3206159999863303,
+        "assemblyMs": 1.23487000001478,
+        "storageMs": 14.062411999999313
+      },
+      {
+        "phase": "search",
+        "id": 69,
+        "queryMs": 6.969430999961332,
+        "projectionMs": 0.46370599999499973,
+        "assemblyMs": 0.8385970000417728,
+        "storageMs": 8.271733999998105
+      },
+      {
+        "phase": "search",
+        "id": 70,
+        "queryMs": 10.115227999980561,
+        "projectionMs": 0.6470310000077006,
+        "assemblyMs": 1.0443290000112029,
+        "storageMs": 11.806587999999465
+      },
+      {
+        "phase": "search",
+        "id": 71,
+        "queryMs": 10.260199000000284,
+        "projectionMs": 0.702013000005536,
+        "assemblyMs": 0.8315409999959229,
+        "storageMs": 11.793753000001743
+      },
+      {
+        "phase": "search",
+        "id": 72,
+        "queryMs": 5.827853000006144,
+        "projectionMs": 0.6806980000001204,
+        "assemblyMs": 0.902033999995183,
+        "storageMs": 7.410585000001447
+      },
+      {
+        "phase": "search",
+        "id": 73,
+        "queryMs": 6.224262000017916,
+        "projectionMs": 0,
+        "assemblyMs": 0.8121839999839722,
+        "storageMs": 7.036446000001888
+      },
+      {
+        "phase": "search",
+        "id": 74,
+        "queryMs": 33.6026559999882,
+        "projectionMs": 1.2390219999942929,
+        "assemblyMs": 1.4406770000168763,
+        "storageMs": 36.28235499999937
+      },
+      {
+        "phase": "search",
+        "id": 75,
+        "queryMs": 6.627434000009089,
+        "projectionMs": 0.034052999999403255,
+        "assemblyMs": 0.9316389999912644,
+        "storageMs": 7.5931259999997565
+      },
+      {
+        "phase": "search",
+        "id": 76,
+        "queryMs": 51.36594899998454,
+        "projectionMs": 0,
+        "assemblyMs": 1.3303100000157428,
+        "storageMs": 52.69625900000028
+      },
+      {
+        "phase": "search",
+        "id": 77,
+        "queryMs": 10.484115999985079,
+        "projectionMs": 43.65971900000659,
+        "assemblyMs": 1.0905770000099437,
+        "storageMs": 55.23441200000161
+      },
+      {
+        "phase": "search",
+        "id": 78,
+        "queryMs": 11.625256999981502,
+        "projectionMs": 1.2618939999883878,
+        "assemblyMs": 1.251332000028924,
+        "storageMs": 14.138482999998814
+      },
+      {
+        "phase": "search",
+        "id": 79,
+        "queryMs": 7.237753000077646,
+        "projectionMs": 0.5461499999983062,
+        "assemblyMs": 0.9896179999232118,
+        "storageMs": 8.773520999999164
+      },
+      {
+        "phase": "search",
+        "id": 80,
+        "queryMs": 10.410969999986264,
+        "projectionMs": 0.6587240000008023,
+        "assemblyMs": 1.0066480000132287,
+        "storageMs": 12.076342000000295
+      },
+      {
+        "phase": "search",
+        "id": 81,
+        "queryMs": 11.004615000008926,
+        "projectionMs": 0.6848670000108541,
+        "assemblyMs": 0.821972999980062,
+        "storageMs": 12.511454999999842
+      },
+      {
+        "phase": "search",
+        "id": 82,
+        "queryMs": 5.750724999998056,
+        "projectionMs": 0.6891800000266812,
+        "assemblyMs": 0.9078829999780282,
+        "storageMs": 7.347788000002765
+      },
+      {
+        "phase": "search",
+        "id": 83,
+        "queryMs": 6.2756050000061805,
+        "projectionMs": 0,
+        "assemblyMs": 0.8095919999941543,
+        "storageMs": 7.085197000000335
+      },
+      {
+        "phase": "search",
+        "id": 84,
+        "queryMs": 34.02480500002275,
+        "projectionMs": 1.2817700000232435,
+        "assemblyMs": 1.3065769999520853,
+        "storageMs": 36.61315199999808
+      },
+      {
+        "phase": "search",
+        "id": 85,
+        "queryMs": 6.67777100004605,
+        "projectionMs": 0.031058000000484753,
+        "assemblyMs": 0.9602889999514446,
+        "storageMs": 7.6691179999979795
+      },
+      {
+        "phase": "search",
+        "id": 86,
+        "queryMs": 50.62807899998006,
+        "projectionMs": 0,
+        "assemblyMs": 1.149654000018927,
+        "storageMs": 51.77773299999899
+      },
+      {
+        "phase": "search",
+        "id": 87,
+        "queryMs": 10.108477000008861,
+        "projectionMs": 43.68192699998326,
+        "assemblyMs": 1.0582870000107505,
+        "storageMs": 54.84869100000287
+      },
+      {
+        "phase": "search",
+        "id": 88,
+        "queryMs": 19.230476000000635,
+        "projectionMs": 1.4061249999867869,
+        "assemblyMs": 1.6000250000142842,
+        "storageMs": 22.236626000001706
+      },
+      {
+        "phase": "search",
+        "id": 89,
+        "queryMs": 7.066269999992073,
+        "projectionMs": 0.46952800000144634,
+        "assemblyMs": 0.8808070000050066,
+        "storageMs": 8.416604999998526
+      },
+      {
+        "phase": "search",
+        "id": 90,
+        "queryMs": 10.21917500001291,
+        "projectionMs": 0.6593079999838665,
+        "assemblyMs": 0.9129370000046038,
+        "storageMs": 11.79142000000138
+      },
+      {
+        "phase": "search",
+        "id": 91,
+        "queryMs": 10.02653800004191,
+        "projectionMs": 0.6666340000010678,
+        "assemblyMs": 0.7922359999574837,
+        "storageMs": 11.485408000000461
+      },
+      {
+        "phase": "search",
+        "id": 92,
+        "queryMs": 5.731247999981861,
+        "projectionMs": 0.6471359999886772,
+        "assemblyMs": 0.8273880000306235,
+        "storageMs": 7.205772000001161
+      },
+      {
+        "phase": "search",
+        "id": 93,
+        "queryMs": 6.186947000012879,
+        "projectionMs": 0,
+        "assemblyMs": 0.7487099999889324,
+        "storageMs": 6.935657000001811
+      },
+      {
+        "phase": "search",
+        "id": 94,
+        "queryMs": 33.60841999996774,
+        "projectionMs": 1.2243150000358582,
+        "assemblyMs": 1.2875159999966854,
+        "storageMs": 36.12025100000028
+      },
+      {
+        "phase": "search",
+        "id": 95,
+        "queryMs": 6.609688000007736,
+        "projectionMs": 0.030556999998225365,
+        "assemblyMs": 0.8769589999938034,
+        "storageMs": 7.517203999999765
+      },
+      {
+        "phase": "search",
+        "id": 96,
+        "queryMs": 50.66053599999577,
+        "projectionMs": 0,
+        "assemblyMs": 1.2210920000034093,
+        "storageMs": 51.88162799999918
+      },
+      {
+        "phase": "search",
+        "id": 97,
+        "queryMs": 10.513883999992686,
+        "projectionMs": 43.487119000004895,
+        "assemblyMs": 1.0904810000029102,
+        "storageMs": 55.09148400000049
+      },
+      {
+        "phase": "search",
+        "id": 98,
+        "queryMs": 11.83613600001263,
+        "projectionMs": 1.2780689999890456,
+        "assemblyMs": 1.1766939999979513,
+        "storageMs": 14.290898999999627
+      },
+      {
+        "phase": "search",
+        "id": 99,
+        "queryMs": 6.949529999987135,
+        "projectionMs": 0.4815099999977974,
+        "assemblyMs": 0.8126310000152444,
+        "storageMs": 8.243671000000177
+      },
+      {
+        "phase": "search",
+        "id": 100,
+        "queryMs": 10.074779999995371,
+        "projectionMs": 0.631630000014411,
+        "assemblyMs": 0.9120559999901161,
+        "storageMs": 11.618465999999898
+      },
+      {
+        "phase": "browser-search",
+        "id": 101,
+        "queryMs": 7.722332999990613,
+        "projectionMs": 0.28709799999342067,
+        "assemblyMs": 0.6261620000186667,
+        "storageMs": 8.6355930000027
+      },
+      {
+        "phase": "browser-search",
+        "id": 102,
+        "queryMs": 7.171506999995472,
+        "projectionMs": 0.30592299999989336,
+        "assemblyMs": 1.0719720000015514,
+        "storageMs": 8.549401999996917
+      },
+      {
+        "phase": "browser-search",
+        "id": 103,
+        "queryMs": 8.445995999954903,
+        "projectionMs": 0,
+        "assemblyMs": 1.23264600004768,
+        "storageMs": 9.678642000002583
+      },
+      {
+        "phase": "browser-search",
+        "id": 104,
+        "queryMs": 19.16731699999218,
+        "projectionMs": 0.5563319999964733,
+        "assemblyMs": 1.1084190000110539,
+        "storageMs": 20.83206799999971
+      },
+      {
+        "phase": "browser-search",
+        "id": 105,
+        "queryMs": 8.80603299994982,
+        "projectionMs": 0.03929300000163494,
+        "assemblyMs": 1.1612890000506013,
+        "storageMs": 10.006615000002057
+      },
+      {
+        "phase": "browser-search",
+        "id": 106,
+        "queryMs": 52.52190900005371,
+        "projectionMs": 0,
+        "assemblyMs": 1.4571949999481149,
+        "storageMs": 53.979104000001826
+      },
+      {
+        "phase": "browser-search",
+        "id": 107,
+        "queryMs": 9.007910000018455,
+        "projectionMs": 17.7024199999978,
+        "assemblyMs": 1.1863369999809947,
+        "storageMs": 27.89666699999725
+      },
+      {
+        "phase": "browser-search",
+        "id": 108,
+        "queryMs": 9.076506000019435,
+        "projectionMs": 0.5292549999976472,
+        "assemblyMs": 1.1448139999811247,
+        "storageMs": 10.750574999998207
+      },
+      {
+        "phase": "browser-search",
+        "id": 109,
+        "queryMs": 9.144138999978168,
+        "projectionMs": 0.5217240000019956,
+        "assemblyMs": 1.2320960000215564,
+        "storageMs": 10.89795900000172
+      },
+      {
+        "phase": "browser-search",
+        "id": 110,
+        "queryMs": 8.290484999994078,
+        "projectionMs": 0.30820500000118045,
+        "assemblyMs": 1.0811740000026475,
+        "storageMs": 9.679863999997906
+      },
+      {
+        "phase": "browser-search",
+        "id": 111,
+        "queryMs": 9.249012999993283,
+        "projectionMs": 0.3058119999986957,
+        "assemblyMs": 1.0321070000100008,
+        "storageMs": 10.58693200000198
+      },
+      {
+        "phase": "browser-search",
+        "id": 112,
+        "queryMs": 7.2176739999849815,
+        "projectionMs": 0.3216809999976249,
+        "assemblyMs": 1.0201560000205063,
+        "storageMs": 8.559511000003113
+      },
+      {
+        "phase": "browser-search",
+        "id": 113,
+        "queryMs": 7.835658000018157,
+        "projectionMs": 0,
+        "assemblyMs": 1.3660129999807396,
+        "storageMs": 9.201670999998896
+      },
+      {
+        "phase": "browser-search",
+        "id": 114,
+        "queryMs": 19.234726000027877,
+        "projectionMs": 0.5361219999831519,
+        "assemblyMs": 1.1880269999892334,
+        "storageMs": 20.958875000000262
+      },
+      {
+        "phase": "browser-search",
+        "id": 115,
+        "queryMs": 7.849095999950805,
+        "projectionMs": 0.037711000000854256,
+        "assemblyMs": 1.103659000047628,
+        "storageMs": 8.990465999999287
+      },
+      {
+        "phase": "browser-search",
+        "id": 116,
+        "queryMs": 53.715531999969244,
+        "projectionMs": 0,
+        "assemblyMs": 1.6822550000288174,
+        "storageMs": 55.39778699999806
+      },
+      {
+        "phase": "browser-search",
+        "id": 117,
+        "queryMs": 8.838477000022976,
+        "projectionMs": 15.27118199999677,
+        "assemblyMs": 1.0997479999823554,
+        "storageMs": 25.209407000002102
+      },
+      {
+        "phase": "browser-search",
+        "id": 118,
+        "queryMs": 10.144910999995773,
+        "projectionMs": 0.5320849999880011,
+        "assemblyMs": 1.0424990000174148,
+        "storageMs": 11.719495000001189
+      },
+      {
+        "phase": "browser-search",
+        "id": 119,
+        "queryMs": 8.609849999997095,
+        "projectionMs": 0.43116599999848404,
+        "assemblyMs": 1.174038000004657,
+        "storageMs": 10.215054000000237
+      },
+      {
+        "phase": "browser-search",
+        "id": 120,
+        "queryMs": 8.743071999993845,
+        "projectionMs": 0.34573500000988133,
+        "assemblyMs": 1.0618169999943348,
+        "storageMs": 10.15062399999806
+      },
+      {
+        "phase": "browser-search",
+        "id": 121,
+        "queryMs": 8.544442999998864,
+        "projectionMs": 0.32567699998253374,
+        "assemblyMs": 0.9744320000208972,
+        "storageMs": 9.844552000002295
+      },
+      {
+        "phase": "browser-search",
+        "id": 122,
+        "queryMs": 7.242892000005668,
+        "projectionMs": 0.3110299999898416,
+        "assemblyMs": 0.9622780000026978,
+        "storageMs": 8.516199999998207
+      },
+      {
+        "phase": "browser-search",
+        "id": 123,
+        "queryMs": 8.755468999945151,
+        "projectionMs": 0,
+        "assemblyMs": 1.208636000057595,
+        "storageMs": 9.964105000002746
+      },
+      {
+        "phase": "browser-search",
+        "id": 124,
+        "queryMs": 18.762075000006007,
+        "projectionMs": 0.5157380000091507,
+        "assemblyMs": 1.048951999982819,
+        "storageMs": 20.326764999997977
+      },
+      {
+        "phase": "browser-search",
+        "id": 125,
+        "queryMs": 8.34651299997131,
+        "projectionMs": 0.036538000000291504,
+        "assemblyMs": 1.1441100000301958,
+        "storageMs": 9.527161000001797
+      },
+      {
+        "phase": "browser-search",
+        "id": 126,
+        "queryMs": 52.59631299998,
+        "projectionMs": 0,
+        "assemblyMs": 1.537534000020969,
+        "storageMs": 54.13384700000097
+      },
+      {
+        "phase": "browser-search",
+        "id": 127,
+        "queryMs": 9.215906000001269,
+        "projectionMs": 15.222115000000485,
+        "assemblyMs": 0.853728999998566,
+        "storageMs": 25.29175000000032
+      },
+      {
+        "phase": "browser-search",
+        "id": 128,
+        "queryMs": 8.80296300000191,
+        "projectionMs": 0.5296529999941413,
+        "assemblyMs": 1.0940930000033404,
+        "storageMs": 10.426708999999391
+      },
+      {
+        "phase": "browser-search",
+        "id": 129,
+        "queryMs": 7.891755000033299,
+        "projectionMs": 0.4084919999986596,
+        "assemblyMs": 1.2649629999687022,
+        "storageMs": 9.565210000000661
+      },
+      {
+        "phase": "browser-search",
+        "id": 130,
+        "queryMs": 8.213728000002448,
+        "projectionMs": 0.3063829999991867,
+        "assemblyMs": 1.1016139999956067,
+        "storageMs": 9.621724999997241
+      },
+      {
+        "phase": "browser-search",
+        "id": 131,
+        "queryMs": 7.741302000013093,
+        "projectionMs": 0.3086669999975129,
+        "assemblyMs": 1.0678849999894737,
+        "storageMs": 9.11785400000008
+      },
+      {
+        "phase": "browser-search",
+        "id": 132,
+        "queryMs": 7.440451000005851,
+        "projectionMs": 0.3144560000000638,
+        "assemblyMs": 1.03950299999633,
+        "storageMs": 8.794410000002244
+      },
+      {
+        "phase": "browser-search",
+        "id": 133,
+        "queryMs": 7.734684000002744,
+        "projectionMs": 0,
+        "assemblyMs": 1.1317409999974188,
+        "storageMs": 8.866425000000163
+      },
+      {
+        "phase": "browser-search",
+        "id": 134,
+        "queryMs": 19.045511000007536,
+        "projectionMs": 0.5133700000005774,
+        "assemblyMs": 1.0351429999900574,
+        "storageMs": 20.59402399999817
+      },
+      {
+        "phase": "browser-search",
+        "id": 135,
+        "queryMs": 7.406778999982635,
+        "projectionMs": 0.03574599999774364,
+        "assemblyMs": 1.2276420000162034,
+        "storageMs": 8.670166999996582
+      },
+      {
+        "phase": "browser-search",
+        "id": 136,
+        "queryMs": 53.16652599993904,
+        "projectionMs": 0,
+        "assemblyMs": 1.5637240000578458,
+        "storageMs": 54.730249999996886
+      },
+      {
+        "phase": "browser-search",
+        "id": 137,
+        "queryMs": 8.904704999982641,
+        "projectionMs": 15.315311999998812,
+        "assemblyMs": 1.1784030000162602,
+        "storageMs": 25.398419999997714
+      },
+      {
+        "phase": "browser-search",
+        "id": 138,
+        "queryMs": 8.66819599999144,
+        "projectionMs": 0.536720999993122,
+        "assemblyMs": 1.1339890000126616,
+        "storageMs": 10.338905999997223
+      },
+      {
+        "phase": "browser-search",
+        "id": 139,
+        "queryMs": 8.36484099997324,
+        "projectionMs": 0.4333890000016254,
+        "assemblyMs": 1.1325530000249273,
+        "storageMs": 9.930782999999792
+      },
+      {
+        "phase": "browser-search",
+        "id": 140,
+        "queryMs": 8.433980999994674,
+        "projectionMs": 0.31566100000418373,
+        "assemblyMs": 1.1497119999985443,
+        "storageMs": 9.899353999997402
+      },
+      {
+        "phase": "browser-search",
+        "id": 141,
+        "queryMs": 8.830244999986462,
+        "projectionMs": 0.30497000000832486,
+        "assemblyMs": 1.0191760000052454,
+        "storageMs": 10.154391000000032
+      },
+      {
+        "phase": "browser-search",
+        "id": 142,
+        "queryMs": 8.086269000003085,
+        "projectionMs": 0.31936700000369456,
+        "assemblyMs": 1.0462319999933243,
+        "storageMs": 9.451868000000104
+      },
+      {
+        "phase": "browser-search",
+        "id": 143,
+        "queryMs": 7.368053000012878,
+        "projectionMs": 0,
+        "assemblyMs": 1.0995859999857203,
+        "storageMs": 8.467638999998599
+      },
+      {
+        "phase": "browser-search",
+        "id": 144,
+        "queryMs": 18.627254000009998,
+        "projectionMs": 0.5345059999854129,
+        "assemblyMs": 1.068836000005831,
+        "storageMs": 20.230596000001242
+      },
+      {
+        "phase": "browser-search",
+        "id": 145,
+        "queryMs": 7.385164999956032,
+        "projectionMs": 0.037519999998039566,
+        "assemblyMs": 1.1304850000451552,
+        "storageMs": 8.553169999999227
+      },
+      {
+        "phase": "browser-search",
+        "id": 146,
+        "queryMs": 53.02331600010075,
+        "projectionMs": 0,
+        "assemblyMs": 1.5745639998967818,
+        "storageMs": 54.59787999999753
+      },
+      {
+        "phase": "browser-search",
+        "id": 147,
+        "queryMs": 8.921187999982067,
+        "projectionMs": 15.306226000004244,
+        "assemblyMs": 1.0468330000148853,
+        "storageMs": 25.274247000001196
+      },
+      {
+        "phase": "browser-search",
+        "id": 148,
+        "queryMs": 8.862820999991527,
+        "projectionMs": 0.5546220000287576,
+        "assemblyMs": 1.07259399997929,
+        "storageMs": 10.490036999999575
+      },
+      {
+        "phase": "browser-search",
+        "id": 149,
+        "queryMs": 9.427235000006476,
+        "projectionMs": 0.40828200000032666,
+        "assemblyMs": 1.1312809999908495,
+        "storageMs": 10.966797999997652
+      },
+      {
+        "phase": "browser-search",
+        "id": 150,
+        "queryMs": 8.890018999998574,
+        "projectionMs": 0.31496500000503147,
+        "assemblyMs": 1.105156999994506,
+        "storageMs": 10.310140999998112
+      },
+      {
+        "phase": "browser-search",
+        "id": 151,
+        "queryMs": 9.450340999999753,
+        "projectionMs": 0.2976329999983136,
+        "assemblyMs": 1.0281710000017483,
+        "storageMs": 10.776144999999815
+      },
+      {
+        "phase": "browser-search",
+        "id": 152,
+        "queryMs": 7.178743999997096,
+        "projectionMs": 0.3277819999966596,
+        "assemblyMs": 0.8493450000059966,
+        "storageMs": 8.355870999999752
+      },
+      {
+        "phase": "browser-search",
+        "id": 153,
+        "queryMs": 8.308776999987458,
+        "projectionMs": 0,
+        "assemblyMs": 1.1364180000091437,
+        "storageMs": 9.445194999996602
+      },
+      {
+        "phase": "browser-search",
+        "id": 154,
+        "queryMs": 18.847182000012253,
+        "projectionMs": 0.5544259999915084,
+        "assemblyMs": 0.9915999999975611,
+        "storageMs": 20.393208000001323
+      },
+      {
+        "phase": "browser-search",
+        "id": 155,
+        "queryMs": 7.619863999992958,
+        "projectionMs": 0.03540600000269478,
+        "assemblyMs": 1.09890500000256,
+        "storageMs": 8.754174999998213
+      },
+      {
+        "phase": "browser-search",
+        "id": 156,
+        "queryMs": 52.59464799996931,
+        "projectionMs": 0,
+        "assemblyMs": 1.5223440000299888,
+        "storageMs": 54.1169919999993
+      },
+      {
+        "phase": "browser-search",
+        "id": 157,
+        "queryMs": 8.949961999987863,
+        "projectionMs": 15.293500000003405,
+        "assemblyMs": 1.0304550000073505,
+        "storageMs": 25.27391699999862
+      },
+      {
+        "phase": "browser-search",
+        "id": 158,
+        "queryMs": 9.802464000018517,
+        "projectionMs": 0.5499009999875852,
+        "assemblyMs": 1.4715549999928044,
+        "storageMs": 11.823919999998907
+      },
+      {
+        "phase": "browser-search",
+        "id": 159,
+        "queryMs": 8.221846999975241,
+        "projectionMs": 0.4105470000031346,
+        "assemblyMs": 1.3152000000191038,
+        "storageMs": 9.94759399999748
+      },
+      {
+        "phase": "browser-search",
+        "id": 160,
+        "queryMs": 9.366058000010526,
+        "projectionMs": 0.30762399999730405,
+        "assemblyMs": 1.1805359999889333,
+        "storageMs": 10.854217999996763
+      },
+      {
+        "phase": "browser-search",
+        "id": 161,
+        "queryMs": 8.538384999996197,
+        "projectionMs": 0.3061690000067756,
+        "assemblyMs": 0.9667259999987436,
+        "storageMs": 9.811280000001716
+      },
+      {
+        "phase": "browser-search",
+        "id": 162,
+        "queryMs": 7.226321000009193,
+        "projectionMs": 0.3255210000061197,
+        "assemblyMs": 1.0026799999868672,
+        "storageMs": 8.55452200000218
+      },
+      {
+        "phase": "browser-search",
+        "id": 163,
+        "queryMs": 8.334650000007969,
+        "projectionMs": 0,
+        "assemblyMs": 1.1854959999909624,
+        "storageMs": 9.520145999998931
+      },
+      {
+        "phase": "browser-search",
+        "id": 164,
+        "queryMs": 19.1060839999991,
+        "projectionMs": 0.510472000009031,
+        "assemblyMs": 1.2580619999898772,
+        "storageMs": 20.87461799999801
+      },
+      {
+        "phase": "browser-search",
+        "id": 165,
+        "queryMs": 7.84330299998328,
+        "projectionMs": 0.035997999999381136,
+        "assemblyMs": 1.0708600000180013,
+        "storageMs": 8.950161000000662
+      },
+      {
+        "phase": "browser-search",
+        "id": 166,
+        "queryMs": 53.2762229999862,
+        "projectionMs": 0,
+        "assemblyMs": 1.5422120000112045,
+        "storageMs": 54.81843499999741
+      },
+      {
+        "phase": "browser-search",
+        "id": 167,
+        "queryMs": 9.414309000007052,
+        "projectionMs": 15.267325000004348,
+        "assemblyMs": 1.029179999990447,
+        "storageMs": 25.710814000001847
+      },
+      {
+        "phase": "browser-search",
+        "id": 168,
+        "queryMs": 9.425308000008954,
+        "projectionMs": 0.5237700000034238,
+        "assemblyMs": 1.1126169999879494,
+        "storageMs": 11.061695000000327
+      },
+      {
+        "phase": "browser-search",
+        "id": 169,
+        "queryMs": 8.075845999985177,
+        "projectionMs": 0.4092060000002675,
+        "assemblyMs": 1.11719700001413,
+        "storageMs": 9.602248999999574
+      },
+      {
+        "phase": "browser-search",
+        "id": 170,
+        "queryMs": 8.75741899998684,
+        "projectionMs": 0.3148049999981595,
+        "assemblyMs": 1.0646940000151517,
+        "storageMs": 10.13691800000015
+      },
+      {
+        "phase": "browser-search",
+        "id": 171,
+        "queryMs": 8.915931999999884,
+        "projectionMs": 0.3327010000066366,
+        "assemblyMs": 0.890598999994836,
+        "storageMs": 10.139232000001357
+      },
+      {
+        "phase": "browser-search",
+        "id": 172,
+        "queryMs": 7.10157899999831,
+        "projectionMs": 0.32341599999926984,
+        "assemblyMs": 0.9179320000039297,
+        "storageMs": 8.34292700000151
+      },
+      {
+        "phase": "browser-search",
+        "id": 173,
+        "queryMs": 8.248432000058529,
+        "projectionMs": 0,
+        "assemblyMs": 1.0267959999437153,
+        "storageMs": 9.275228000002244
+      },
+      {
+        "phase": "browser-search",
+        "id": 174,
+        "queryMs": 19.05436499998541,
+        "projectionMs": 0.5325540000012552,
+        "assemblyMs": 1.224651000011363,
+        "storageMs": 20.811569999998028
+      },
+      {
+        "phase": "browser-search",
+        "id": 175,
+        "queryMs": 8.833455000029062,
+        "projectionMs": 0.036508999997749925,
+        "assemblyMs": 1.0692649999728019,
+        "storageMs": 9.939228999999614
+      },
+      {
+        "phase": "browser-search",
+        "id": 176,
+        "queryMs": 52.5747280000287,
+        "projectionMs": 0,
+        "assemblyMs": 1.4345729999731702,
+        "storageMs": 54.00930100000187
+      },
+      {
+        "phase": "browser-search",
+        "id": 177,
+        "queryMs": 8.506500999999844,
+        "projectionMs": 15.193623999984993,
+        "assemblyMs": 1.0846280000150728,
+        "storageMs": 24.78475299999991
+      },
+      {
+        "phase": "browser-search",
+        "id": 178,
+        "queryMs": 10.734682000002067,
+        "projectionMs": 0.6192369999953371,
+        "assemblyMs": 1.1271280000000843,
+        "storageMs": 12.481046999997488
+      },
+      {
+        "phase": "browser-search",
+        "id": 179,
+        "queryMs": 9.082314000017504,
+        "projectionMs": 0.4091240000016114,
+        "assemblyMs": 1.0775169999797072,
+        "storageMs": 10.568954999998823
+      },
+      {
+        "phase": "browser-search",
+        "id": 180,
+        "queryMs": 8.609467999991466,
+        "projectionMs": 0.32963200000085635,
+        "assemblyMs": 1.1775610000076995,
+        "storageMs": 10.116661000000022
+      },
+      {
+        "phase": "browser-search",
+        "id": 181,
+        "queryMs": 9.407255999994959,
+        "projectionMs": 0.2984310000028927,
+        "assemblyMs": 1.2585370000015246,
+        "storageMs": 10.964223999999376
+      },
+      {
+        "phase": "browser-search",
+        "id": 182,
+        "queryMs": 7.915377000001172,
+        "projectionMs": 0.35908300000664894,
+        "assemblyMs": 1.0907459999943967,
+        "storageMs": 9.365206000002217
+      },
+      {
+        "phase": "browser-search",
+        "id": 183,
+        "queryMs": 8.175651000059588,
+        "projectionMs": 0,
+        "assemblyMs": 1.2201929999391723,
+        "storageMs": 9.39584399999876
+      },
+      {
+        "phase": "browser-search",
+        "id": 184,
+        "queryMs": 19.232074999999895,
+        "projectionMs": 0.5650989999994636,
+        "assemblyMs": 1.2242189999997208,
+        "storageMs": 21.02139299999908
+      },
+      {
+        "phase": "browser-search",
+        "id": 185,
+        "queryMs": 9.257430000023305,
+        "projectionMs": 0.03868200000215438,
+        "assemblyMs": 1.1722899999731453,
+        "storageMs": 10.468401999998605
+      },
+      {
+        "phase": "browser-search",
+        "id": 186,
+        "queryMs": 52.8097769998858,
+        "projectionMs": 0,
+        "assemblyMs": 1.4818120001145871,
+        "storageMs": 54.291589000000386
+      },
+      {
+        "phase": "browser-search",
+        "id": 187,
+        "queryMs": 9.07785000000149,
+        "projectionMs": 15.413674999999785,
+        "assemblyMs": 1.0999749999973574,
+        "storageMs": 25.591499999998632
+      },
+      {
+        "phase": "browser-search",
+        "id": 188,
+        "queryMs": 9.047271999992518,
+        "projectionMs": 0.5393650000005437,
+        "assemblyMs": 1.0062220000072557,
+        "storageMs": 10.592859000000317
+      },
+      {
+        "phase": "browser-search",
+        "id": 189,
+        "queryMs": 8.763170999995054,
+        "projectionMs": 0.4104970000043977,
+        "assemblyMs": 1.0186240000002726,
+        "storageMs": 10.192291999999725
+      },
+      {
+        "phase": "browser-search",
+        "id": 190,
+        "queryMs": 9.53851800000848,
+        "projectionMs": 0.3034700000025623,
+        "assemblyMs": 1.0381989999914367,
+        "storageMs": 10.88018700000248
+      },
+      {
+        "phase": "browser-search",
+        "id": 191,
+        "queryMs": 8.29865499999869,
+        "projectionMs": 0.3316299999896728,
+        "assemblyMs": 0.7584150000111549,
+        "storageMs": 9.388699999999517
+      },
+      {
+        "phase": "browser-search",
+        "id": 192,
+        "queryMs": 7.904041000005236,
+        "projectionMs": 0.3175029999947583,
+        "assemblyMs": 0.8001819999990403,
+        "storageMs": 9.021725999999035
+      },
+      {
+        "phase": "browser-search",
+        "id": 193,
+        "queryMs": 7.374610999948345,
+        "projectionMs": 0,
+        "assemblyMs": 0.961853000051633,
+        "storageMs": 8.336463999999978
+      },
+      {
+        "phase": "browser-search",
+        "id": 194,
+        "queryMs": 18.690607999993517,
+        "projectionMs": 0.5123730000159412,
+        "assemblyMs": 1.1028039999873727,
+        "storageMs": 20.30578499999683
+      },
+      {
+        "phase": "browser-search",
+        "id": 195,
+        "queryMs": 8.85671799994816,
+        "projectionMs": 0.03304200000275159,
+        "assemblyMs": 0.8104220000495843,
+        "storageMs": 9.700182000000495
+      },
+      {
+        "phase": "browser-search",
+        "id": 196,
+        "queryMs": 52.836550000003626,
+        "projectionMs": 0,
+        "assemblyMs": 1.4143519999961427,
+        "storageMs": 54.25090199999977
+      },
+      {
+        "phase": "browser-search",
+        "id": 197,
+        "queryMs": 10.86423500001547,
+        "projectionMs": 15.38378300000113,
+        "assemblyMs": 0.9029559999835328,
+        "storageMs": 27.150974000000133
+      },
+      {
+        "phase": "browser-search",
+        "id": 198,
+        "queryMs": 9.779436999993777,
+        "projectionMs": 0.5359600000047067,
+        "assemblyMs": 0.95653200000379,
+        "storageMs": 11.271929000002274
+      },
+      {
+        "phase": "browser-search",
+        "id": 199,
+        "queryMs": 8.686807000005501,
+        "projectionMs": 0.41402300000117975,
+        "assemblyMs": 1.092743999990489,
+        "storageMs": 10.19357399999717
+      },
+      {
+        "phase": "browser-search",
+        "id": 200,
+        "queryMs": 8.77403000000777,
+        "projectionMs": 0.3142070000030799,
+        "assemblyMs": 0.875687999989168,
+        "storageMs": 9.963925000000017
+      }
+    ],
+    "responseTimings": [
+      {
+        "phase": "search",
+        "headersMs": 18.898247000000993,
+        "jsonMs": 0.2525610000011511,
+        "totalMs": 19.153604000002815
+      },
+      {
+        "phase": "search",
+        "headersMs": 11.416468999999779,
+        "jsonMs": 0.2552770000002056,
+        "totalMs": 11.672547000001941
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.790671999999176,
+        "jsonMs": 0.0747190000001865,
+        "totalMs": 9.865701999999146
+      },
+      {
+        "phase": "search",
+        "headersMs": 40.17251200000101,
+        "jsonMs": 0.2264130000003206,
+        "totalMs": 40.39919599999848
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.899263999999675,
+        "jsonMs": 0.0725060000004305,
+        "totalMs": 9.972000000001572
+      },
+      {
+        "phase": "search",
+        "headersMs": 55.478947999999946,
+        "jsonMs": 0.061845999996876344,
+        "totalMs": 55.541103999999905
+      },
+      {
+        "phase": "search",
+        "headersMs": 57.684808999998495,
+        "jsonMs": 0.19444300000031944,
+        "totalMs": 57.879462999997486
+      },
+      {
+        "phase": "search",
+        "headersMs": 17.407451999999466,
+        "jsonMs": 0.23630100000082166,
+        "totalMs": 17.644023999997444
+      },
+      {
+        "phase": "search",
+        "headersMs": 10.588882000000012,
+        "jsonMs": 0.06499199999962002,
+        "totalMs": 10.65409400000135
+      },
+      {
+        "phase": "search",
+        "headersMs": 15.68481299999985,
+        "jsonMs": 1.038300000000163,
+        "totalMs": 16.72348399999828
+      },
+      {
+        "phase": "search",
+        "headersMs": 15.530334999999468,
+        "jsonMs": 0.18211000000155764,
+        "totalMs": 15.712695000001986
+      },
+      {
+        "phase": "search",
+        "headersMs": 10.011783999998443,
+        "jsonMs": 0.2221349999999802,
+        "totalMs": 10.234129999997094
+      },
+      {
+        "phase": "search",
+        "headersMs": 7.836119999999937,
+        "jsonMs": 0.05981199999951059,
+        "totalMs": 7.896241999998892
+      },
+      {
+        "phase": "search",
+        "headersMs": 39.11982600000192,
+        "jsonMs": 0.27237800000148127,
+        "totalMs": 39.39260500000091
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.899864999999409,
+        "jsonMs": 0.07948899999973946,
+        "totalMs": 9.97963399999935
+      },
+      {
+        "phase": "search",
+        "headersMs": 55.38627500000075,
+        "jsonMs": 0.08004900000014459,
+        "totalMs": 55.466645000000426
+      },
+      {
+        "phase": "search",
+        "headersMs": 72.0858240000016,
+        "jsonMs": 0.33421399999861023,
+        "totalMs": 72.42055000000255
+      },
+      {
+        "phase": "search",
+        "headersMs": 22.498192999999446,
+        "jsonMs": 0.2450170000010985,
+        "totalMs": 22.74347100000159
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.400872999998683,
+        "jsonMs": 0.06820700000025681,
+        "totalMs": 9.469331000000238
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.897992999998678,
+        "jsonMs": 0.9023960000013176,
+        "totalMs": 15.800810000000638
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.09795799999847,
+        "jsonMs": 0.18080800000097952,
+        "totalMs": 14.279037000000244
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.908851999996841,
+        "jsonMs": 0.22402800000054413,
+        "totalMs": 10.133099999999104
+      },
+      {
+        "phase": "search",
+        "headersMs": 8.674114000001282,
+        "jsonMs": 0.05967199999940931,
+        "totalMs": 8.73414600000251
+      },
+      {
+        "phase": "search",
+        "headersMs": 39.04021699999794,
+        "jsonMs": 0.22215499999947497,
+        "totalMs": 39.26260199999888
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.011515999998664,
+        "jsonMs": 0.06187599999975646,
+        "totalMs": 9.073651999999129
+      },
+      {
+        "phase": "search",
+        "headersMs": 54.564580999998725,
+        "jsonMs": 0.05559300000095391,
+        "totalMs": 54.620364999998856
+      },
+      {
+        "phase": "search",
+        "headersMs": 57.12019500000315,
+        "jsonMs": 0.1902849999969476,
+        "totalMs": 57.31075100000089
+      },
+      {
+        "phase": "search",
+        "headersMs": 16.67492299999867,
+        "jsonMs": 0.2687819999991916,
+        "totalMs": 16.94410599999901
+      },
+      {
+        "phase": "search",
+        "headersMs": 10.134764000002178,
+        "jsonMs": 0.05613499999890337,
+        "totalMs": 10.191210000000865
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.820909999998548,
+        "jsonMs": 1.007171000001108,
+        "totalMs": 15.828591999998025
+      },
+      {
+        "phase": "search",
+        "headersMs": 13.596462000001338,
+        "jsonMs": 0.16854500000044936,
+        "totalMs": 13.765257000002748
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.589234999999462,
+        "jsonMs": 0.2778890000008687,
+        "totalMs": 9.867425000000367
+      },
+      {
+        "phase": "search",
+        "headersMs": 8.833123000000342,
+        "jsonMs": 0.07874699999956647,
+        "totalMs": 8.912261000001308
+      },
+      {
+        "phase": "search",
+        "headersMs": 38.645588999999745,
+        "jsonMs": 0.22794600000270293,
+        "totalMs": 38.87382600000274
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.457940000000235,
+        "jsonMs": 0.05601500000193482,
+        "totalMs": 9.51417500000025
+      },
+      {
+        "phase": "search",
+        "headersMs": 54.36640400000033,
+        "jsonMs": 0.058439000000362284,
+        "totalMs": 54.42506399999911
+      },
+      {
+        "phase": "search",
+        "headersMs": 57.41457499999888,
+        "jsonMs": 0.24639999999999418,
+        "totalMs": 57.66130599999815
+      },
+      {
+        "phase": "search",
+        "headersMs": 16.835813000001508,
+        "jsonMs": 0.23845499999879394,
+        "totalMs": 17.0745190000016
+      },
+      {
+        "phase": "search",
+        "headersMs": 10.285180999999284,
+        "jsonMs": 0.09577900000294903,
+        "totalMs": 10.381270000001678
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.726102000000537,
+        "jsonMs": 1.1313539999973727,
+        "totalMs": 15.857915999997203
+      },
+      {
+        "phase": "search",
+        "headersMs": 13.694885000000795,
+        "jsonMs": 0.17466699999931734,
+        "totalMs": 13.869782000001578
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.545853999999963,
+        "jsonMs": 0.21901900000011665,
+        "totalMs": 9.765104000001884
+      },
+      {
+        "phase": "search",
+        "headersMs": 8.77511400000003,
+        "jsonMs": 0.051516999999876134,
+        "totalMs": 8.826851000001625
+      },
+      {
+        "phase": "search",
+        "headersMs": 38.955879000001005,
+        "jsonMs": 0.2451679999976477,
+        "totalMs": 39.2013079999997
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.615153999999166,
+        "jsonMs": 0.06394000000000233,
+        "totalMs": 9.67937399999937
+      },
+      {
+        "phase": "search",
+        "headersMs": 54.1938169999994,
+        "jsonMs": 0.06415999999808264,
+        "totalMs": 54.25821799999903
+      },
+      {
+        "phase": "search",
+        "headersMs": 57.694266999998945,
+        "jsonMs": 0.2472219999981462,
+        "totalMs": 57.94172999999864
+      },
+      {
+        "phase": "search",
+        "headersMs": 16.920631999997568,
+        "jsonMs": 0.29963000000134343,
+        "totalMs": 17.22077299999728
+      },
+      {
+        "phase": "search",
+        "headersMs": 12.248964000002161,
+        "jsonMs": 0.09325399999943329,
+        "totalMs": 12.342549000000872
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.751338999998552,
+        "jsonMs": 0.8794230000021344,
+        "totalMs": 15.63118299999769
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.067831999996997,
+        "jsonMs": 0.1763890000001993,
+        "totalMs": 14.24449199999799
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.853438999998616,
+        "jsonMs": 0.23864600000160863,
+        "totalMs": 10.09239499999967
+      },
+      {
+        "phase": "search",
+        "headersMs": 8.804998999999953,
+        "jsonMs": 0.050243999998201616,
+        "totalMs": 8.855493999999453
+      },
+      {
+        "phase": "search",
+        "headersMs": 39.6444049999991,
+        "jsonMs": 0.2956819999999425,
+        "totalMs": 39.941139999998995
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.636282999999821,
+        "jsonMs": 0.06609299999763607,
+        "totalMs": 9.702656999997998
+      },
+      {
+        "phase": "search",
+        "headersMs": 53.93429200000173,
+        "jsonMs": 0.06546199999866076,
+        "totalMs": 54.00008499999967
+      },
+      {
+        "phase": "search",
+        "headersMs": 57.941308999998,
+        "jsonMs": 0.19100600000092527,
+        "totalMs": 58.13258599999972
+      },
+      {
+        "phase": "search",
+        "headersMs": 16.65751000000091,
+        "jsonMs": 0.24297399999704794,
+        "totalMs": 16.90072499999951
+      },
+      {
+        "phase": "search",
+        "headersMs": 10.023916999998619,
+        "jsonMs": 0.06609300000127405,
+        "totalMs": 10.09024099999806
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.785030999999435,
+        "jsonMs": 0.8976370000018505,
+        "totalMs": 15.683179999999993
+      },
+      {
+        "phase": "search",
+        "headersMs": 13.919925999998668,
+        "jsonMs": 0.17479699999967124,
+        "totalMs": 14.094982999999047
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.638176000000385,
+        "jsonMs": 0.21069399999760208,
+        "totalMs": 9.849150999998528
+      },
+      {
+        "phase": "search",
+        "headersMs": 8.871244000001752,
+        "jsonMs": 0.050103999998100335,
+        "totalMs": 8.921578000001318
+      },
+      {
+        "phase": "search",
+        "headersMs": 38.56702199999927,
+        "jsonMs": 0.23122200000216253,
+        "totalMs": 38.798595000000205
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.503225000000384,
+        "jsonMs": 0.06623400000171387,
+        "totalMs": 9.569789000001037
+      },
+      {
+        "phase": "search",
+        "headersMs": 54.1222740000012,
+        "jsonMs": 0.06579299999793875,
+        "totalMs": 54.18826700000136
+      },
+      {
+        "phase": "search",
+        "headersMs": 56.2919069999989,
+        "jsonMs": 0.19201900000189198,
+        "totalMs": 56.48416599999837
+      },
+      {
+        "phase": "search",
+        "headersMs": 16.549427999998443,
+        "jsonMs": 0.26051700000243727,
+        "totalMs": 16.81027499999982
+      },
+      {
+        "phase": "search",
+        "headersMs": 10.036018999999214,
+        "jsonMs": 0.06389000000126543,
+        "totalMs": 10.100189999997383
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.878206000001228,
+        "jsonMs": 0.8815770000001066,
+        "totalMs": 15.760214000001724
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.116072000000713,
+        "jsonMs": 0.18430499999885797,
+        "totalMs": 14.300627000000532
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.829975000000559,
+        "jsonMs": 0.21561300000030315,
+        "totalMs": 10.045889000000898
+      },
+      {
+        "phase": "search",
+        "headersMs": 8.78511300000173,
+        "jsonMs": 0.06276699999943958,
+        "totalMs": 8.84820000000036
+      },
+      {
+        "phase": "search",
+        "headersMs": 38.86820499999885,
+        "jsonMs": 0.2127680000012333,
+        "totalMs": 39.08124300000054
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.476644999998825,
+        "jsonMs": 0.06753600000229198,
+        "totalMs": 9.544411999999284
+      },
+      {
+        "phase": "search",
+        "headersMs": 54.52348399999755,
+        "jsonMs": 0.0687580000012531,
+        "totalMs": 54.5925129999996
+      },
+      {
+        "phase": "search",
+        "headersMs": 57.68534,
+        "jsonMs": 0.19407300000239047,
+        "totalMs": 57.87967400000343
+      },
+      {
+        "phase": "search",
+        "headersMs": 16.66489499999807,
+        "jsonMs": 0.23425700000007055,
+        "totalMs": 16.89943299999868
+      },
+      {
+        "phase": "search",
+        "headersMs": 10.539980999998079,
+        "jsonMs": 0.07004100000267499,
+        "totalMs": 10.610422999998264
+      },
+      {
+        "phase": "search",
+        "headersMs": 15.067219000000478,
+        "jsonMs": 0.8718090000002121,
+        "totalMs": 15.939398999998957
+      },
+      {
+        "phase": "search",
+        "headersMs": 13.748325000000477,
+        "jsonMs": 0.18832199999815202,
+        "totalMs": 13.936947999998665
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.78577199999927,
+        "jsonMs": 0.2126270000007935,
+        "totalMs": 9.998690000000352
+      },
+      {
+        "phase": "search",
+        "headersMs": 8.742974000000686,
+        "jsonMs": 0.0571669999990263,
+        "totalMs": 8.80047199999899
+      },
+      {
+        "phase": "search",
+        "headersMs": 39.0983750000014,
+        "jsonMs": 0.2192399999985355,
+        "totalMs": 39.31805600000007
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.545733000002656,
+        "jsonMs": 0.06602399999974295,
+        "totalMs": 9.612067000001844
+      },
+      {
+        "phase": "search",
+        "headersMs": 53.53843300000153,
+        "jsonMs": 0.05468199999813805,
+        "totalMs": 53.593385000000126
+      },
+      {
+        "phase": "search",
+        "headersMs": 57.19653699999981,
+        "jsonMs": 0.19010599999819533,
+        "totalMs": 57.386953000001085
+      },
+      {
+        "phase": "search",
+        "headersMs": 24.959241000000475,
+        "jsonMs": 0.2385260000010021,
+        "totalMs": 25.198026999998547
+      },
+      {
+        "phase": "search",
+        "headersMs": 10.202860999997938,
+        "jsonMs": 0.08818500000052154,
+        "totalMs": 10.291336999998748
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.754666000000725,
+        "jsonMs": 0.858392999998614,
+        "totalMs": 15.613460000000487
+      },
+      {
+        "phase": "search",
+        "headersMs": 13.785895999997592,
+        "jsonMs": 0.17380400000183727,
+        "totalMs": 13.959971000000223
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.653054000002157,
+        "jsonMs": 0.32466700000077253,
+        "totalMs": 9.978101000000606
+      },
+      {
+        "phase": "search",
+        "headersMs": 8.825156999999308,
+        "jsonMs": 0.04744900000150665,
+        "totalMs": 8.872835999998642
+      },
+      {
+        "phase": "search",
+        "headersMs": 38.67485400000078,
+        "jsonMs": 0.20728700000108802,
+        "totalMs": 38.882391000002826
+      },
+      {
+        "phase": "search",
+        "headersMs": 9.430098000000726,
+        "jsonMs": 0.05983099999866681,
+        "totalMs": 9.490139999998064
+      },
+      {
+        "phase": "search",
+        "headersMs": 52.729411000000255,
+        "jsonMs": 0.06258700000034878,
+        "totalMs": 52.792379000002256
+      },
+      {
+        "phase": "search",
+        "headersMs": 57.52762600000278,
+        "jsonMs": 0.24164100000052713,
+        "totalMs": 57.76956799999971
+      },
+      {
+        "phase": "search",
+        "headersMs": 16.82113599999866,
+        "jsonMs": 0.2873970000000554,
+        "totalMs": 17.108822999998665
+      },
+      {
+        "phase": "search",
+        "headersMs": 10.012606000000233,
+        "jsonMs": 0.06520199999795295,
+        "totalMs": 10.07807799999864
+      },
+      {
+        "phase": "search",
+        "headersMs": 14.61859099999856,
+        "jsonMs": 1.0719529999987572,
+        "totalMs": 15.691004999996949
+      }
+    ],
+    "loadSamples": [
+      {
+        "at": "2026-09-21T13:18:30.974Z",
+        "phase": "indexing",
+        "loadavg": [
+          0.51,
+          0.3,
+          0.12
+        ],
+        "freeMiB": 14413.48828125
+      },
+      {
+        "at": "2026-09-21T13:18:35.973Z",
+        "phase": "indexing",
+        "loadavg": [
+          0.55,
+          0.31,
+          0.13
+        ],
+        "freeMiB": 14427.6796875
+      },
+      {
+        "at": "2026-09-21T13:18:40.973Z",
+        "phase": "indexing",
+        "loadavg": [
+          0.58,
+          0.33,
+          0.13
+        ],
+        "freeMiB": 14446.41796875
+      },
+      {
+        "at": "2026-09-21T13:18:45.974Z",
+        "phase": "indexing",
+        "loadavg": [
+          0.62,
+          0.34,
+          0.14
+        ],
+        "freeMiB": 14526.1875
+      },
+      {
+        "at": "2026-09-21T13:18:51.112Z",
+        "phase": "browser-search",
+        "loadavg": [
+          0.65,
+          0.35,
+          0.14
+        ],
+        "freeMiB": 14481.54296875
+      },
+      {
+        "at": "2026-09-21T13:18:56.112Z",
+        "phase": "browser-search",
+        "loadavg": [
+          0.68,
+          0.36,
+          0.15
+        ],
+        "freeMiB": 14308.0625
+      },
+      {
+        "at": "2026-09-21T13:19:01.112Z",
+        "phase": "idle",
+        "loadavg": [
+          0.62,
+          0.35,
+          0.15
+        ],
+        "freeMiB": 14414.83984375
+      }
+    ],
+    "validation": {
+      "expected": 200,
+      "observed": 200,
+      "uniqueIds": 200,
+      "duplicateIds": [],
+      "valid": true,
+      "phases": {
+        "search": 100,
+        "browser-search": 100
+      }
+    }
+  },
+  "samples": {
+    "queries": [
+      19.166206999998394,
+      11.678759000002174,
+      9.870279999999184,
+      40.40456600000107,
+      9.976308000001154,
+      55.54593300000124,
+      57.885253999997076,
+      17.64917300000161,
+      10.658512999998493,
+      16.72855300000083,
+      15.717513999999937,
+      10.237886999999319,
+      7.899899000000005,
+      39.39847599999848,
+      9.984423000001698,
+      55.47309699999823,
+      72.42838399999891,
+      22.750402999998187,
+      9.47374900000068,
+      15.805709000000206,
+      14.284406999999192,
+      10.13763900000049,
+      8.738754999998491,
+      39.267862000000605,
+      9.07806999999957,
+      54.624832999998034,
+      57.314657999999326,
+      16.948623999996926,
+      10.194906000000628,
+      15.833531000000221,
+      13.76917400000093,
+      9.871132000000216,
+      8.915616000002046,
+      38.87889600000199,
+      9.520556999999826,
+      54.42945200000031,
+      57.6658439999992,
+      17.078616999999213,
+      10.385007000000769,
+      15.862806000001001,
+      13.874339999998483,
+      9.768380000001343,
+      8.830368000002636,
+      39.20637700000225,
+      9.683672000002844,
+      54.26279599999907,
+      57.94627799999944,
+      17.23095100000137,
+      12.348159000001033,
+      15.636020999998436,
+      14.248489999998128,
+      10.096192000000883,
+      8.859090999998443,
+      39.955457000000024,
+      9.707816999998613,
+      54.005105000000185,
+      58.137085000002116,
+      16.905413000000408,
+      10.094610000000102,
+      15.687928999999713,
+      14.099741999998514,
+      9.852898000001005,
+      8.925334999999905,
+      38.804095999999845,
+      9.574587999999494,
+      54.193867999998474,
+      56.48864400000093,
+      16.815173999999388,
+      10.104687999999442,
+      15.76530300000013,
+      14.306477000001905,
+      10.050477000000683,
+      8.852950000000419,
+      39.0869640000019,
+      9.549070000000938,
+      54.59826299999986,
+      57.88542400000006,
+      16.904591999998956,
+      10.615010999998049,
+      15.944177999997919,
+      13.941805999998905,
+      10.006894999998622,
+      8.804658999997628,
+      39.32345599999826,
+      9.616837000001397,
+      53.59830499999953,
+      57.391521000001376,
+      25.20348699999886,
+      10.296465999999782,
+      15.618177999996988,
+      13.964649999998073,
+      9.98305099999925,
+      8.876803999999538,
+      38.88767200000075,
+      9.494528000002902,
+      52.798320999998396,
+      57.77501800000027,
+      17.11427399999957,
+      10.082747000000381,
+      15.695793000002595
+    ],
+    "browser": [
+      107.89999999999418,
+      56.89999999999418,
+      40.5,
+      60.30000000001746,
+      41.10000000000582,
+      92.89999999999418,
+      77.39999999999418,
+      58.10000000000582,
+      41,
+      60.09999999997672,
+      56.20000000001164,
+      58.60000000000582,
+      41.80000000001746,
+      60.59999999997672,
+      42.10000000000582,
+      93.60000000000582,
+      60.79999999998836,
+      58.60000000000582,
+      42,
+      60.80000000001746,
+      55.60000000000582,
+      58.70000000001164,
+      41.70000000001164,
+      61,
+      41.20000000001164,
+      93.70000000001164,
+      60.59999999997672,
+      58.39999999999418,
+      56.30000000001746,
+      60.69999999998254,
+      53.39999999999418,
+      58.90000000002328,
+      42.5,
+      60.59999999997672,
+      42.39999999999418,
+      93.89999999999418,
+      61.20000000001164,
+      58.40000000002328,
+      42.10000000000582,
+      60.5,
+      56.89999999999418,
+      42.70000000001164,
+      42.70000000001164,
+      61,
+      42.70000000001164,
+      94.30000000001746,
+      61,
+      59.29999999998836,
+      42.20000000001164,
+      77.60000000000582,
+      57.39999999999418,
+      58.80000000001746,
+      41.89999999999418,
+      60.89999999999418,
+      42.69999999998254,
+      93.5,
+      60.70000000001164,
+      58.10000000000582,
+      45.70000000001164,
+      60.89999999999418,
+      57.80000000001746,
+      42.30000000001746,
+      42.70000000001164,
+      60.59999999997672,
+      42.90000000002328,
+      94.29999999998836,
+      61.39999999999418,
+      59.20000000001164,
+      41.80000000001746,
+      61.10000000000582,
+      57.79999999998836,
+      42.89999999999418,
+      41.39999999999418,
+      60.70000000001164,
+      42.70000000001164,
+      94.10000000000582,
+      61,
+      59.5,
+      42.39999999999418,
+      61.10000000000582,
+      57.79999999998836,
+      43.10000000000582,
+      43.30000000001746,
+      61.19999999998254,
+      43,
+      94.29999999998836,
+      61.30000000001746,
+      42.89999999999418,
+      42.5,
+      60.60000000000582,
+      74.60000000000582,
+      56.70000000001164,
+      40.39999999999418,
+      60.29999999998836,
+      40.60000000000582,
+      92.5,
+      77,
+      57.59999999997672,
+      56.10000000000582,
+      59.90000000002328
+    ],
+    "status": [
+      4.2477440000000115,
+      5.947942999999896,
+      42.052213000000165,
+      4.975635000000011,
+      22.376826000000165,
+      41.427817000000005,
+      4.651601000000028,
+      18.457834000000275,
+      27.616263999999774,
+      2.9229009999999107,
+      24.466761000000133,
+      24.22482799999989,
+      27.36792000000014,
+      32.2926809999999,
+      4.914372000000185,
+      23.113953000000038,
+      24.53730200000018,
+      32.66086899999982,
+      26.74888400000009,
+      26.86917900000026,
+      5.3239770000000135,
+      23.51603299999988,
+      24.645404000000326,
+      26.81659000000036,
+      33.21578599999975,
+      4.956560000000081,
+      20.344147999999677,
+      22.823941000000104,
+      30.861647000000175,
+      23.323473999999806,
+      30.36684299999979,
+      31.062413000000106,
+      25.04553100000021,
+      22.675302999999985,
+      30.984577000000172,
+      6.472001999999975,
+      17.9474909999999,
+      23.721467000000303,
+      30.505772999999863,
+      25.40350699999999,
+      2.7818670000001475,
+      23.792359999999917,
+      29.97573199999988,
+      23.597385999999915,
+      25.579329000000143,
+      30.48934199999985,
+      27.765219000000343,
+      26.337785999999596,
+      35.07474899999988,
+      26.89728100000002,
+      26.433284000000185,
+      8.164283000000069,
+      27.064863999999943,
+      23.89951000000019,
+      22.66303999999991,
+      33.059573999999884,
+      26.636583999999857,
+      25.70495600000004,
+      33.498863999999685,
+      26.532709999999952,
+      7.9900470000002315,
+      19.171276999999918,
+      30.691279000000122,
+      24.1095720000003,
+      25.064026000000013,
+      29.602836000000025,
+      22.563182999999754,
+      22.44336999999996,
+      29.07736400000067,
+      22.83692599999995,
+      7.659931000000142,
+      19.49151499999971,
+      31.178269,
+      22.54544999999962,
+      22.335658000000876,
+      32.80277500000011,
+      23.043502000000444,
+      22.47581100000025,
+      41.88878999999997,
+      38.27669100000003,
+      22.570255999999972,
+      32.24582400000054,
+      23.401029000000563,
+      22.894193000000087,
+      30.429651000000376,
+      22.772415000000365,
+      22.77009999999973,
+      30.340825000000223,
+      36.85967299999993,
+      22.70020199999999,
+      30.169323000000077,
+      22.498262000000068,
+      23.228457000000162,
+      30.452924000000166,
+      24.854246999999305,
+      9.589115000000675,
+      22.730947000000015,
+      30.762933000000885,
+      23.55203100000017,
+      22.06646600000022
+    ],
+    "cold": [
+      378.09514099999797,
+      376.52361100000417,
+      375.2271799999944,
+      373.28661799999827,
+      380.277267999998
+    ],
+    "idleCpu": [
+      89.5643659816412,
+      0.07616245329427715,
+      0.06548255546519229,
+      0.07865452091273788,
+      0.074665739650915,
+      0.11177074053616007,
+      0.07116137579651143,
+      0.05032095945998976,
+      0.058703076758836785,
+      0.06548341150062888,
+      0.06508154949730416,
+      0.07386758585201403
+    ]
+  },
+  "limitations": [
+    "Synthetic browser latency includes Playwright scheduling and two animation frames after results render; conservative visible-latency observation.",
+    "RSS uses the service child high-water mark; generator memory is excluded."
+  ]
+}

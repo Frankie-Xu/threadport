@@ -15,10 +15,14 @@
 
 ## Steps
 
-- [ ] Add source tests comparing batched and one-event reads, partial-block restart with a fresh adapter, same-page metadata/tool state and source rewrites.
-- [ ] Add reader tests for consumer stop/revisit boundaries, reset notification and cancellation/exception cleanup.
-- [ ] Add an optional synchronous line consumer to src/sources/jsonl-reader.ts. Compute the final checkpoint after stop/revisit decisions.
-- [ ] Move single-record normalization in src/sources/jsonl-source.ts into that consumer. Stop at the event budget and preserve state across records within the page.
-- [ ] Run source, indexing, capacity and recovery tests, then full check, three-platform CI, browser and isolated-install checks.
-- [ ] Run clean-commit fixed-capacity browser benchmarks locally and on Ubuntu; retain failures and exact source SHA.
-- [ ] Update release evidence and merge only after required checks pass. Do not equate synthetic acceptance with real-agent or external-user certification.
+- [x] Add source tests comparing batched and one-event reads, partial-block restart with a fresh adapter, same-page metadata/tool state and source rewrites.
+- [x] Add reader tests for consumer stop/revisit boundaries, reset notification and cancellation/exception cleanup.
+- [x] Add an optional synchronous line consumer to src/sources/jsonl-reader.ts. Compute the final checkpoint after stop/revisit decisions.
+- [x] Move single-record normalization in src/sources/jsonl-source.ts into that consumer. Stop at the event budget and preserve state across records within the page.
+- [x] Run source, indexing, capacity and recovery tests, then full check, three-platform CI, browser and isolated-install checks.
+- [x] Run clean-commit fixed-capacity browser benchmarks locally and on Ubuntu; retain failures and exact source SHA.
+- [x] Update release evidence and merge only after required checks pass. Do not equate synthetic acceptance with real-agent or external-user certification.
+
+## Outcome
+
+Runtime 829a862 passed all fixed-capacity budgets on macOS and Ubuntu; full local checks passed 520 tests. PR #66 carries the final cross-platform checks. Evidence and remaining real-world certification boundaries are recorded in docs/verification/batched-indexing-2026-09-21.md.
