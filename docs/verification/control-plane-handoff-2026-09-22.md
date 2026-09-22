@@ -7,10 +7,10 @@
 - 基线：`origin/main@967ceee`。
 - 实现提交：`f0a1ef93064b78e07a0dd4a020104586e998d41f`（短 SHA：`f0a1ef9`）。
 - 当前分支：`codex/control-plane-integrity`。
-- 交接前 HEAD：`8997b0e65b0d1080de3f4898b5c3ab7c3cd042bc`；本交接提交是当前分支的新 tip，交接提交及其前一提交只追加验证记录和交付报告，没有改变运行时代码。推送后以 `git rev-parse HEAD` 记录最终交接提交 SHA。
+- 本次复核快照 HEAD：`4159d44638df91eb424c8c17e51f993526bc856e`，对应 CI run `35742523025`。该 SHA 之后的本次收口只更新交接文档与交付报告，没有改变运行时代码；最终文档提交 SHA 由 `git rev-parse HEAD` 及 PR 的 `headRefOid` 核对，不将旧 CI 结果自动延伸到新提交。
 - PR：[Frankie-Xu/threadport#70](https://github.com/Frankie-Xu/threadport/pull/70)，标题为 `fix: enforce control-plane receipt verification`，状态为 **OPEN / Draft**，`mergeStateStatus=CLEAN`。
-- 当前 PR 没有 review 或 comment；维护者审阅与是否合并是当前阻塞责任。
-- PR 当前 diff 相对 `origin/main` 为 19 个文件；工作树干净，分支将在本交接提交推送后与 `origin/codex/control-plane-integrity` 同步。
+- 复核快照时 PR 没有 review、普通 comment 或逐行 review comment；维护者审阅与是否合并是当前阻塞责任。
+- 已核对 PR 文件清单、运行时代码 diff、CI 绑定 SHA 和本地分支。上述快照相对 `origin/main` 为 19 个文件，工作树干净且已与远端同步；文档补充后的最终状态在交付回复中记录。此复核不替代维护者人工审阅。
 
 ## 已完成
 
@@ -56,7 +56,9 @@
 - `trackedChanges=false`，Node `v24.19.0`，平台 `win32/x64`。
 - 机器可读证据：[control-plane-candidate-2026-09-22.json](packages/control-plane-candidate-2026-09-22.json)。
 
-最新 PR CI run `35737956731` 已通过 aggregate `check` 以及 Ubuntu、macOS、Windows 的 Node 24 jobs。此前第一轮远程 run 因 `check:docs` 引用本地 ignored evidence 路径失败；manifest 改为提交在 `docs/verification/packages/` 后，后续 run 全部通过。
+已验证快照 CI：[run 35742523025](https://github.com/Frankie-Xu/threadport/actions/runs/35742523025) 在 `4159d44` 上通过 aggregate `check` 以及 Ubuntu、macOS、Windows 的 Node 24 jobs，各平台均完成 browser workflows 与 isolated package installation；此前 `8997b0e` 对应的 run `35737956731` 也通过。第一轮远程 run `35735908166` 的 Ubuntu/macOS jobs 因 `check:docs` 引用本地 ignored evidence 路径失败，整体运行随后被取消；manifest 改为提交在 `docs/verification/packages/` 后复测通过。
+
+2026-09-22 收口重新计算了本地 `output/package-review-final/threadport-0.2.0-dev.0.tgz` 的 SHA-256、SHA-512，并与 manifest 及归档文件列表核对：全部一致，264 个文件。提交的 evidence JSON 与本地 `.tgz.json` 字节一致；`sourceCommit` 解析为真实 Git commit，该提交之后到复核快照只改变文档与报告。本次未重建或改写该历史包，不将它重新标记为 merge SHA 产物。
 
 交付报告：[development-completion-report.html](../../outputs/development-completion-report.html)。完整候选审查：[control-plane-review-2026-09-22.md](control-plane-review-2026-09-22.md)。
 
@@ -65,7 +67,7 @@
 - T14-B/T18 的真实 Claude/Codex Agent、Ubuntu/macOS/Windows、native-resume/new-session 矩阵仍为 `unknown`、`not_run` 或 `HOLD`；合成浏览器测试不能替代真实 Agent 证据。
 - T20 外部用户观察仍为 0 名，不得写成完成。
 - T21、Q01–Q24 以及原始 S01–S36 证据仍有 unavailable/unknown 项。
-- `rc-checklist-v0.2.md` 和 `agent-matrix-beta.md` 中的历史/未完成状态保持原样；不存在的 `compatibility.md` 未新增伪造的兼容性证据。
+- 已检查 [RC 索引](rc-checklist-v0.2.md)、[真实 Agent 矩阵](agent-matrix-beta.md)、[兼容性边界](../compatibility.md) 和 [用户观察记录](user-study-v0.2.md)。保留旧包三格历史观察，不能迁移为本候选的通过证据；当前 candidate 的真实 Agent 覆盖仍未认证，用户观察仍为零。
 - stable 继续 `HOLD`。当前 candidate、公开 prerelease、stable 三者边界不得混写。
 - 本交接阶段没有执行 stable tag/Release、npm publish、真实 Agent 登录、外部用户招募或对外通知。
 
@@ -82,6 +84,31 @@
 
 - **责任人**：当前阻塞项由仓库维护者负责 PR #70 的人工审阅、合并决定和合并后的 reviewed candidate 重建；开发代理已完成候选实现、自动验证和证据归档。
 - **前置条件**：PR 必须先完成审阅并合并；合并后的 SHA、干净工作树、可复现依赖安装和可保存的 package artifact 必须可取得；真实 Agent/用户测试必须在获授权的目标环境执行。
-- **合并后命令**：`npm ci`；`npm run check`；`npm run test:e2e`；`npm run check:pack`；`THREADPORT_PACKAGE_OUTPUT=output/package-reviewed npm run test:package`；`npm run check:docs`；`git diff --check`。
+- **合并后命令**：先执行下方只读检查，确认 PR 状态为 `MERGED` 并读取 `mergeCommit.oid`；在维护者创建的独立、干净 checkout 中检出该实际 SHA，使用 Node 24。输出目录按 merge SHA 命名，必须不存在；既有 evidence 不覆盖。
 - **验收条件**：合并 SHA 与 package manifest 的 `sourceCommit` 一致；候选 tarball SHA-256 与 manifest 一致；源测试、浏览器测试、隔离安装包 smoke、文档链接和三平台 CI 均通过；T14-B/T18/T20/T21 与原 S01–S36 的状态仍按真实证据逐项记录。
 - **禁止动作**：在上述条件满足前不得创建 stable tag/Release、不得执行 `npm publish`、不得声称真实 Agent 登录或外部用户招募完成、不得把 candidate 或 prerelease 证据写成 stable 证据。
+
+PowerShell 执行单（每条命令成功后才执行下一条；真实 Agent、用户观察与发布不包含在此命令单中）：
+
+```powershell
+gh pr view 70 --repo Frankie-Xu/threadport --json state,mergeCommit,headRefOid
+# 维护者确认 MERGED，并在独立 checkout 检出 mergeCommit.oid 后：
+git status --porcelain
+$reviewedCommit = git rev-parse HEAD
+node --version
+npm ci
+npm run check
+npm run test:e2e
+npm run check:pack
+$reviewedOutput = "output/package-reviewed-$reviewedCommit"
+if (Test-Path -LiteralPath $reviewedOutput) { throw "Evidence directory already exists; preserve it." }
+$env:THREADPORT_PACKAGE_OUTPUT = $reviewedOutput
+try { npm run test:package } finally { Remove-Item Env:THREADPORT_PACKAGE_OUTPUT }
+npm run check:docs
+git diff --check
+$reviewedEvidence = Get-Content -Raw -LiteralPath "$reviewedOutput/threadport-0.2.0-dev.0.tgz.json" | ConvertFrom-Json
+$reviewedHash = (Get-FileHash -Algorithm SHA256 -LiteralPath "$reviewedOutput/threadport-0.2.0-dev.0.tgz").Hash.ToLowerInvariant()
+if ($reviewedEvidence.sourceCommit -ne $reviewedCommit -or $reviewedEvidence.sha256 -ne $reviewedHash -or $reviewedEvidence.trackedChanges) { throw "Package evidence mismatch." }
+```
+
+上面文件名适用于当前 `0.2.0-dev.0`；如果维护者另行审阅了版本修改，应采用工具实际生成的文件名。保存 tarball 与伴随 JSON，将脱敏后的 manifest 归档到受版本管理的验证目录，再记录同一 merge SHA 的三平台 CI 链接。测试失败时保存首次失败、修复与重测记录，不跳过失败步骤。

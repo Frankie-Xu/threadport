@@ -80,15 +80,16 @@
 <tr><td><code>npm run test:e2e</code></td><td class="ok">通过；11/11 browser tests</td><td>实现候选 f0a1ef9</td></tr>
 <tr><td><code>npm run check:pack</code></td><td class="ok">通过；264-file isolated package smoke</td><td>最终快照 cb651aa</td></tr>
 <tr><td><code>THREADPORT_PACKAGE_OUTPUT=output/package-review-final npm run test:package</code></td><td class="ok">通过；installed browser smoke + 264-file package smoke</td><td>sourceCommit cb651aa</td></tr>
-<tr><td>PR CI run <code>35736379038</code></td><td class="ok">通过；check + Ubuntu/macOS/Windows Node 24 全部通过</td><td>PR #70 / latest candidate</td></tr>
+<tr><td>交接快照 PR CI run <code>35742523025</code></td><td class="ok">通过；check + Ubuntu/macOS/Windows Node 24 全部通过</td><td>PR #70 / 已验证快照 4159d44；后续文档提交需单独核对 CI</td></tr>
 <tr><td>Retained tarball</td><td><code>threadport-0.2.0-dev.0.tgz</code><br>SHA-256 <code>9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce</code></td><td>trackedChanges=false</td></tr>
 </tbody></table><div class="callout">首次 focused run 因未先构建而缺少 <code>dist/web/index.html</code>；该失败已保留。执行 <code>npm run build</code> 后 focused control-plane/server 测试为 26/26，通过后才继续完整验证。</div></section>
 <section class="grid two">
-<article class="card"><h2>公开 prerelease 事实</h2><p>GitHub Release <code>v0.2.0-dev.0</code> 的 tag 仍指向 <code>967ceee</code>，CI aggregate run 为 <code>35719556446</code>，资产 hash 为 <code>b3cb66cb671930d021bda9e710d96a617068b1700d2e1f1c4bb576b91dee3a6c</code>。发布说明中的 <code>$hash</code> 已修正；候选 control-plane 改动没有写入该已发布包。</p></article>
+<article class="card"><h2>公开 prerelease 事实</h2><p>GitHub Release <code>v0.2.0-dev.0</code> 的 tag 仍指向 <code>967ceee</code>，CI aggregate run 为 <code>35719556446</code>，资产 hash 为 <code>b3cb66cb671930d021bda9e710d96a617068b1700d2e1f1c4bb576b91dee3a6c</code>。发布说明中的 hash 占位文本已修正；候选 control-plane 改动没有写入该已发布包。</p></article>
 <article class="card"><h2>风险与回滚</h2><ul><li>候选的三平台 Node 24 PR CI 已通过，仍待独立 PR review 与合并。</li><li>包验证是合成安装/浏览器检查，不等于真实 Agent 或用户认证。</li><li>回滚路径：revert 独立实现提交 <code>f0a1ef9</code>；保留首次失败和本验证记录。</li></ul></article>
 </section>
 <section class="card" style="margin-top:24px"><h2>下一步</h2><ol><li>审查并合并 <code>codex/control-plane-integrity</code> 小 PR，使用合并后的 SHA 重新绑定包和 CI artifact。</li><li>按计划补齐 T14-B/T18，保持没有证据的 Agent/平台路径为 <code>unknown</code>、<code>coverage-gap</code>、<code>not_run</code> 或 <code>HOLD</code>。</li><li>只有 T20、T21 和明确授权完成后，才重新讨论 stable；本任务不创建 stable tag/Release。</li></ol></section>
-<footer><b>详细记录：</b> <a href="../docs/verification/control-plane-review-2026-09-22.md">control-plane-review-2026-09-22.md</a> · <a href="../docs/verification/release-0.2.0.md">release-0.2.0.md</a> · <a href="../docs/verification/packages/control-plane-candidate-2026-09-22.json">final package evidence JSON</a><br>报告生成日期：2026-09-22。页面为自包含 HTML，无外部资源或网络请求。</footer>
+<section class="card" style="margin-top:24px"><h2>维护者开发交接</h2><p>已新增 <a href="../docs/verification/control-plane-handoff-2026-09-22.md">control-plane-handoff-2026-09-22.md</a>，包含责任人、前置条件、PowerShell 执行单、验收条件与禁止动作。当前阻塞责任在维护者审阅并决定合并 PR #70；合并后才按实际 merge SHA 重建 reviewed candidate。</p><p>本次重新计算本地 tarball 的 SHA-256、SHA-512 并比较 264 个文件清单，全部与 evidence manifest 一致；提交 JSON 与本地伴随 JSON 字节一致。历史包仍绑定 <code>cb651aa</code>，未改写为新 HEAD 的证据。</p><p class="muted">已检查 release、RC 索引、Agent 矩阵、compatibility 与 user study 文档；只补充状态和时间边界。真实 Agent、外部用户与原 S01–S36 的证据缺口保持原状态。报告已通过静态页面检查；Codex 浏览器拒绝本地 file URL，未完成视觉渲染检查。</p></section>
+<footer><b>详细记录：</b> <a href="../docs/verification/control-plane-handoff-2026-09-22.md">开发交接单</a> · <a href="../docs/verification/control-plane-review-2026-09-22.md">control-plane-review-2026-09-22.md</a> · <a href="../docs/verification/release-0.2.0.md">release-0.2.0.md</a> · <a href="../docs/verification/packages/control-plane-candidate-2026-09-22.json">retained candidate package evidence JSON</a><br>报告生成日期：2026-09-22。页面为自包含 HTML，无外部资源或网络请求。</footer>
 <script>
 /*!
  * charts-theme.js — single source of truth for all visual tokens

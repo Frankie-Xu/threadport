@@ -2,7 +2,9 @@
 
 **证据时效：** 下方 CLI 接口与真实接续记录属于各自记录的旧安装包/版本，不认证后续运行时修复。当前提交、自动回归和待验收边界见 [整改状态](remediation-progress-2026-09-16.md)。
 
-这不是全矩阵认证通过报告。2026-09-15 已通过实际安装包运行 macOS Codex→Codex 的三个隔离任务；第一次绝对命令路径脱敏导致 exit127，Agent回退后完成，后续用例使用可移植命令。其余21格未运行。当前 Codex 0.154.0-alpha.6.2 已登录；本机 Claude 不在 PATH，先前临时安装已不存在；Docker 服务未运行，尚无 Ubuntu 真实 Agent 条件。
+这不是全矩阵认证通过报告。2026-09-15 已通过实际安装包运行 macOS Codex→Codex 的三个隔离任务；第一次绝对命令路径脱敏导致 exit127，Agent回退后完成，后续用例使用可移植命令。其余21格未运行。该次 macOS 测试记录的环境为 Codex 0.154.0-alpha.6.2 已登录、Claude 不在 PATH、先前临时安装已不存在、Docker 服务未运行；这些历史事实不代表当前环境或候选已经完成认证。
+
+2026-09-22 control-plane 候选只增加自动验证与交接记录，本次未进行真实 Agent 登录或接续实验。旧包三个观察结果不迁移为该候选的通过记录，Ubuntu/macOS/Windows 的真实 Agent 路径继续按缺口保留 `unknown`、`coverage-gap`、`not_run` 或 `HOLD`，参见 [开发交接记录](control-plane-handoff-2026-09-22.md)。
 
 每格需记录最终候选 SHA、安装包 SHA-256、OS/Node/Agent 版本、native-resume 或 new-session 模式、正确工作目录、完整人工约束、预设下一步的实际产物和用户确认。一次 exit 0 不能视作任务成功。首次失败保留，再按所属模块修复并记录重测。只保存匿名元数据，不提交原始私人日志。
 
