@@ -13,11 +13,11 @@
   <div class="eyebrow">ThreadPort · Development status</div>
   <h1>基准调度隔离已修复，性能门禁重新通过</h1>
   <p class="lede">截至 2026-09-22，当前合并提交为 <code>967ceee</code>（PR #67，基于 <code>origin/main@9f366a9</code>），已把 benchmark 的周期自动刷新调度与手动增量 index job 测量隔离。固定 200 MiB / 500 sessions / 50,000 events 基准已通过；真实 Agent 矩阵、外部用户观察和最终发布审查仍未完成，因此版本仍是 <code>0.2.0-dev.0</code>，稳定版发布继续保持 HOLD。</p>
-  <div class="meta"><span>当前分支：<code>codex/index-lease-performance</code></span><span>候选 SHA：<code>55e1828</code></span><span class="status">当前状态：已合并</span></div>
+  <div class="meta"><span>当前主线：<code>origin/main@967ceee</code></span><span>来源候选：<code>55e1828</code></span><span class="status hold">当前状态：CI 已通过，发布门禁仍 HOLD</span></div>
 </header>
 
 <section class="grid kpis">
-  <div class="card kpi"><div class="label">最新候选</div><div class="value">55e1828</div><div class="label">2026-09-22 · benchmark 调度隔离</div></div>
+  <div class="card kpi"><div class="label">最新主线</div><div class="value">967ceee</div><div class="label">2026-09-22 · PR #67 已合并</div></div>
   <div class="card kpi"><div class="label">本地基准</div><div class="value ok">PASS</div><div class="label">Windows 固定容量</div></div>
   <div class="card kpi"><div class="label">单元测试</div><div class="value ok">520 / 520</div><div class="label">82 个测试文件</div></div>
   <div class="card kpi"><div class="label">E2E 测试</div><div class="value ok">10 / 10</div><div class="label">Playwright 通过</div></div>
@@ -86,8 +86,8 @@
   <h2>可执行工作包：功能、边界、步骤与验收</h2>
   <p>完整实施计划已保存到 <a href="../docs/superpowers/plans/2026-09-22-release-closeout.md">docs/superpowers/plans/2026-09-22-release-closeout.md</a>。下面是按专业开发流程压缩后的执行顺序；每个工作包都应独立开 PR、独立验证、保留失败证据，再进入下一项。</p>
   <table><thead><tr><th>优先级 / 工作包</th><th>功能目标</th><th>边界</th><th>主要步骤</th><th>完成证据</th></tr></thead><tbody>
-    <tr><td><strong>P0 · Task 1</strong><br>CI 迁移超时</td><td>恢复 Ubuntu Node 24 的迁移测试和汇总 CI 绿色。</td><td>不删除历史 schema 覆盖，不用无条件放宽 timeout 掩盖回归。</td><td>分段计时 → 对比本地/runner → 写根因回归测试 → 最小修复 → 全平台 CI。</td><td>三平台 Node 24 通过；备份、回滚、历史数据和幂等迁移仍通过。</td></tr>
-    <tr><td><strong>P0 · Task 2</strong><br>benchmark 调度隔离</td><td>让 benchmark 可以关闭周期刷新，并明确测量一次手动增量 index job 的完成与可见性。</td><td>只影响 benchmark worker；默认服务仍自动刷新；手动 job 时间不能冒充生产 15 秒调度可见性。</td><td>复核已提交 diff → 补默认/关闭行为回归 → 运行 benchmark 与 validation → 绑定候选 SHA 决策。</td><td><code>55e1828</code> 已提交；默认行为保持；指标命名和协议边界清楚；候选 CI 通过。</td></tr>
+    <tr><td><strong>已完成 · Task 1</strong><br>CI 迁移超时收口</td><td>恢复 Ubuntu Node 24 的迁移测试和汇总 CI 绿色，并保留历史失败边界。</td><td>不删除历史 schema 覆盖，不用无条件放宽 timeout 掩盖回归。</td><td>历史失败与候选 run 对照 → 分段计时 → 若重现再写回归测试 → 更新验证记录。</td><td class="ok">候选 run 35718501543 的三平台 Node 24 和汇总 check 全部通过；历史失败仍应在验证文档中归因。</td></tr>
+    <tr><td><strong>已完成 · Task 2</strong><br>benchmark 调度隔离</td><td>让 benchmark 可以关闭周期刷新，并明确测量一次手动增量 index job 的完成与可见性。</td><td>只影响 benchmark worker；默认服务仍自动刷新；手动 job 时间不能冒充生产 15 秒调度可见性。</td><td>复核提交 → 检查默认/关闭行为 → 运行 benchmark 与 validation → 绑定合并 SHA。</td><td class="ok"><code>55e1828</code> 已由 PR #67 合并为 <code>967ceee</code>；默认行为保持；指标边界已写入报告。</td></tr>
     <tr><td><strong>P0 · Task 3</strong><br>候选冻结</td><td>从干净 SHA 生成可安装、可复查的 release candidate。</td><td>使用隔离 worktree；不清理当前工作区，不发布 tag/npm。</td><td><code>npm ci</code> → <code>check</code> → e2e → package smoke → 保存 tarball/hash。</td><td>源码、浏览器、包、文档、脱敏检查全通过，所有产物绑定同一 SHA。</td></tr>
     <tr><td><strong>P1 · Task 4–5</strong><br>T14-B / T18 真实接续</td><td>完成真实 CLI 接续和 24 格 Agent/平台矩阵。</td><td>不自动登录、不收集原始日志；exit 0 不等于成功；未验证版本保持 unknown。</td><td>固定版本 → 三类隔离任务 → new-session/resume → 保留失败与重测 → 更新矩阵。</td><td>每格有 SHA、包 hash、OS/Node/Agent、模式、cwd、约束、产物和用户确认。</td></tr>
     <tr><td><strong>P1 · Task 6</strong><br>T19 最终 RC</td><td>证明最终 tarball 能在独立目录安装、运行和持久化。</td><td>安装验收不替代真实 Agent 或用户验证；不执行发布。</td><td>独立安装 → public exports/SQLite/CLI/UI/doctor → 包白名单 → hash 绑定。</td><td>包文件、manifest、Node 24、第三方声明和 tarball SHA-256 一致。</td></tr>
@@ -97,8 +97,7 @@
   </tbody></table>
   <h3>推荐执行顺序</h3>
   <ol>
-    <li>先检查候选 <code>55e1828</code> 的 CI；若 Ubuntu 迁移超时重现，按 Task 1 定位根因，同时补齐 Task 2 的 focused test 和 benchmark validation 证据。</li>
-    <li>从绿色主线冻结候选 SHA，重新跑完整源码、浏览器和安装包检查。</li>
+    <li>以已通过 CI 的主线 <code>967ceee</code> 创建隔离 worktree，重新跑源码、浏览器和安装包检查并保存 tarball/hash。</li>
     <li>用同一候选包完成 T14-B/T18，再做 T19 包复核。</li>
     <li>在 T18/T19 证据稳定后进行 T20 用户观察。</li>
     <li>最后完成 T21 Q01–Q24 审查；所有门禁通过并得到明确授权后才讨论发布。</li>
