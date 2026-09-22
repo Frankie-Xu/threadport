@@ -7,7 +7,7 @@
 - 基线：`origin/main@967ceee`。
 - 实现提交：`f0a1ef93064b78e07a0dd4a020104586e998d41f`（短 SHA：`f0a1ef9`）。
 - 当前分支：`codex/control-plane-integrity`。
-- 当前 HEAD：`2c30b5be3d40e3b626e25efacc1369c3d004e12d`；该提交及其前一提交只追加验证记录和交付报告，没有改变运行时代码。
+- 交接前 HEAD：`8997b0e65b0d1080de3f4898b5c3ab7c3cd042bc`；本交接提交是当前分支的新 tip，交接提交及其前一提交只追加验证记录和交付报告，没有改变运行时代码。推送后以 `git rev-parse HEAD` 记录最终交接提交 SHA。
 - PR：[Frankie-Xu/threadport#70](https://github.com/Frankie-Xu/threadport/pull/70)，标题为 `fix: enforce control-plane receipt verification`，状态为 **OPEN / Draft**，`mergeStateStatus=CLEAN`。
 - 当前 PR 没有 review 或 comment；维护者审阅与是否合并是当前阻塞责任。
 - PR 当前 diff 相对 `origin/main` 为 19 个文件；工作树干净，分支将在本交接提交推送后与 `origin/codex/control-plane-integrity` 同步。
