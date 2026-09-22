@@ -1,6 +1,6 @@
-# v0.2 发布决策：HOLD
+# v0.2 发布决策：BLOCKED
 
-当前没有 0.2.0 stable 发布。未创建 stable tag，未执行 npm publish，未对外发送邀请或推广消息。公开的开发 prerelease 与尚未合并的 PR candidate 分别记录如下，均不构成 stable 认证。
+PR #70 已于 `80f6220bd3f4ef8ee23c88b38d75aee5a589b824` squash merge，合并后的三平台 Node 24 CI 已通过，但当前没有 0.2.0 stable 发布。稳定发布在创建 tag/Release 或执行 npm publish 前暂停：npm registry 已存在同名 `threadport@0.2.0`，其 `gitHead` 为其他仓库的 `7fe3e8d76419b48c7e1594a23959182a2838954b`，且当前环境 `npm whoami` 返回 `ENEEDAUTH`。不能把当前项目的 merge SHA 写成同一 npm 版本，也不能在身份验证缺失时执行发布。
 
 | 门禁 | 状态 | 证据与解锁条件 |
 | --- | --- | --- |
@@ -10,7 +10,7 @@
 | T18 真实平台/Agent | HOLD | [24 格矩阵](agent-matrix-beta.md)：旧包 3/24 格已运行（2 pass、1 with issue），21 格未运行 |
 | T19 安装包 | 集成验证 | [产物流程](package-rc.md)；开发包已验证；最终 RC 仍依赖真实认证 |
 | T20 外部用户 | HOLD | [用户表](user-study-v0.2.md)：0 名已观察参与者 |
-| T21 stable 决策 | HOLD | 必交功能至少 L3、核心流程 L4 尚未满足 |
+| T21 stable 决策 | BLOCKED | npm 包名/版本已被其他仓库占用，当前 npm 身份验证也不可用；真实 Agent、外部用户和原始范围证据仍未关闭 |
 
 不以补齐文档代替通过门槛。下一步为在安静参考机复测性能、取得两个平台的真实 Agent 条件与用户许可；任何真实失败回到所属模块的小 PR 修复。最终候选必须重新执行 check、test:e2e、test:package，保存产物 SHA-256，再逐条完成 Q01–Q24 审查和明确的发布授权。
 
@@ -24,9 +24,9 @@ Release Notes 草稿：实验性本地任务收件箱、历史搜索、人工修
 
 已复核公开 GitHub prerelease `v0.2.0-dev.0`：tag 指向 `967ceee`，CI aggregate run 为 `35719556446`，资产 `threadport-0.2.0-dev.0.tgz` 的真实 SHA-256 为 `b3cb66cb671930d021bda9e710d96a617068b1700d2e1f1c4bb576b91dee3a6c`。发布说明中的 hash 占位文本已替换为该值；这只修正已发布开发快照的交付记录。
 
-新的 control-plane 候选为 workspace-only 实现提交 `f0a1ef93064b78e07a0dd4a020104586e998d41f`，其后仅追加验证文档，尚未进入上述发布包。隔离 Node 24.19.0 / Windows x64 验证通过 83 个测试文件、526 个测试、11 个浏览器测试和 264 文件安装包；候选 tarball SHA-256 为 `9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce`，证据 manifest 记录的 `sourceCommit` 为 `cb651aa7927af38f7d935f0ff5749384bb6180e5`。PR #70 的最新三平台 Node 24 CI 已全绿，但 PR 仍为 Draft，尚未合并。完整门禁和首次失败记录见 [control-plane review](control-plane-review-2026-09-22.md)。
+新的 control-plane reviewed candidate 绑定合并提交 `80f6220bd3f4ef8ee23c88b38d75aee5a589b824`；隔离 Node 24.19.0 / Windows x64 验证通过 83 个测试文件、526 个测试、11 个浏览器测试和 264 文件安装包。候选 tarball SHA-256 为 `9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce`，SHA-512 integrity 为 `sha512-+Ud+IAh5zoCTJzPt9poq4Jj6oDnYlGOX38nvwwzch4NG0keG7Ha/c0QlX795CujFUgfry0/zHvvKMf3N1rfXUw==`；证据见 [reviewed package manifest](packages/control-plane-reviewed-80f6220.json)。合并后的 GitHub CI run [`35756796936`](https://github.com/Frankie-Xu/threadport/actions/runs/35756796936) 的 aggregate check、Ubuntu Node 24、macOS Node 24、Windows Node 24 全部通过。完整门禁和首次失败记录见 [control-plane review](control-plane-review-2026-09-22.md)。
 
-stable 仍为 HOLD：真实 Agent、外部用户、Q01–Q24 和原始 S01–S36 证据没有因本次候选验证而关闭。本次未创建 stable tag/Release，未执行 npm publish、真实 Agent 登录或用户招募。维护者审阅、合并及 reviewed candidate 重建的责任、前置条件和执行单见 [开发交接记录](control-plane-handoff-2026-09-22.md)。
+stable 保持 BLOCKED：真实 Agent、外部用户、Q01–Q24 和原始 S01–S36 证据没有因本次候选验证而关闭；同时 npm 包名/版本冲突和 npm 身份验证缺失尚未解决。本次未创建 stable tag/Release，未执行 npm publish、真实 Agent 登录或用户招募。执行边界和证据见 [开发交接记录](control-plane-handoff-2026-09-22.md)。
 
 ## 2026-09-18 候选复核
 

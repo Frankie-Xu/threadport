@@ -1,0 +1,36 @@
+{
+  "protocol": "threadport.package-evidence.v1",
+  "sourceCommit": "80f6220bd3f4ef8ee23c88b38d75aee5a589b824",
+  "version": "0.2.0-dev.0",
+  "filename": "threadport-0.2.0-dev.0.tgz",
+  "sha256": "9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce",
+  "integrity": "sha512-+Ud+IAh5zoCTJzPt9poq4Jj6oDnYlGOX38nvwwzch4NG0keG7Ha/c0QlX795CujFUgfry0/zHvvKMf3N1rfXUw==",
+  "bytes": 279506,
+  "fileCount": 264,
+  "trackedChanges": false,
+  "installedBrowser": true,
+  "node": "v24.19.0",
+  "platform": "win32",
+  "arch": "x64",
+  "checks": [
+    "npm ci",
+    "npm run check",
+    "npm run test:e2e",
+    "npm run check:pack",
+    "npm run test:package",
+    "npm run check:docs",
+    "git diff --check"
+  ],
+  "ci": {
+    "run": "35756796936",
+    "url": "https://github.com/Frankie-Xu/threadport/actions/runs/35756796936",
+    "platforms": [
+      "ubuntu-latest / Node 24",
+      "macos-latest / Node 24",
+      "windows-latest / Node 24"
+    ],
+    "conclusion": "success"
+  },
+  "certification": "synthetic package checks only; real Agent, external-user, Q01-Q24 and S01-S36 gates remain separate",
+  "workspaceArtifact": "output/package-reviewed-80f6220bd3f4ef8ee23c88b38d75aee5a589b824/"
+}
