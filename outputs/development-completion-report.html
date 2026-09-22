@@ -12,12 +12,12 @@
 <header>
   <div class="eyebrow">ThreadPort · Development status</div>
   <h1>基准调度隔离已修复，性能门禁重新通过</h1>
-  <p class="lede">截至 2026-09-22，本分支基于主线提交 <code>9f366a9</code>，修复了性能基准被 15 秒自动刷新调度器污染的问题。固定 200 MiB / 500 sessions / 50,000 events 基准已通过；真实 Agent 矩阵、外部用户观察和最终发布审查仍未完成，因此版本仍是 <code>0.2.0-dev.0</code>，稳定版发布继续保持 HOLD。</p>
-  <div class="meta"><span>当前分支：<code>codex/index-lease-performance</code></span><span>远端：<code>origin/main</code></span><span class="status">本次变更：待合并</span></div>
+  <p class="lede">截至 2026-09-22，当前合并提交为 <code>967ceee</code>（PR #67，基于 <code>origin/main@9f366a9</code>），已把 benchmark 的周期自动刷新调度与手动增量 index job 测量隔离。固定 200 MiB / 500 sessions / 50,000 events 基准已通过；真实 Agent 矩阵、外部用户观察和最终发布审查仍未完成，因此版本仍是 <code>0.2.0-dev.0</code>，稳定版发布继续保持 HOLD。</p>
+  <div class="meta"><span>当前分支：<code>codex/index-lease-performance</code></span><span>候选 SHA：<code>55e1828</code></span><span class="status">当前状态：已合并</span></div>
 </header>
 
 <section class="grid kpis">
-  <div class="card kpi"><div class="label">最新主线</div><div class="value">9f366a9</div><div class="label">2026-09-21 · PR #66</div></div>
+  <div class="card kpi"><div class="label">最新候选</div><div class="value">55e1828</div><div class="label">2026-09-22 · benchmark 调度隔离</div></div>
   <div class="card kpi"><div class="label">本地基准</div><div class="value ok">PASS</div><div class="label">Windows 固定容量</div></div>
   <div class="card kpi"><div class="label">单元测试</div><div class="value ok">520 / 520</div><div class="label">82 个测试文件</div></div>
   <div class="card kpi"><div class="label">E2E 测试</div><div class="value ok">10 / 10</div><div class="label">Playwright 通过</div></div>
@@ -28,10 +28,11 @@
 <article class="card">
   <h2>最近主线交付</h2>
   <table><thead><tr><th>提交</th><th>内容</th><th>状态</th></tr></thead><tbody>
+    <tr><td><code>55e1828</code></td><td>隔离 benchmark 自动刷新调度，并显式等待手动 index job 完成。</td><td class="ok">已合并 · PR #67</td></tr>
     <tr><td><code>d3fe770</code></td><td>控制平面证据、责任/回执边界和历史搜索投影。</td><td class="ok">已合并</td></tr>
     <tr><td><code>d5df9d1</code></td><td>控制平面与执行证据统一，安全处理数据库升级。</td><td class="ok">已合并</td></tr>
     <tr><td><code>81e513c</code></td><td>减少搜索扫描和空闲投影重建。</td><td class="ok">已合并</td></tr>
-    <tr><td><code>9f366a9</code></td><td>批量读取 JSONL 来源，降低首次索引开销；两平台固定容量预算通过。</td><td class="ok">当前主线</td></tr>
+    <tr><td><code>9f366a9</code></td><td>批量读取 JSONL 来源，降低首次索引开销；两平台固定容量预算通过。</td><td class="ok">候选基线</td></tr>
   </tbody></table>
 </article>
 <article class="card">
@@ -68,15 +69,15 @@
     <li><code>npm run typecheck</code>、<code>npm run build</code>、<code>npm run check:docs</code>、<code>npm run check:redaction</code>：全部通过。</li>
     <li><code>npm test -- --maxWorkers=2</code>：82 个测试文件、520/520 测试通过；<code>npm run test:e2e</code>：10/10 通过；<code>npm run check:pack</code>：通过。</li>
     <li><code>npm run bench</code>：PASS，索引 34.947 s、搜索 p95 260.819 ms、状态 p95 70.232 ms、RSS 294.258 MiB、取消 19.406 ms。</li>
-    <li>远端主线既有 CI 运行 35606469358 曾有 Ubuntu 迁移测试超时；本轮本地迁移、单元、E2E 和打包检查均通过，合并后仍需等待新 SHA 的 CI。</li>
+    <li>历史 CI 运行 35606469358 曾有 Ubuntu 迁移测试超时；候选 SHA <code>55e1828</code> 的 CI 运行 35718501543 中，Ubuntu、macOS、Windows 和汇总 check 全部通过，随后已合并为 <code>967ceee</code>。</li>
   </ul>
 </article>
 <article class="card">
   <h2>当前工作区注意项</h2>
   <ul>
-    <li>本次开发基线为 <code>origin/main</code> 的 <code>9f366a9</code>；此前的 <code>codex/fix-release-gates</code> 已由 PR #63 合并，远端分支已删除。</li>
-    <li>本轮改动集中在 <code>scripts/benchmark.mjs</code>、<code>src/server/app.ts</code> 和本报告：新增可选 <code>autoRefresh</code>，默认行为不变；基准显式触发增量 index job。</li>
-    <li>合并前本地证据已齐全；远端 CI 尚未覆盖本次候选 SHA，不能把本地结果当作跨平台发布保证。</li>
+    <li>PR #67 已于 2026-09-22 合并，合并提交为 <code>967ceee</code>；远端主线已推进到该 SHA。</li>
+    <li>本轮代码改动已提交在 <code>55e1828</code>：<code>src/server/app.ts</code> 提供可选 <code>autoRefresh</code>，默认行为不变；<code>scripts/benchmark.mjs</code> 显式触发并等待增量 index job，需与默认 15 秒自动刷新可见性分开计量。</li>
+    <li>报告包含本轮开发和合并后的证据；稳定发布仍取决于真实 Agent、用户和最终审查证据。</li>
   </ul>
 </article>
 </section>
@@ -86,7 +87,7 @@
   <p>完整实施计划已保存到 <a href="../docs/superpowers/plans/2026-09-22-release-closeout.md">docs/superpowers/plans/2026-09-22-release-closeout.md</a>。下面是按专业开发流程压缩后的执行顺序；每个工作包都应独立开 PR、独立验证、保留失败证据，再进入下一项。</p>
   <table><thead><tr><th>优先级 / 工作包</th><th>功能目标</th><th>边界</th><th>主要步骤</th><th>完成证据</th></tr></thead><tbody>
     <tr><td><strong>P0 · Task 1</strong><br>CI 迁移超时</td><td>恢复 Ubuntu Node 24 的迁移测试和汇总 CI 绿色。</td><td>不删除历史 schema 覆盖，不用无条件放宽 timeout 掩盖回归。</td><td>分段计时 → 对比本地/runner → 写根因回归测试 → 最小修复 → 全平台 CI。</td><td>三平台 Node 24 通过；备份、回滚、历史数据和幂等迁移仍通过。</td></tr>
-    <tr><td><strong>P0 · Task 2</strong><br>benchmark 未提交改动</td><td>确定 <code>autoRefresh:false</code> 是否成为受测基准能力。</td><td>只影响基准；默认服务仍自动刷新，不能新增用户绕过参数。</td><td>固定 diff → 测默认/关闭两种行为 → 补 focused test → 提交或完整撤回。</td><td>默认行为有回归证据；基准边界记录清楚；工作区无半成品。</td></tr>
+    <tr><td><strong>P0 · Task 2</strong><br>benchmark 调度隔离</td><td>让 benchmark 可以关闭周期刷新，并明确测量一次手动增量 index job 的完成与可见性。</td><td>只影响 benchmark worker；默认服务仍自动刷新；手动 job 时间不能冒充生产 15 秒调度可见性。</td><td>复核已提交 diff → 补默认/关闭行为回归 → 运行 benchmark 与 validation → 绑定候选 SHA 决策。</td><td><code>55e1828</code> 已提交；默认行为保持；指标命名和协议边界清楚；候选 CI 通过。</td></tr>
     <tr><td><strong>P0 · Task 3</strong><br>候选冻结</td><td>从干净 SHA 生成可安装、可复查的 release candidate。</td><td>使用隔离 worktree；不清理当前工作区，不发布 tag/npm。</td><td><code>npm ci</code> → <code>check</code> → e2e → package smoke → 保存 tarball/hash。</td><td>源码、浏览器、包、文档、脱敏检查全通过，所有产物绑定同一 SHA。</td></tr>
     <tr><td><strong>P1 · Task 4–5</strong><br>T14-B / T18 真实接续</td><td>完成真实 CLI 接续和 24 格 Agent/平台矩阵。</td><td>不自动登录、不收集原始日志；exit 0 不等于成功；未验证版本保持 unknown。</td><td>固定版本 → 三类隔离任务 → new-session/resume → 保留失败与重测 → 更新矩阵。</td><td>每格有 SHA、包 hash、OS/Node/Agent、模式、cwd、约束、产物和用户确认。</td></tr>
     <tr><td><strong>P1 · Task 6</strong><br>T19 最终 RC</td><td>证明最终 tarball 能在独立目录安装、运行和持久化。</td><td>安装验收不替代真实 Agent 或用户验证；不执行发布。</td><td>独立安装 → public exports/SQLite/CLI/UI/doctor → 包白名单 → hash 绑定。</td><td>包文件、manifest、Node 24、第三方声明和 tarball SHA-256 一致。</td></tr>
@@ -96,7 +97,7 @@
   </tbody></table>
   <h3>推荐执行顺序</h3>
   <ol>
-    <li>先修 CI 迁移超时，再处理 benchmark 未提交改动。</li>
+    <li>先检查候选 <code>55e1828</code> 的 CI；若 Ubuntu 迁移超时重现，按 Task 1 定位根因，同时补齐 Task 2 的 focused test 和 benchmark validation 证据。</li>
     <li>从绿色主线冻结候选 SHA，重新跑完整源码、浏览器和安装包检查。</li>
     <li>用同一候选包完成 T14-B/T18，再做 T19 包复核。</li>
     <li>在 T18/T19 证据稳定后进行 T20 用户观察。</li>
