@@ -22,9 +22,9 @@ Release Notes 草稿：实验性本地任务收件箱、历史搜索、人工修
 
 ## 2026-09-22 开发预发布记录修正与 control-plane 候选
 
-已复核公开 GitHub prerelease `v0.2.0-dev.0`：tag 指向 `967ceee`，CI aggregate run 为 `35719556446`，资产 `threadport-0.2.0-dev.0.tgz` 的真实 SHA-256 为 `b3cb66cb671930d021bda9e710d96a617068b1700d2e1f1c4bb576b91dee3a6c`。发布说明中的 `$hash` 占位符已替换为该值；这只修正已发布开发快照的交付记录。
+已复核公开 GitHub prerelease `v0.2.0-dev.0`：tag 指向 `967ceee`，CI aggregate run 为 `35719556446`，资产 `threadport-0.2.0-dev.0.tgz` 的真实 SHA-256 为 `b3cb66cb671930d021bda9e710d96a617068b1700d2e1f1c4bb576b91dee3a6c`。发布说明中的 hash 占位文本已替换为该值；这只修正已发布开发快照的交付记录。
 
-新的 control-plane 候选为 workspace-only 提交 `f0a1ef93064b78e07a0dd4a020104586e998d41f`，尚未进入上述发布包。隔离 Node 24.19.0 / Windows x64 验证通过 83 个测试文件、526 个测试、11 个浏览器测试和 264 文件安装包；候选 tarball SHA-256 为 `9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce`。完整门禁和首次失败记录见 [control-plane review](control-plane-review-2026-09-22.md)。
+新的 control-plane 候选为 workspace-only 实现提交 `f0a1ef93064b78e07a0dd4a020104586e998d41f`，其后仅追加验证文档，尚未进入上述发布包。隔离 Node 24.19.0 / Windows x64 验证通过 83 个测试文件、526 个测试、11 个浏览器测试和 264 文件安装包；候选 tarball SHA-256 为 `9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce`，证据 manifest 记录的 `sourceCommit` 为 `cb651aa7927af38f7d935f0ff5749384bb6180e5`。PR #70 的最新三平台 Node 24 CI 已全绿，但 PR 仍为 Draft，尚未合并。完整门禁和首次失败记录见 [control-plane review](control-plane-review-2026-09-22.md)。
 
 stable 仍为 HOLD：真实 Agent、外部用户、Q01–Q24 和原始 S01–S36 证据没有因本次候选验证而关闭。未创建 stable tag/Release，未执行 npm publish、真实 Agent 登录或用户招募。
 
