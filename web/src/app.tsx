@@ -15,6 +15,7 @@ import { CreateTask } from "./features/inbox/create-task.js";
 import { Inbox } from "./features/inbox/inbox.js";
 import { History } from "./features/history/history.js";
 import { Detail } from "./features/task/detail.js";
+import { Icon, type IconName } from "./components/icons.js";
 export function App({ initialApi }: { initialApi: ApiClient | null }) {
   const [api, setApi] = useState(initialApi),
     [locationSearch, setSearch] = useState(location.search),
@@ -149,37 +150,51 @@ function Shell({
           href="?v=inbox"
           onClick={(e) => {
             e.preventDefault();
-            navigate({ v: "inbox", t: null });
+            navigate({ v: "inbox", t: null, list: null });
           }}
         >
-          ThreadPort<span>LOCAL WORKSPACE</span>
+          <span className="brand-symbol" aria-hidden="true">TP</span>
+          <span className="brand-copy">ThreadPort<small>Local workspace</small></span>
         </a>
         <nav aria-label="Main navigation">
-          {["inbox", "history", "settings"].map((item) => (
+          {(["inbox", "history", "settings"] as const).map((item) => {
+            const icons: Record<typeof item, IconName> = {
+              inbox: "inbox",
+              history: "history",
+              settings: "settings",
+            };
+            const labels: Record<typeof item, string> = {
+              inbox: "Inbox",
+              history: "History",
+              settings: "Settings",
+            };
+            return (
             <a
               key={item}
               href={"?v=" + item}
               aria-current={view === item ? "page" : undefined}
               onClick={(e) => {
                 e.preventDefault();
-                navigate({ v: item, t: null });
+                navigate({ v: item, t: null, list: null });
               }}
             >
-              {item[0].toUpperCase() + item.slice(1)}
+              <Icon name={icons[item]} size={18} />
+              <span>{labels[item]}</span>
+              {item === "inbox" && <span className="nav-pulse" aria-hidden="true" />}
             </a>
-          ))}
+            );
+          })}
         </nav>
         <div className="local-note">
-          <span className="dot" />
-          Stored on this device
-          <ServiceStatus api={api} />
+          <div className="local-note-title"><span className="dot" /> Local mode</div>
+          <span>Stored on this device</span>
           {document.documentElement.dataset.demo === "true" && (
             <p>DEMO · Synthetic data</p>
           )}
         </div>
       </aside>
       <div className="workspace">
-        <header>
+        <header className="workspace-header">
           <form
             role="search"
             onSubmit={(e) => {
@@ -187,6 +202,7 @@ function Shell({
               navigate({ v: "history", q: search, t: null });
             }}
           >
+            <Icon name="search" size={18} className="search-icon" />
             <input
               ref={searchRef}
               type="search"
@@ -196,10 +212,11 @@ function Shell({
               onChange={(e) => setSearchInput(e.target.value)}
               maxLength={1024}
             />
+            <kbd aria-hidden="true">Ctrl K</kbd>
             <button className="quiet">Search</button>
           </form>
-          <label className="project-filter">
-            Project
+            <label className="project-filter">
+            <span>Workspace</span>
             <select
               value={params.get("p") ?? ""}
               onChange={(e) => navigate({ p: e.target.value, t: null })}
@@ -210,9 +227,10 @@ function Shell({
                   {project.name}
                 </option>
               ))}
-            </select>
-          </label>
-        </header>
+              </select>
+            </label>
+            <ServiceStatus api={api} />
+          </header>
         <main id="content" tabIndex={-1}>
           <ErrorNotice error={projects.error} />
           {projects.loading && !projects.data ? (
@@ -241,6 +259,7 @@ function Shell({
           ) : (
             <Inbox
               api={api}
+              projects={projects.data?.data ?? []}
               params={params}
               revision={revision}
               navigate={navigate}
@@ -278,20 +297,18 @@ function ServiceStatus({ api }: { api: ApiClient }) {
     const timer = setInterval(() => setRevision((n) => n + 1), 15000);
     return () => clearInterval(timer);
   }, []);
+  const detail = status.error ? "Status unavailable" : status.data
+    ? status.data.data.index.running
+      ? "Indexing sources…"
+      : "Last refresh: " + dateLabel(status.data.data.index.lastRefreshAt)
+    : "Connecting…";
   return (
-    <div className="service-status">
-      {status.data && (
-        <>
-          <p>Version {status.data.data.version}</p>
-          <p>
-            {status.data.data.index.running
-              ? "Indexing sources…"
-              : "Last refresh: " +
-                dateLabel(status.data.data.index.lastRefreshAt)}
-          </p>
-        </>
-      )}
-      {status.error && <p>Service status unavailable</p>}
+    <div className="service-status" title={detail}>
+      <span className={"status-pulse " + (status.error ? "status-pulse-error" : !status.data ? "status-pulse-pending" : "")} />
+      <span className="service-status-copy">
+        <strong>{status.error ? "Service unavailable" : status.data ? "Local service connected" : "Connecting…"}</strong>
+        <small>{status.data && !status.error ? `v${status.data.data.version} · ${status.data.data.index.running ? "Indexing sources…" : "On this device"}` : "Check your terminal"}</small>
+      </span>
     </div>
   );
 }

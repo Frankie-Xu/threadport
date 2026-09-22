@@ -1,6 +1,7 @@
 import {
   type ApiClient,
   type TaskSummary,
+  type Project,
   attentionLabel,
   type SessionSummary,
   usePage,
@@ -8,14 +9,17 @@ import {
   dateLabel,
 } from "../../api.js";
 import { ErrorNotice, Empty, StatusBadge, Pager } from "../../components.js";
+import { Home } from "../home/home.js";
 export function Inbox({
   api,
+  projects,
   params,
   revision,
   navigate,
   onCreate,
 }: {
   api: ApiClient;
+  projects: Project[];
   params: URLSearchParams;
   revision: number;
   navigate: (values: Record<string, string | null>) => void;
@@ -39,10 +43,12 @@ export function Inbox({
   );
   return (
     <>
-      <div className="page-heading">
+      {params.get("list") !== "1" && (
+        <Home projects={projects} params={params} tasks={tasks} sessions={sessions} navigate={navigate} onCreate={onCreate} />
+      )}
+      <div className="page-heading inbox-heading" id="task-list">
         <div>
-          <p className="eyebrow">YOUR LOCAL WORK</p>
-          <h1>Inbox</h1>
+          {params.get("list") === "1" ? <h1>Inbox</h1> : <h2>Your tasks</h2>}
           <p>Pick up a task with its evidence close at hand.</p>
         </div>
         <button onClick={() => onCreate()}>New task</button>
@@ -70,6 +76,7 @@ export function Inbox({
         </label>
       </div>
       <ErrorNotice error={tasks.error} />
+      {tasks.error && <button className="quiet" onClick={tasks.reset}>Retry tasks</button>}
       {tasks.loading && <p role="status">Loading tasks…</p>}
       <div className="task-grid">
         {tasks.data?.data.map((task) => (
@@ -108,7 +115,7 @@ export function Inbox({
         </Empty>
       )}
       <Pager load={tasks} />
-      <section className="panel">
+      <section className="panel" id="unassigned-sessions">
         <h2>Unassigned sessions</h2>
         <p>Turn a session into a task without changing its original log.</p>
         <ErrorNotice error={sessions.error} />
