@@ -32,7 +32,7 @@ Runtime: Node `v24.19.0`, npm from the repository toolchain, Windows `win32/x64`
 | `npm run check:pack` | passed; 264-file isolated package smoke |
 | `THREADPORT_PACKAGE_OUTPUT=output/package-review-candidate npm run test:package` | passed; installed browser smoke plus 264-file package smoke |
 
-The retained candidate package is `threadport-0.2.0-dev.0.tgz`, with **264 files** and SHA-256 **`9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce`**. Its machine-readable manifest is [the package evidence JSON](../../output/package-review-candidate/threadport-0.2.0-dev.0.tgz.json); the local retained artifact is under `output/package-review-candidate/`. The package manifest recorded `sourceCommit=f0a1ef93064b78e07a0dd4a020104586e998d41f`, `trackedChanges=false`, Node `v24.19.0`, platform `win32`, and architecture `x64`.
+The retained candidate package is `threadport-0.2.0-dev.0.tgz`, with **264 files** and SHA-256 **`9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce`**. Its machine-readable [package evidence JSON](packages/control-plane-candidate-2026-09-22.json) is committed with the review; the local retained tarball is under `output/package-review-final/`. The package manifest recorded `sourceCommit=cb651aa7927af38f7d935f0ff5749384bb6180e5`, `trackedChanges=false`, Node `v24.19.0`, platform `win32`, and architecture `x64`.
 
 ## Public prerelease record
 
@@ -41,6 +41,8 @@ The published GitHub prerelease remains **`v0.2.0-dev.0` → `967ceee`**. Its up
 ## Gates that remain open
 
 Stable remains **HOLD**. No stable tag, stable GitHub Release, npm publish, real Agent login, or external-user recruitment was performed. T14-B/T18 real Agent coverage, T20 external-user evidence, Q01–Q24 review, and original S01–S36 evidence remain incomplete or unavailable. The first failed focused run is retained above; rollback for the code change is the independent PR commit `f0a1ef9` (revert that PR while preserving this verification record).
+
+The first remote PR CI run `35735908166` also failed on Ubuntu and macOS after all 83 test files / 526 tests passed: `check:docs` referenced the local-only package evidence path. That failure is a documentation artifact availability issue; the manifest is now committed under `docs/verification/packages/` and the PR is being re-run. Windows was still pending when the first failure was recorded.
 
 ## Next step
 
