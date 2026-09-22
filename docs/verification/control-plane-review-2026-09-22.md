@@ -42,8 +42,8 @@ The published GitHub prerelease remains **`v0.2.0-dev.0` → `967ceee`**. Its up
 
 Stable remains **HOLD**. No stable tag, stable GitHub Release, npm publish, real Agent login, or external-user recruitment was performed. T14-B/T18 real Agent coverage, T20 external-user evidence, Q01–Q24 review, and original S01–S36 evidence remain incomplete or unavailable. The first failed focused run is retained above; rollback for the code change is the independent PR commit `f0a1ef9` (revert that PR while preserving this verification record).
 
-The first remote PR CI run `35735908166` also failed on Ubuntu and macOS after all 83 test files / 526 tests passed: `check:docs` referenced the local-only package evidence path. That failure is a documentation artifact availability issue; the manifest is now committed under `docs/verification/packages/` and the PR is being re-run. Windows was still pending when the first failure was recorded.
+The first remote PR CI run `35735908166` failed on Ubuntu and macOS after all 83 test files / 526 tests passed: `check:docs` referenced the local-only package evidence path. That failure was a documentation artifact availability issue; the manifest is now committed under `docs/verification/packages/`. The corrective PR run `35736379038` passed the aggregate check and all three Node 24 jobs: Ubuntu, macOS and Windows. Windows completed the browser and isolated-package checks successfully.
 
 ## Next step
 
-Review the small control-plane PR on `codex/control-plane-integrity`, then rerun the candidate matrix on the reviewed merge SHA. Keep all unsupported Agent/platform paths as `unknown`, `coverage-gap`, `not_run` or `HOLD` until their evidence is available.
+Review the small control-plane PR on `codex/control-plane-integrity`, then rerun the candidate matrix on the reviewed merge SHA. The current PR candidate has a green three-platform Node 24 matrix, but it is still workspace-only until review and merge. Keep all unsupported Agent/platform paths as `unknown`, `coverage-gap`, `not_run` or `HOLD` until their evidence is available.

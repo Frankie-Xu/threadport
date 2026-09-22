@@ -50,8 +50,8 @@
 <header>
   <div class="eyebrow">ThreadPort · Control-plane delivery</div>
   <h1>Receipt 完整性与任务事实投影已收口</h1>
-  <p class="lede">本次开发完成 P0-A/P0-B/P0-C：无证据或 agent-report 不能形成 verified-complete；manifest、digest、target、expiry、nonce 和 reducer 投影受到校验；任务详情展示 receipt 阶段、状态、目标和 evidence。代码实现候选为 <code>f0a1ef9</code>，文档快照为 <code>cb651aa</code>，稳定版门禁仍保持 HOLD。</p>
-  <div class="meta"><span>实现候选：<code>f0a1ef93064b78e07a0dd4a020104586e998d41f</code></span><span>最终打包快照：<code>cb651aa7927af38f7d935f0ff5749384bb6180e5</code></span><span class="warn">状态：候选待独立 PR 审查</span></div>
+  <p class="lede">本次开发完成 P0-A/P0-B/P0-C：无证据或 agent-report 不能形成 verified-complete；manifest、digest、target、expiry、nonce 和 reducer 投影受到校验；任务详情展示 receipt 阶段、状态、目标和 evidence。代码实现候选为 <code>f0a1ef9</code>，文档快照为 <code>cb651aa</code>，三平台 Node 24 PR CI 已全绿，稳定版门禁仍保持 HOLD。</p>
+  <div class="meta"><span>实现候选：<code>f0a1ef93064b78e07a0dd4a020104586e998d41f</code></span><span>最终打包快照：<code>cb651aa7927af38f7d935f0ff5749384bb6180e5</code></span><span class="warn">状态：PR CI 全绿，候选待独立审查</span></div>
 </header>
 <section class="grid kpis">
   <div class="card kpi"><div class="label">完成项</div><div class="value ok">3</div><div class="label">P0-A / P0-B / P0-C</div></div>
@@ -80,11 +80,12 @@
 <tr><td><code>npm run test:e2e</code></td><td class="ok">通过；11/11 browser tests</td><td>实现候选 f0a1ef9</td></tr>
 <tr><td><code>npm run check:pack</code></td><td class="ok">通过；264-file isolated package smoke</td><td>最终快照 cb651aa</td></tr>
 <tr><td><code>THREADPORT_PACKAGE_OUTPUT=output/package-review-final npm run test:package</code></td><td class="ok">通过；installed browser smoke + 264-file package smoke</td><td>sourceCommit cb651aa</td></tr>
+<tr><td>PR CI run <code>35736379038</code></td><td class="ok">通过；check + Ubuntu/macOS/Windows Node 24 全部通过</td><td>PR #70 / latest candidate</td></tr>
 <tr><td>Retained tarball</td><td><code>threadport-0.2.0-dev.0.tgz</code><br>SHA-256 <code>9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce</code></td><td>trackedChanges=false</td></tr>
 </tbody></table><div class="callout">首次 focused run 因未先构建而缺少 <code>dist/web/index.html</code>；该失败已保留。执行 <code>npm run build</code> 后 focused control-plane/server 测试为 26/26，通过后才继续完整验证。</div></section>
 <section class="grid two">
 <article class="card"><h2>公开 prerelease 事实</h2><p>GitHub Release <code>v0.2.0-dev.0</code> 的 tag 仍指向 <code>967ceee</code>，CI aggregate run 为 <code>35719556446</code>，资产 hash 为 <code>b3cb66cb671930d021bda9e710d96a617068b1700d2e1f1c4bb576b91dee3a6c</code>。发布说明中的 <code>$hash</code> 已修正；候选 control-plane 改动没有写入该已发布包。</p></article>
-<article class="card"><h2>风险与回滚</h2><ul><li>候选仍待独立 PR review、合并和三平台 CI 复核。</li><li>包验证是合成安装/浏览器检查，不等于真实 Agent 或用户认证。</li><li>回滚路径：revert 独立实现提交 <code>f0a1ef9</code>；保留首次失败和本验证记录。</li></ul></article>
+<article class="card"><h2>风险与回滚</h2><ul><li>候选的三平台 Node 24 PR CI 已通过，仍待独立 PR review 与合并。</li><li>包验证是合成安装/浏览器检查，不等于真实 Agent 或用户认证。</li><li>回滚路径：revert 独立实现提交 <code>f0a1ef9</code>；保留首次失败和本验证记录。</li></ul></article>
 </section>
 <section class="card" style="margin-top:24px"><h2>下一步</h2><ol><li>审查并合并 <code>codex/control-plane-integrity</code> 小 PR，使用合并后的 SHA 重新绑定包和 CI artifact。</li><li>按计划补齐 T14-B/T18，保持没有证据的 Agent/平台路径为 <code>unknown</code>、<code>coverage-gap</code>、<code>not_run</code> 或 <code>HOLD</code>。</li><li>只有 T20、T21 和明确授权完成后，才重新讨论 stable；本任务不创建 stable tag/Release。</li></ol></section>
 <footer><b>详细记录：</b> <a href="../docs/verification/control-plane-review-2026-09-22.md">control-plane-review-2026-09-22.md</a> · <a href="../docs/verification/release-0.2.0.md">release-0.2.0.md</a> · <a href="../docs/verification/packages/control-plane-candidate-2026-09-22.json">final package evidence JSON</a><br>报告生成日期：2026-09-22。页面为自包含 HTML，无外部资源或网络请求。</footer>
