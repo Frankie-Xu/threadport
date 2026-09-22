@@ -7,7 +7,7 @@
 - P0-B：持久化 manifest/receipt 已进入 `ControlPlaneService.state()` 和 `GET /api/v1/tasks/:id/control` 的投影；任务详情显示 stage、status、target、evidence 及 `verified`、`observed`、`coverage-gap`、`unknown` 事实标签；pending 不会渲染为 complete。
 - P0-C：公开 `v0.2.0-dev.0` 的发布说明已使用真实资产 hash；该 prerelease 仍绑定 `967ceee`，候选代码没有写入已发布包。
 - PR：[Frankie-Xu/threadport#70](https://github.com/Frankie-Xu/threadport/pull/70)，分支 `codex/control-plane-integrity`，文档收口前的复核 HEAD 为 `400d174ba6834632de92f2437015c05ab28cc670`；本次只追加交接与报告文档，最终 tip 以推送后的 `git rev-parse HEAD` 和 PR `headRefOid` 为准，状态为 OPEN / Draft / CLEAN。
-- 最新远程 CI run [`35744490472`](https://github.com/Frankie-Xu/threadport/actions/runs/35744490472) 的 aggregate check、Ubuntu Node 24、macOS Node 24、Windows Node 24 全部通过。
+- PR 当前 tip 的远程 CI（aggregate check、Ubuntu Node 24、macOS Node 24、Windows Node 24）全部通过；后续复核以 PR checks 的最新运行号和链接为准。
 - 候选包为 workspace-only artifact：264 个文件，SHA-256 `9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce`，manifest `sourceCommit=cb651aa7927af38f7d935f0ff5749384bb6180e5`，`trackedChanges=false`，Node `v24.19.0`、`win32/x64`。证据见 [control-plane-candidate-2026-09-22.json](packages/control-plane-candidate-2026-09-22.json)。
 - 已核对候选 tarball 的 SHA-256、SHA-512、264 个归档文件、提交 manifest 与本地 `.tgz.json`，全部一致；该包仍保留为历史 candidate 证据，没有伪装成 merge SHA 或 stable 产物。
 - 交付报告：[development-completion-report.html](../../outputs/development-completion-report.html)。
