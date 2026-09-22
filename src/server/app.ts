@@ -35,7 +35,8 @@ export function createLocalApp(store:Pick<SqliteStore,'statusCounts'|'close'>,in
  app.addHook('onClose',async()=>{try{await indexer.stop();}finally{store.close();}});
  return app;
 }
-export interface LocalServer {origin:string;token:string;closed:Promise<void>;close():Promise<void>}\n// autoRefresh can be disabled by deterministic benchmark workers; production defaults remain enabled.
+export interface LocalServer {origin:string;token:string;closed:Promise<void>;close():Promise<void>}
+// autoRefresh can be disabled by deterministic benchmark workers; production defaults remain enabled.
 /** Only loopback and OS-assigned ports; no import-time DB, listener, scanner or logging. */
 export async function startLocalServer(options:{dataDir?:string;demo?:boolean;autoRefresh?:boolean}={}):Promise<LocalServer>{
  const store=await openStore(options);
