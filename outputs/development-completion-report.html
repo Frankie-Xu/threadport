@@ -3,127 +3,60 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ThreadPort 项目最新开发状态</title>
+<title>ThreadPort 首页玻璃视觉第二版交付报告</title>
 <style>
-:root{color-scheme:dark;--bg:#0b1020;--panel:#121a2b;--panel2:#18233a;--text:#eef3ff;--muted:#aebbd3;--ok:#69e3a0;--warn:#ffd166;--bad:#ff8f8f;--line:#2d3c5b;--blue:#7eb5ff}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#1d3159 0,transparent 36%),var(--bg);color:var(--text);font:15px/1.6 Inter,Segoe UI,Arial,sans-serif}.wrap{max-width:1180px;margin:0 auto;padding:42px 24px 72px}header{border-bottom:1px solid var(--line);padding-bottom:28px}h1{font-size:38px;line-height:1.12;margin:8px 0 12px;letter-spacing:-.7px}h2{font-size:20px;margin:0 0 14px}h3{font-size:16px;margin:0 0 8px;color:var(--blue)}p{margin:0 0 12px}.eyebrow{text-transform:uppercase;letter-spacing:1.7px;color:var(--blue);font-size:12px;font-weight:700}.lede{color:var(--muted);font-size:18px;max-width:980px}.meta{display:flex;flex-wrap:wrap;gap:18px;color:var(--muted);margin-top:16px;font-size:13px}.grid{display:grid;gap:16px;margin-top:24px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.card{background:linear-gradient(145deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 12px 32px #0003}.kpi .value{font-size:28px;font-weight:800;margin:4px 0}.kpi .label{color:var(--muted);font-size:13px}.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.muted{color:var(--muted)}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:10px 8px}th{color:var(--muted);font-weight:600}ul,ol{margin:8px 0 0;padding-left:21px}li{margin:7px 0}.tag{display:inline-block;border:1px solid var(--line);border-radius:99px;padding:2px 9px;font-size:12px;color:var(--muted)}.status{font-weight:700;color:var(--ok)}.status.hold{color:var(--warn)}.status.fail{color:var(--bad)}code{color:#d9e7ff;background:#0a1222;border:1px solid #253450;border-radius:4px;padding:1px 4px}a{color:var(--blue)}.chart{height:240px;margin-top:8px}.chart svg{display:block;width:100%;height:100%}.callout{border-left:3px solid var(--warn);padding:8px 14px;color:var(--muted);margin-top:14px}.small{font-size:12px;color:var(--muted)}footer{margin-top:26px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:18px}@media(max-width:980px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:760px){.kpis,.two{grid-template-columns:1fr 1fr}}@media(max-width:480px){.kpis,.two{grid-template-columns:1fr}.wrap{padding:28px 16px}h1{font-size:30px}}
+:root{color-scheme:dark;--bg:#0b1017;--surface:#141d2a;--surface2:#1b2737;--text:#f4f6fa;--muted:#9faaba;--line:rgba(255,255,255,.12);--blue:#8dc9ff;--green:#7fe0a9;--amber:#ffd58c}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(560px 360px at 82% -12%,rgba(92,137,216,.14),transparent 72%),var(--bg);color:var(--text);font:15px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased}.wrap{max-width:1160px;margin:auto;padding:38px 22px 64px}header{padding-bottom:24px;border-bottom:1px solid var(--line)}.eyebrow{color:var(--blue);font-size:12px;font-weight:650;letter-spacing:.08em;text-transform:uppercase}h1{margin:10px 0 12px;font-size:clamp(30px,5vw,48px);line-height:1.08;letter-spacing:-.045em}h2{margin:0 0 14px;font-size:20px;letter-spacing:-.02em}.lede{max-width:900px;color:var(--muted);font-size:17px;line-height:1.75}.meta{display:flex;flex-wrap:wrap;gap:14px 22px;margin-top:16px;color:var(--muted);font-size:13px}.grid{display:grid;gap:16px;margin-top:20px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.card{padding:20px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,var(--surface),var(--surface2));box-shadow:0 1px 3px rgba(0,0,0,.25),0 16px 40px rgba(0,0,0,.12)}.kpi .label{color:var(--muted);font-size:12px}.kpi .value{margin:6px 0 2px;color:var(--green);font-size:29px;font-weight:750;letter-spacing:-.03em}.kpi .note{color:var(--muted);font-size:12px}table{width:100%;border-collapse:collapse}th,td{padding:10px 7px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;font-weight:600}td{font-size:13px}tr:last-child td{border-bottom:0}.ok{color:var(--green)}.warn{color:var(--amber)}.muted{color:var(--muted)}ul{margin:8px 0;padding-left:22px}li{margin:7px 0}code{padding:1px 5px;border:1px solid rgba(141,201,255,.18);border-radius:5px;color:#d9e9ff;background:rgba(141,201,255,.07);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}a{color:var(--blue)}.bar{display:grid;gap:10px;margin-top:12px}.bar-row{display:grid;grid-template-columns:150px 1fr 60px;align-items:center;gap:12px;font-size:13px}.track{height:8px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.1)}.fill{height:100%;border-radius:inherit;background:var(--green)}.fill.warn{background:var(--amber)}.callout{margin-top:16px;padding:12px 14px;border-left:3px solid var(--amber);color:var(--muted);background:rgba(255,213,140,.06)}footer{margin-top:22px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}@media(max-width:880px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.kpis,.two{grid-template-columns:1fr}.wrap{padding:24px 14px}.bar-row{grid-template-columns:110px 1fr 54px}}
 </style>
 </head>
-<body><main class="wrap">
+<body>
+<main class="wrap">
 <header>
-  <div class="eyebrow">ThreadPort · Development status</div>
-  <h1>基准调度隔离已修复，性能门禁重新通过</h1>
-  <p class="lede">截至 2026-09-22，当前合并提交为 <code>967ceee</code>（PR #67，基于 <code>origin/main@9f366a9</code>），已把 benchmark 的周期自动刷新调度与手动增量 index job 测量隔离。固定 200 MiB / 500 sessions / 50,000 events 基准已通过；真实 Agent 矩阵、外部用户观察和最终发布审查仍未完成，因此版本仍是 <code>0.2.0-dev.0</code>，稳定版发布继续保持 HOLD。</p>
-  <div class="meta"><span>当前主线：<code>origin/main@967ceee</code></span><span>来源候选：<code>55e1828</code></span><span class="status hold">当前状态：CI 已通过，发布门禁仍 HOLD</span></div>
+<div class="eyebrow">ThreadPort · visual refinement</div>
+<h1>首页玻璃视觉第二版</h1>
+<p class="lede">本轮将首页从霓虹科幻式 dashboard 收敛为更成熟的深色 macOS 工作台：磨砂玻璃只出现在导航、工具栏和 Hero 功能层，内容区使用稳定表面与细线分隔，字号和层级重新校准。</p>
+<div class="meta"><span>日期：2026-09-22</span><span>状态：<strong class="ok">已完成</strong></span><span>预览：真实浏览器侧边窗口</span></div>
 </header>
-
 <section class="grid kpis">
-  <div class="card kpi"><div class="label">最新主线</div><div class="value">967ceee</div><div class="label">2026-09-22 · PR #67 已合并</div></div>
-  <div class="card kpi"><div class="label">本地基准</div><div class="value ok">PASS</div><div class="label">Windows 固定容量</div></div>
-  <div class="card kpi"><div class="label">单元测试</div><div class="value ok">520 / 520</div><div class="label">82 个测试文件</div></div>
-  <div class="card kpi"><div class="label">E2E 测试</div><div class="value ok">10 / 10</div><div class="label">Playwright 通过</div></div>
-  <div class="card kpi"><div class="label">稳定版</div><div class="value warn">HOLD</div><div class="label">仍需真实 Agent / 用户验收</div></div>
+<article class="card kpi"><div class="label">视觉改造</div><div class="value">PASS</div><div class="note">玻璃层、字号、层级已更新</div></article>
+<article class="card kpi"><div class="label">类型检查</div><div class="value">PASS</div><div class="note">TypeScript 源码与 Web</div></article>
+<article class="card kpi"><div class="label">构建检查</div><div class="value">PASS</div><div class="note">服务端与 Vite UI</div></article>
+<article class="card kpi"><div class="label">E2E</div><div class="value">10/10</div><div class="note">全量复跑通过</div></article>
 </section>
-
 <section class="grid two">
-<article class="card">
-  <h2>最近主线交付</h2>
-  <table><thead><tr><th>提交</th><th>内容</th><th>状态</th></tr></thead><tbody>
-    <tr><td><code>55e1828</code></td><td>隔离 benchmark 自动刷新调度，并显式等待手动 index job 完成。</td><td class="ok">已合并 · PR #67</td></tr>
-    <tr><td><code>d3fe770</code></td><td>控制平面证据、责任/回执边界和历史搜索投影。</td><td class="ok">已合并</td></tr>
-    <tr><td><code>d5df9d1</code></td><td>控制平面与执行证据统一，安全处理数据库升级。</td><td class="ok">已合并</td></tr>
-    <tr><td><code>81e513c</code></td><td>减少搜索扫描和空闲投影重建。</td><td class="ok">已合并</td></tr>
-    <tr><td><code>9f366a9</code></td><td>批量读取 JSONL 来源，降低首次索引开销；两平台固定容量预算通过。</td><td class="ok">候选基线</td></tr>
-  </tbody></table>
-</article>
-<article class="card">
-  <h2>发布门禁</h2>
-  <table><thead><tr><th>门禁</th><th>当前判断</th><th>剩余条件</th></tr></thead><tbody>
-    <tr><td>T15 工作台</td><td class="ok">L2 集成</td><td>已通过三平台自动 CI，仍不等同真实 Agent 认证。</td></tr>
-    <tr><td>T16 性能</td><td class="ok">合成验收通过</td><td>仍需与真实环境和最终候选 SHA 绑定复核。</td></tr>
-    <tr><td>T17 数据生命周期</td><td class="ok">L2 集成</td><td>删除失败、并发与关闭回归已记录。</td></tr>
-    <tr><td>T18 Agent 平台</td><td class="warn">HOLD</td><td>Claude/Ubuntu/cross-Agent 等 21 格未运行。</td></tr>
-    <tr><td>T19 安装包</td><td class="ok">开发包已验证</td><td>最终 RC 依赖 T18，尚未 publish/tag。</td></tr>
-    <tr><td>T20 用户验证</td><td class="warn">HOLD</td><td>需要 5 名同意参与的真实用户；当前为 0。</td></tr>
-    <tr><td>T21 stable</td><td class="warn">HOLD</td><td>T18/T20 以及最终 Q01–Q24 审查未完成。</td></tr>
-  </tbody></table>
-</article>
+<article class="card"><h2>交付内容</h2><table><thead><tr><th>区域</th><th>结果</th></tr></thead><tbody>
+<tr><td>Liquid Glass shell</td><td>侧边栏、顶部 command bar、workspace selector 使用半透明、模糊和 hairline。</td></tr>
+<tr><td>Hero</td><td>移除大面积霓虹轨道，改成轻薄的上下文堆叠模块；主操作仍然直达真实任务。</td></tr>
+<tr><td>信息层级</td><td>标题、正文、元数据重新分级，指标改成一个统一表面，内容区减少碎片卡片。</td></tr>
+<tr><td>响应式</td><td>桌面双列、移动单列；390×844 视口检查无横向溢出。</td></tr>
+</tbody></table></article>
+<article class="card"><h2>本轮修改文件</h2><ul>
+<li><code>web/src/styles.css</code>：新增第二版 Liquid Glass token、系统字体、玻璃层与响应式规则。</li>
+<li><code>web/src/features/home/home.tsx</code>：保留真实数据与现有交互入口。</li>
+<li><code>web/src/app.tsx</code>：沿用统一的 shell、状态和导航语义。</li>
+<li><code>docs/research/ui-inspiration-2026-09-22.md</code>：补充 Apple、Raycast、Linear 成熟案例。</li>
+</ul></article>
 </section>
-
-<section class="card" style="margin-top:16px">
-  <h2>性能证据（本分支实测）</h2>
-  <p>当前分支对固定 200 MiB、500 sessions、50,000 events 样本执行了完整基准。benchmark worker 显式关闭周期自动刷新，并在增量阶段调用 index job，因此结果可重复且不受后台调度器污染：</p>
-  <table><thead><tr><th>指标</th><th>Windows</th><th>其他平台</th><th>门槛</th></tr></thead><tbody>
-    <tr><td>首次索引</td><td>34.947 s</td><td>—</td><td>≤ 60 s</td></tr>
-    <tr><td>搜索 API p95</td><td>260.819 ms</td><td>—</td><td>≤ 300 ms</td></tr>
-    <tr><td>状态 API p95</td><td>70.232 ms</td><td>—</td><td>≤ 200 ms</td></tr>
-    <tr><td>峰值 RSS</td><td>294.258 MiB</td><td>—</td><td>≤ 400 MiB</td></tr>
-    <tr><td>取消响应</td><td>19.406 ms</td><td>—</td><td>≤ 2,000 ms</td></tr>
-  </tbody></table>
-  <div class="callout">结果满足索引、搜索、状态、内存和取消门槛。idle CPU 为 0%，增量刷新为 2.031 s；由于基准关闭了自动刷新，idle 指标不代表 15 秒生产调度器的开销。仍需在最终候选 SHA 和目标平台上复核。</div>
-</section>
-
-<section class="grid two">
-<article class="card">
-  <h2>最新验证结果</h2>
-  <ul>
-    <li><code>npm run typecheck</code>、<code>npm run build</code>、<code>npm run check:docs</code>、<code>npm run check:redaction</code>：全部通过。</li>
-    <li><code>npm test -- --maxWorkers=2</code>：82 个测试文件、520/520 测试通过；<code>npm run test:e2e</code>：10/10 通过；<code>npm run check:pack</code>：通过。</li>
-    <li><code>npm run bench</code>：PASS，索引 34.947 s、搜索 p95 260.819 ms、状态 p95 70.232 ms、RSS 294.258 MiB、取消 19.406 ms。</li>
-    <li>历史 CI 运行 35606469358 曾有 Ubuntu 迁移测试超时；候选 SHA <code>55e1828</code> 的 CI 运行 35718501543 中，Ubuntu、macOS、Windows 和汇总 check 全部通过，随后已合并为 <code>967ceee</code>。</li>
-  </ul>
-</article>
-<article class="card">
-  <h2>当前工作区注意项</h2>
-  <ul>
-    <li>PR #67 已于 2026-09-22 合并，合并提交为 <code>967ceee</code>；远端主线已推进到该 SHA。</li>
-    <li>本轮代码改动已提交在 <code>55e1828</code>：<code>src/server/app.ts</code> 提供可选 <code>autoRefresh</code>，默认行为不变；<code>scripts/benchmark.mjs</code> 显式触发并等待增量 index job，需与默认 15 秒自动刷新可见性分开计量。</li>
-    <li>报告包含本轮开发和合并后的证据；稳定发布仍取决于真实 Agent、用户和最终审查证据。</li>
-  </ul>
-</article>
-</section>
-
-<section class="card" style="margin-top:16px">
-  <h2>可执行工作包：功能、边界、步骤与验收</h2>
-  <p>完整实施计划已保存到 <a href="../docs/superpowers/plans/2026-09-22-release-closeout.md">docs/superpowers/plans/2026-09-22-release-closeout.md</a>。下面是按专业开发流程压缩后的执行顺序；每个工作包都应独立开 PR、独立验证、保留失败证据，再进入下一项。</p>
-  <table><thead><tr><th>优先级 / 工作包</th><th>功能目标</th><th>边界</th><th>主要步骤</th><th>完成证据</th></tr></thead><tbody>
-    <tr><td><strong>已完成 · Task 1</strong><br>CI 迁移超时收口</td><td>恢复 Ubuntu Node 24 的迁移测试和汇总 CI 绿色，并保留历史失败边界。</td><td>不删除历史 schema 覆盖，不用无条件放宽 timeout 掩盖回归。</td><td>历史失败与候选 run 对照 → 分段计时 → 若重现再写回归测试 → 更新验证记录。</td><td class="ok">候选 run 35718501543 的三平台 Node 24 和汇总 check 全部通过；历史失败仍应在验证文档中归因。</td></tr>
-    <tr><td><strong>已完成 · Task 2</strong><br>benchmark 调度隔离</td><td>让 benchmark 可以关闭周期刷新，并明确测量一次手动增量 index job 的完成与可见性。</td><td>只影响 benchmark worker；默认服务仍自动刷新；手动 job 时间不能冒充生产 15 秒调度可见性。</td><td>复核提交 → 运行现有 server focused tests → 运行 benchmark 与 validation → 绑定合并 SHA。</td><td class="ok"><code>55e1828</code> 已由 PR #67 合并为 <code>967ceee</code>；<code>tests/server/app.test.ts</code> 6/6 通过，默认行为保持。专门断言 <code>autoRefresh:false</code> 的回归测试仍是建议补强项。</td></tr>
-    <tr><td><strong>P0 · Task 3</strong><br>候选冻结</td><td>从干净 SHA 生成可安装、可复查的 release candidate。</td><td>使用隔离 worktree；不清理当前工作区，不发布 tag/npm。</td><td><code>npm ci</code> → <code>check</code> → e2e → package smoke → 保存 tarball/hash。</td><td>源码、浏览器、包、文档、脱敏检查全通过，所有产物绑定同一 SHA。</td></tr>
-    <tr><td><strong>P1 · Task 4–5</strong><br>T14-B / T18 真实接续</td><td>完成真实 CLI 接续和 24 格 Agent/平台矩阵。</td><td>不自动登录、不收集原始日志；exit 0 不等于成功；未验证版本保持 unknown。</td><td>固定版本 → 三类隔离任务 → new-session/resume → 保留失败与重测 → 更新矩阵。</td><td>每格有 SHA、包 hash、OS/Node/Agent、模式、cwd、约束、产物和用户确认。</td></tr>
-    <tr><td><strong>P1 · Task 6</strong><br>T19 最终 RC</td><td>证明最终 tarball 能在独立目录安装、运行和持久化。</td><td>安装验收不替代真实 Agent 或用户验证；不执行发布。</td><td>独立安装 → public exports/SQLite/CLI/UI/doctor → 包白名单 → hash 绑定。</td><td>包文件、manifest、Node 24、第三方声明和 tarball SHA-256 一致。</td></tr>
-    <tr><td><strong>P1 · Task 7</strong><br>T20 用户验证</td><td>取得 5 名目标用户的首次使用、接续和回访证据。</td><td>用户自行操作且明确同意；不收集 token、原始日志、私有路径或完整录屏。</td><td>招募/同意 → 同包同任务 → 记录匿名时延与阻碍 → 统计 4/5、3/5 门槛 → 回访。</td><td>5 份匿名记录完整；分母不足时不计算通过率；阻碍进入小 PR。</td></tr>
-    <tr><td><strong>P1 · Task 8</strong><br>T21 发布审查</td><td>把代码、CI、包、平台和用户证据汇总为 release/hold 决策。</td><td>没有明确授权就不创建 tag、Release 或 npm publish。</td><td>绑定最终 SHA/hash → 审 Q01–Q24 → 更新支持范围/限制 → 维护者审阅 → 决策。</td><td>文档能回答支持范围、证据、缺口、升级和回滚方式。</td></tr>
-    <tr><td><strong>P2 · Task 9</strong><br>v0.3–v0.5</td><td>按 Observe → Receipt → Takeover 分阶段扩展。</td><td>不把未来能力混入 v0.2；无控制接口时永远显示 stop-unavailable。</td><td>每个版本另立小计划、独立契约、故障矩阵、隐私评审和回滚说明。</td><td>新版本有独立发布门槛，不依赖旧版本的推断性证据。</td></tr>
-  </tbody></table>
-  <h3>推荐执行顺序</h3>
-  <ol>
-    <li>以已通过 CI 的主线 <code>967ceee</code> 创建隔离 worktree，重新跑源码、浏览器和安装包检查并保存 tarball/hash。</li>
-    <li>用同一候选包完成 T14-B/T18，再做 T19 包复核。</li>
-    <li>在 T18/T19 证据稳定后进行 T20 用户观察。</li>
-    <li>最后完成 T21 Q01–Q24 审查；所有门禁通过并得到明确授权后才讨论发布。</li>
-  </ol>
-  <div class="callout">停止条件：任何真实 Agent 失败、证据缺失、包 hash 不一致、隐私边界越界或用户门槛不足，都回到所属工作包，保持 HOLD，不用补文档替代验证。</div>
-</section>
-
-<section class="card" style="margin-top:16px">
-  <h2>计划表快照</h2>
-  <p class="small">原始 v0.2 计划表的 21 个任务分布：15 个 done、3 个 in_progress、3 个 blocked。最新发布决策已把 T16 的性能判断更新为“合成验收通过”，因此这里仅作为计划表快照，不作为 stable 发布结论。</p>
-  <div class="chart" id="plan-status-chart" role="img" aria-label="计划表快照：15 个完成，3 个进行中，3 个阻塞"></div>
-</section>
-
-<footer>报告生成于 2026-09-22。证据来自当前 Git 状态、GitHub PR/Actions 状态以及仓库中的 verification 文档；报告是单文件 HTML，无外部脚本、样式或网络依赖。</footer>
+<section class="card" style="margin-top:16px"><h2>真实验证</h2><table><thead><tr><th>检查</th><th>结果</th><th>证据</th></tr></thead><tbody>
+<tr><td><code>npm run check:format</code></td><td class="ok">PASS</td><td>无尾随空白或混合换行。</td></tr>
+<tr><td><code>npm run typecheck</code></td><td class="ok">PASS</td><td>服务端与 Web TypeScript 编译通过。</td></tr>
+<tr><td><code>npm run build</code></td><td class="ok">PASS</td><td>服务端 TypeScript 与 Vite 构建通过。</td></tr>
+<tr><td><code>npm run test:e2e</code></td><td class="ok">PASS</td><td>10 个测试全部通过，完整运行约 1.1 分钟。</td></tr>
+<tr><td>浏览器手动验证</td><td class="ok">PASS</td><td>首页、Open task、Back to inbox、History、移动端无溢出均已检查。</td></tr>
+</tbody></table>
+<div class="bar"><div class="bar-row"><span>代码与构建</span><span class="track"><span class="fill" style="display:block;width:100%"></span></span><strong class="ok">PASS</strong></div><div class="bar-row"><span>核心交互</span><span class="track"><span class="fill" style="display:block;width:100%"></span></span><strong class="ok">PASS</strong></div><div class="bar-row"><span>稳定发布</span><span class="track"><span class="fill warn" style="display:block;width:42%"></span></span><strong class="warn">保持开发态</strong></div></div></section>
+<section class="grid two"><article class="card"><h2>案例与规则</h2><ul>
+<li><a href="https://developer.apple.com/design/human-interface-guidelines/materials">Apple Materials</a>：玻璃只承担导航、工具和浮层的功能层。</li>
+<li><a href="https://www.raycast.com/blog/a-fresh-look-and-feel">Raycast</a>：搜索是主要工作入口，操作栏应清晰但不喧宾夺主。</li>
+<li><a href="https://linear.app/now/behind-the-latest-design-refresh">Linear</a>：紧凑、可预测的 header 和低噪声的内容密度。</li>
+</ul></article><article class="card"><h2>已知限制与后续</h2><ul>
+<li>本地预览使用系统字体栈；没有引入远程字体或图片资源，离线和本地 CSP 更稳定。</li>
+<li>当前默认仍是深色工作台。如果要做完整浅色 Liquid Glass，需要增加独立主题 token 与对比度审查。</li>
+<li>指标仍然只代表当前任务页，未扩展成全局统计。</li>
+<li>现有 control-plane 相关工作区改动属于其他开发线，本轮未回滚或重写。</li>
+</ul></article></section>
+<div class="callout">预览标签已保留在侧边浏览器中；完成报告当前页面也可从另一个标签切换回来。设计概念图保留于 <a href="file:///E:/Codex/codex-home/generated_images/01a0c8e4-f6c6-7332-b186-b625ada4639a/exec-35052b23-ec48-4f18-9447-9808e20f0c99.png">本地概念图</a>。</div>
+<footer>单文件 HTML，无外部脚本、样式或网络运行依赖。研究记录：<a href="../docs/research/ui-inspiration-2026-09-22.md">docs/research/ui-inspiration-2026-09-22.md</a>。</footer>
 </main>
-<script>
-window.Charts=window.Charts||{};
-Charts.line=function(id){
-  const host=document.getElementById(id);if(!host)return;
-  const data=[['done',15,'#69e3a0'],['in_progress',3,'#7eb5ff'],['blocked',3,'#ffd166']];
-  const w=960,h=240,left=180,right=70,top=28,row=56,max=15;
-  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.setAttribute('role','presentation');
-  data.forEach((item,i)=>{const y=top+i*row+8,label=document.createElementNS(svg.namespaceURI,'text');label.setAttribute('x',String(left-18));label.setAttribute('y',String(y+18));label.setAttribute('text-anchor','end');label.setAttribute('fill','#aebbd3');label.setAttribute('font-size','16');label.textContent=item[0];svg.appendChild(label);const bg=document.createElementNS(svg.namespaceURI,'rect');bg.setAttribute('x',String(left));bg.setAttribute('y',String(y));bg.setAttribute('width',String(w-left-right));bg.setAttribute('height','26');bg.setAttribute('rx','6');bg.setAttribute('fill','#0a1222');svg.appendChild(bg);const bar=document.createElementNS(svg.namespaceURI,'rect');bar.setAttribute('x',String(left));bar.setAttribute('y',String(y));bar.setAttribute('width',String((w-left-right)*item[1]/max));bar.setAttribute('height','26');bar.setAttribute('rx','6');bar.setAttribute('fill',item[2]);svg.appendChild(bar);const value=document.createElementNS(svg.namespaceURI,'text');value.setAttribute('x',String(left+(w-left-right)*item[1]/max+12));value.setAttribute('y',String(y+19));value.setAttribute('fill','#eef3ff');value.setAttribute('font-size','16');value.textContent=String(item[1]);svg.appendChild(value);});
-  host.appendChild(svg);
-};
-Charts.line('plan-status-chart');
-</script>
 </body>
 </html>

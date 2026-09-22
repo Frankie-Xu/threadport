@@ -1,61 +1,120 @@
-# ThreadPort
+<p align="center">
+  <img src="docs/assets/threadport-readme-hero.svg" alt="ThreadPort: portable, verifiable work state for coding agents" width="100%" />
+</p>
 
-[![CI](https://github.com/Frankie-Xu/threadport/actions/workflows/ci.yml/badge.svg)](https://github.com/Frankie-Xu/threadport/actions/workflows/ci.yml)
+<p align="center">
+  <a href="https://github.com/Frankie-Xu/threadport/actions/workflows/ci.yml"><img src="https://github.com/Frankie-Xu/threadport/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <img src="https://img.shields.io/badge/version-0.3.0--dev.0-8b7cf6?style=flat" alt="Development version 0.3.0-dev.0" />
+  <img src="https://img.shields.io/badge/runtime-Node%20%3E%3D24-29b6a6?style=flat" alt="Node.js 24 or newer" />
+  <img src="https://img.shields.io/badge/privacy-local--only-4f8a67?style=flat" alt="Local only" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-6f7785?style=flat" alt="Apache 2.0 license" /></a>
+</p>
 
-Find unfinished AI coding tasks, review their evidence, and prepare a continuation with Claude or Codex.
+<h1 align="center">ThreadPort</h1>
 
-Development snapshot `0.2.0-dev.0`. Experimental local workbench; real Agent/platform certification and external user validation are still pending. See the [release HOLD record](docs/verification/release-0.2.0.md).
+<p align="center">
+  <strong>Portable, verifiable work state for coding agents.</strong><br />
+  Find unfinished AI coding tasks, review their evidence, and prepare a deliberate continuation with Claude or Codex — locally, explicitly, and with a human in the loop.
+</p>
 
-This repository contains the first implementation of the ThreadPort Context Capsule v1 format. A Capsule records observable work state — objective, decisions, files, commands, tests, Git identity, evidence, and the next action — so a task can move between Claude Code, Codex, Cursor, and Gemini without copying hidden reasoning or silently executing code.
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#how-the-pieces-fit">How it works</a> ·
+  <a href="#product-preview">Product preview</a> ·
+  <a href="docs/v0.2/README.md">Documentation</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
 
-## Current implementation
+> [!WARNING]
+> ThreadPort `0.3.0-dev.0` is an experimental local workbench. Real Agent/platform certification, cross-agent authentication, and external user validation are still pending; stable release remains **HOLD**. See the [release boundary](docs/releases-v0.3.0-dev.0.md) and [release HOLD record](docs/verification/release-0.2.0.md).
 
-The development checkout includes a task inbox, searchable history, manual revision controls, a complete continuation preview and terminal confirmation. The [v0.2 documentation](docs/v0.2/README.md) distinguishes implemented behavior from remaining acceptance gates. Capsule v1 and the legacy artifact CLI remain available.
+## The idea
 
-With Node 24, try the current checkout:
+Coding-agent sessions often stop with useful context trapped in a terminal, an IDE, or a local log directory. ThreadPort turns the observable part of that work into a reviewable **Context Capsule**:
 
-```sh
+<table>
+  <tr>
+    <td width="25%"><strong>01 · Discover</strong><br /><sub>Find unfinished sessions and attach them to a task.</sub></td>
+    <td width="25%"><strong>02 · Review</strong><br /><sub>Separate evidence, decisions, uncertainty, and current workspace state.</sub></td>
+    <td width="25%"><strong>03 · Prepare</strong><br /><sub>Build a complete handoff for a compatible target Agent.</sub></td>
+    <td width="25%"><strong>04 · Confirm</strong><br /><sub>Read the transfer text and confirm again in your terminal.</sub></td>
+  </tr>
+</table>
+
+ThreadPort transfers observable work state — objectives, decisions, files, commands, tests, Git identity, evidence, and the next action. It does **not** transfer hidden chain-of-thought, silently run a logged command, upload session data, or treat an Agent's self-report as proof of completion.
+
+## Product preview
+
+The screenshots below use synthetic data from the local workbench. They show the review surfaces that are already implemented; synthetic demo data is never presented as real continuation evidence.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/verification/assets/t15-history-1280.png" alt="ThreadPort History page with evidence search" />
+      <p align="center"><sub><strong>History</strong> — search sessions, messages, commands, and task context.</sub></p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/verification/assets/t15-handoff.png" alt="ThreadPort continuation preview with complete transfer text" />
+      <p align="center"><sub><strong>Continuation preview</strong> — inspect the complete transfer text before copying the terminal command.</sub></p>
+    </td>
+  </tr>
+</table>
+
+## Why ThreadPort
+
+| Concern | ThreadPort's answer |
+| --- | --- |
+| Context is scattered across tools | Normalize observable session traces into one portable Capsule v1 shape. |
+| Historical output can look more certain than it is | Keep evidence, applicability, uncertainty, and coverage gaps explicit. |
+| A handoff can become an accidental execution path | Prepare and preview first; require a fresh terminal confirmation before a target Agent starts. |
+| Local logs can contain secrets or machine-specific paths | Redact before summaries and keep processing local by default. |
+| “Found on PATH” is not the same as “safe to launch” | Target discovery reports candidates; it does not claim vendor identity, compatibility, or automatic launch support. |
+
+## How the pieces fit
+
+```mermaid
+flowchart LR
+  A[Local session logs] --> B[Source adapters]
+  B --> C[Context Capsule v1]
+  C --> D[Task inbox + history]
+  D --> E[Evidence review]
+  E --> F[Immutable handoff]
+  F --> G[Terminal confirmation]
+  G --> H[Target Agent]
+  E -. coverage gaps .-> I[Human review]
+  I -. explicit decision .-> F
+```
+
+The [Capsule v1 schema](schema/capsule-v1.schema.json) is the stable boundary for portable work state. The local workbench adds task management, search, workspace snapshots, verification, and a controlled handoff envelope around it.
+
+## Quick start
+
+Requires Node `>=24.0.0` for this development checkout.
+
+```bash
 npm ci
 npm run build
 node dist/src/cli.js ui --no-open
 ```
 
-1. Open the loopback link printed in your terminal. Add an explicit workspace and source directory in Settings.
-2. Refresh the source, find a session in History and create or attach a task. Review observed evidence and confirm your objective and constraints.
-3. Prepare a continuation, read the complete text, then copy the fixed ThreadPort command to a terminal. The terminal asks for confirmation before launching a compatible installed Agent.
+Then:
 
-Without local logs, `node dist/src/cli.js ui --demo --no-open` opens synthetic data. Demo is not real continuation evidence. No account or telemetry is required by ThreadPort. Agent authentication belongs to your existing installation.
+1. Open the loopback URL printed in your terminal and choose an explicit workspace and source directory in **Settings**.
+2. Refresh the source, find a session in **History**, and create or attach a task.
+3. Review the observed evidence, confirm the objective and constraints, prepare a continuation, and read the complete transfer text.
+4. Copy the fixed ThreadPort command. The terminal asks for `CONTINUE` again before launching a compatible installed Agent.
 
-- JSON Schema: `schema/capsule-v1.schema.json`
-- TypeScript validator and serializer: `src/capsule.ts`
-- Readable Markdown renderer: `src/markdown.ts`
-- Git state model and dirty-diff hash: `src/git.ts`
-- Secret redaction: `src/redact.ts`
-- Example Capsule: `examples/capsule-v1.json`
-
-## Run
+To explore the interface without local logs:
 
 ```bash
-npm ci
-npm run check
+node dist/src/cli.js ui --demo --no-open
 ```
 
-Requires Node `>=24.0.0` for this v0.2 development checkout. CI runs Node 24. See [runtime and storage migration](docs/v0.2/07-storage-migration.md). Session adapters and the handoff CLI are available. Processing is local-only: source sessions and project contents are read, while exported artifacts are written to explicit or temporary destinations. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch names, pull requests, and the quality gate.
+Demo mode uses isolated synthetic data. It does not count as real continuation evidence, and it does not require an account, API key, or telemetry opt-in.
 
-```ts
-import { createClaudeAdapter, createCodexAdapter, createCursorAdapter, createGeminiAdapter } from "threadport";
+## CLI and SDK
 
-const capsule = await createGeminiAdapter().extract({
-  sessionPath: "./tests/fixtures/gemini/session-basic.json",
-  project: { name: "my-app", root: process.cwd() }
-});
-```
-
-`createClaudeAdapter`, `createCodexAdapter`, and `createCursorAdapter` take the same input. Pass a local session file or already-read text. Adapters map observable traces onto Capsule v1; they do not execute `next_action`, and they do not treat the session file as a published vendor schema.
-
-## Handoff CLI
-
-Local artifact commands. After `npm run build`, invoke the built CLI directly:
+After `npm run build`, the artifact CLI can extract, validate, render, and package a handoff:
 
 ```bash
 node dist/src/cli.js extract --from claude --session ./session.jsonl --project .
@@ -66,100 +125,131 @@ node dist/src/cli.js validate --handoff ./handoff.json
 node dist/src/cli.js targets
 ```
 
-The CLI validates before writing and does not run `next_action`. `--from` accepts `claude`, `codex`, `cursor`, and `gemini`. After installing a built package, `threadport` is the equivalent executable. Do not use `npx threadport` as a substitute for building this checkout: it can resolve a registry package.
+The public TypeScript adapters map observable traces onto Capsule v1. They never execute `next_action`, and they do not treat a session file as a published vendor schema:
 
-### Output and privacy contracts
+```ts
+import {
+  createClaudeAdapter,
+  createCodexAdapter,
+  createCursorAdapter,
+  createGeminiAdapter,
+} from "threadport";
 
-- Default output is under the operating-system temporary directory, in a user-specific `threadport-*` directory, outside the source project. The namespace includes the canonical local project path hash and source agent; session IDs are scoped to this namespace. It is not a global cross-device repository identifier. Temporary artifacts may be cleaned by the OS; choose `--out` outside the project for durable storage.
-- The CLI prints successful output paths. `--out` selects an explicit destination; no file is replaced without `--force`. JSON is authoritative. Markdown is a rebuildable cache: a cache failure after JSON publication emits a warning and retains the saved JSON. This is not a two-file transaction.
-- Portable mode is the default for every adapter. Nested repository paths stay relative; external filesystem paths receive opaque `external/<hash>` locators. These hashes are identifiers, not encryption. Recognizable complete paths in display text use the same containment checks, including sibling-name prefixes, traversal and quoted paths containing spaces. Source-aware normalization uses explicit POSIX or Windows rules. Windows drive-relative paths (such as `C:notes.txt`), paths without a drive, device namespaces, and paths with an unknown source root receive opaque locators. External relative locators include their source-root context, so they may differ from earlier exports. Relative SDK session-file locators are resolved from the same working directory used to read them. Path extraction from arbitrary prose remains heuristic. Use `--privacy local` or SDK `privacy: 'local'` only when retaining local paths is intentional.
-- Command attempts remain chronological. A successful retry resolves only earlier failures with the same session, observed cwd, and exact command text; missing cwd stays unknown and never matches a known cwd. Redacted command/cwd identities cannot establish a successful retry. Explicit null exit codes stay unknown. Conventional direct npm/pnpm/yarn and supported test-runner invocations are classified as tests; unrecognized commands and shell compositions remain general commands. A legacy extraction accepts one session identity; split concatenated sessions into separate inputs.
-- The latest visible user message supplies a **derived objective candidate**, which may only be a follow-up; confirm it before continuing. Earlier user messages and assistant plans remain message evidence, not adopted decisions. Chinese and English prohibition lines are retained as candidate constraints. Historical test results keep their observed outcome and explicitly mark current workspace validity unknown. Capsule v1 fields are unchanged. The internal task model preserves saved manual fields during derivation; persistent revision-checked editing is available in the local workbench.
-- Complete visible record strings are secret-redacted before summaries are truncated. Metadata also passes an output privacy boundary. Secret scanning is heuristic, not a guarantee that arbitrary credentials, encoded secrets, or personal information have been removed. Inspect artifacts before sharing.
-- File tool calls without a recognized successful result remain attempts, not completed work. Unsupported/empty session formats are rejected. The adapters support the observed fixture formats, not every vendor version; result IDs are used where available, and ambiguous ID-less concurrent Gemini results remain unknown. See [compatibility evidence](docs/compatibility-evidence.md): Cursor has a narrowly tested transcript-only import; no live vendor version has full tool-evidence certification.
-
-### Cursor Copy Transcript (limited import)
-
-Cursor 3.20.10, Agents / **This Mac**, `Chat actions → Copy → Copy Transcript` was tested on macOS 26.6.2. Save the copied text as UTF-8 plain text (`.txt` or `.md`), then use the same extraction command:
-
-```bash
-node dist/src/cli.js extract --from cursor --session /path/to/cursor-transcript.txt --project /path/to/project --out /path/outside/project/capsule.json
+const capsule = await createGeminiAdapter().extract({
+  sessionPath: "./tests/fixtures/gemini/session-basic.json",
+  project: { name: "my-app", root: process.cwd() },
+});
 ```
 
-The observed export is Markdown, not JSONL. It omits complete structured tool results. ThreadPort therefore imports it as **transcript-only**, writes a warning to stderr and into Capsule constraints, and sets `status: paused`. Visible user instructions and the latest visible assistant context are retained for review; assistant context is explicitly unverified. `files`, `commands`, `tests`, `failures`, `completed` and `decisions` remain empty. Current Git changes are independently recorded under `git`, not attributed to the session.
+The `createClaudeAdapter`, `createCodexAdapter`, and `createCursorAdapter` functions accept the same input shape. Pass a local session file or already-read text.
 
-This narrow parser recognizes a title and `## User` / `## Assistant` sections. Fenced/indented code, quoted lines, tool bodies, hidden sections and unsupported sections are conservatively omitted; empty-user and unclosed-fence inputs fail. Markdown headings cannot authenticate roles and literal, unfenced role-like headings are ambiguous. Review the original export before acting. Long assistant review context is capped at 4,000 characters after secret redaction and explicitly marked when truncated. This is not lossless conversation migration, historical Git reconstruction or a promise of Cloud/IDE/CLI compatibility.
+## What is captured
 
-Structured JSON/JSONL inputs follow the shared evidence rules: objectives are candidates from the latest visible user message; command outcomes are scoped to the observed session, exact command and working directory. Structured command events recognize direct `node --test` / `node.exe --test` invocations (including following file arguments), not shell compositions; this does **not** recover missing test evidence from Markdown summaries.
+| Capsule field | What it means |
+| --- | --- |
+| Objective | A candidate objective derived from the latest visible user message, awaiting confirmation. |
+| Decisions and constraints | User-confirmed intent, review history, and unresolved conflicts. |
+| Files, commands, and tests | Observable attempts and outcomes, kept chronological and scoped to their session and working directory. |
+| Git state | HEAD, index, worktree, untracked contents, and a bounded dirty-diff hash. |
+| Evidence | Redacted source events, snapshots, verification results, and explicit coverage limits. |
+| Next action | A reviewable suggestion; never an instruction that ThreadPort executes automatically. |
 
-Cursor's project-local native JSONL can also omit call IDs/results. Those sessions now warn about incomplete evidence, retain attempted operations as unknown and preserve the latest review instruction. An existing confirmed failure stays blocked; otherwise incomplete sessions are paused. Native timestamp/user-query wrappers are removed from the objective, not mistaken for task text. Blank or duplicated call IDs, or results preceding their calls, cannot supply a successful outcome.
+### Adapters and evidence boundaries
 
-For explicitly permitted single-session database evidence, a developer-only read-only exporter is available; see [Cursor evidence verification](docs/verification/cursor-native-evidence.md). It is experimental, requires the SQLite CLI, is not included in the npm package and does not discover sessions automatically. This richer path has been checked against the isolated test session, but does not certify every tool or release.
+- Claude and Codex sources can be indexed incrementally from explicitly configured roots. See [Claude source compatibility](compatibility/claude-source.md), [Codex format evidence](compatibility/codex-source.md), and [indexing and recovery](docs/v0.2/08-indexing.md).
+- Cursor Copy Transcript import is intentionally transcript-only: structured tool results are absent, so the Capsule remains paused and does not claim files, commands, tests, or completion. See [Cursor evidence verification](docs/verification/cursor-native-evidence.md).
+- Gemini and other structured inputs follow the same evidence rules: ambiguous or incomplete records remain unknown instead of being upgraded by inference.
+- Native source adapters are observe-only. Real cross-agent authentication and continuation success remain unverified; the [compatibility matrix](docs/compatibility.md) is the source of truth.
 
-### Allowed Claude source discovery
+### Privacy and local storage
 
-The v0.2 `threadport/sources` SDK exposes `createSourceRegistry` and `createClaudeSource`. Configure explicit `roots` and a `sourceId`; the adapter never discovers roots from HOME. Iterate `discover(roots, signal)`, then call `read({candidate, cursor, maxEvents, signal})`, persisting its whole cursor. Continue while `hasMore` is true, including pages with zero events. Inspect warnings for partial lines, limits and reset requirements. The old extract API is unchanged. See [native source compatibility and limits](compatibility/claude-source.md); indexing is available through IndexService; the local workbench configures sources explicitly.
+- Processing is local-only. Source sessions and project contents are read locally; exported artifacts go to an explicit or temporary destination.
+- Complete visible record strings and metadata pass a heuristic secret-redaction boundary before summaries are truncated. Redaction is not encryption or a guarantee that arbitrary encoded secrets are removed; inspect artifacts before sharing.
+- Portable mode keeps nested repository paths relative and maps external paths to opaque `external/<hash>` locators. Use `--privacy local` only when retaining local paths is intentional.
+- Workspace snapshots use a bounded read-only policy. Sensitive filenames are excluded before content reads, incomplete captures block preparation, and ignored path counts remain visible. See the [workspace reading policy](docs/adr/0012-workspace-reading-policy.md).
 
-### Incremental indexing
+## Local workbench surfaces
 
-`threadport/sources` now registers Claude and Codex. `threadport/indexing` provides `IndexService` for manual refresh, cancellation and optional 15-second refresh while a local service runs. Full cursors and event batches commit atomically; rescans preserve manual tasks and links. Database schema v2 adds durable cursor state and two scan lease slots. See [indexing and recovery](docs/v0.2/08-indexing.md) and [Codex format evidence](compatibility/codex-source.md).
+The browser workbench is intentionally small and explicit:
 
-### Git fingerprints and handoff boundary
+- **Inbox** — create and edit manual tasks, attach source sessions, and resolve revision conflicts.
+- **History** — search Chinese and English text, relative paths, task titles, projects, agents, and UTC date ranges with bounded snippets.
+- **Task detail** — inspect evidence, reviewed decisions, control-plane receipts, workspace verification, and unresolved coverage gaps.
+- **Continuation preview** — select a source session, target Agent, workspace, and mode; inspect the complete transfer text before confirming.
+- **Settings and diagnostics** — configure sources, storage, retention, exports, and local server state.
 
-Snapshots distinguish HEAD-to-index, index-to-worktree, and untracked contents, including symlinks as links. They use a new domain-separated hash algorithm, so capsules exported by the old incomplete algorithm must be re-extracted before comparing. No Capsule v1 fields were added. Git output is capped at 32 MiB per command with a 30-second timeout; aggregate untracked regular-file content is capped at 64 MiB. Ignore generated data before extraction. Snapshot consistency checks are best-effort; no repository lock or atomic filesystem snapshot is claimed.
+The server exposes a protected loopback entry point through `startLocalServer({ dataDir? })` and an authenticated `GET /api/v1/status`. The `ui` command prints a fragment-token link once; refreshing requires reopening the current terminal link. Ctrl-C stops the service. See [local server documentation](docs/v0.2/13-local-server.md).
 
-`gitStateMatches` compares work state, not repository identity. A portable `root: '.'` does not fail solely because the local path differs. Consumers must independently bind the intended repository before using this result; matching hashes alone do not authorize edits.
+## Safety boundary
 
-`handoff` exports Markdown (`.md`) or a strict `threadport.handoff.v1` envelope. The public `createHandoff`, `parseHandoff`, and `handoffSchema` APIs and `schema/handoff-v1.schema.json` define this envelope. Register `schema/capsule-v1.schema.json` with offline JSON Schema validators to resolve its reference. Consumers must validate both the envelope and capsule. Safety flags declare a no-execution workflow; they are not a sandbox.
+ThreadPort is a review and preparation tool. Consumers must validate the Capsule and ask for confirmation before modifying a repository. The `continue` command:
 
-`targets` only locates candidates using PATH/PATHEXT. It does not run agents or lookup utilities. Every candidate reports `launch_supported: false`; existence does not establish vendor identity or a compatible CLI version. The old `suggestedLaunch` API now rejects automatic launching rather than returning an unverified shell command. The new `continue` command requires an immutable task handoff and explicit terminal confirmation; there is no automatic launch or apply mode.
+1. loads an immutable task handoff;
+2. displays the complete context, target, and workspace;
+3. requires an interactive terminal and the exact `CONTINUE` phrase;
+4. verifies the workspace and launch plan again;
+5. consumes the one-use handoff before inheriting the terminal.
 
-### Release verification
+Non-TTY use and `--yes` are rejected. A target's nonzero exit is recorded separately; a clean process exit does not mark the task complete. Receipt claims must match a prepared manifest, explicit target session/run, and independent evidence. Agent self-report alone remains `unknown`.
+
+## Verification and development status
+
+Run the local quality gates with:
 
 ```bash
-npm ci
 npm run check
 npm run check:pack
 npm audit
 ```
 
-`npm pack` builds through `prepack`; only runtime build files, SQL migrations, schemas, examples and package documentation are distributed. `check:pack` installs the tarball into an isolated directory and checks the CLI, public exports and native SQLite creation. CI runs these gates on Ubuntu, macOS and Windows with Node 24. The Git regression suite requires real file symlinks on every platform, including Windows; missing privileges fail the test instead of skipping it. Parsed Markdown assertions cover LF/CRLF/CR, and publication tests inject filesystem errors after preflight. Vitest 4.1.11 and Vite 6.4.3 are pinned together to fix the mocker advisory without unrelated dependency upgrades.
+`npm run check` covers formatting, TypeScript, the build, tests, documentation links, and redaction checks. `check:pack` installs the tarball into an isolated directory and checks the CLI, public exports, schemas, migrations, and native SQLite creation. The release notes record the current `0.3.0-dev.0` evidence and its remaining boundaries.
 
-## Safety boundary
+> [!NOTE]
+> Passing local checks does not certify a real Claude/Codex continuation, cross-platform support, user activation, or a stable release. See the [control-plane review](docs/verification/control-plane-review-2026-09-22.md), [compatibility evidence](docs/compatibility-evidence.md), and [release HOLD record](docs/verification/release-0.2.0.md).
 
-ThreadPort does not transfer hidden chain-of-thought, does not upload session data, and does not automatically run the next action. Consumers must validate the Capsule and ask for user confirmation before modifying a repository.
+## Documentation map
 
-### Editable tasks SDK
+| Start here | Go deeper |
+| --- | --- |
+| [v0.2 documentation index](docs/v0.2/README.md) | Product scope, architecture, contracts, quality gates, and release criteria. |
+| [Local development](docs/LOCAL-DEVELOPMENT.md) | Workspace setup and the supported local development loop. |
+| [Compatibility matrix](docs/compatibility.md) | Supported formats, versions, and explicit certification gaps. |
+| [Release boundary](docs/releases-v0.3.0-dev.0.md) | What the Observe prerelease does and does not claim. |
+| [Current verification records](docs/verification/) | Evidence for UI, indexing, lifecycle, runtime, and release gates. |
+| [Security policy](SECURITY.md) | How to report a vulnerability privately. |
+| [Contributing guide](CONTRIBUTING.md) | Branches, pull requests, tests, evidence, and rollback expectations. |
 
-The `threadport/tasks` entry supports manual task fields, revision conflicts, session associations and reversible lifecycle/archive changes. See [task management](docs/v0.2/09-task-management.md) for redaction preview, project boundaries and completion activity semantics. The local workbench includes these editing controls.
+<details>
+<summary><strong>Advanced implementation notes</strong></summary>
 
-### History search SDK
+### Git fingerprints and handoff boundary
 
-Use `threadport/search` to find Chinese substrings, English text, relative paths and manual task titles/objectives with project, agent and UTC date filters. [History search](docs/v0.2/10-history-search.md) documents bounded snippets, keyset pagination and explicit refresh when indexed data changes.
+Snapshots distinguish HEAD-to-index, index-to-worktree, and untracked contents, including symlinks as links. They use a domain-separated hash algorithm; Capsules exported by an older incomplete algorithm must be re-extracted before comparing. Git output is capped at 32 MiB per command with a 30-second timeout, and aggregate untracked regular-file content is capped at 64 MiB. Snapshot consistency checks are best-effort; no repository lock or atomic filesystem snapshot is claimed.
 
-### Workspace snapshot SDK
+`gitStateMatches` compares work state, not repository identity. A portable `root: '.'` does not fail solely because the local path differs. Consumers must independently bind the intended repository before using the result; matching hashes alone do not authorize edits.
 
-`threadport/workspace` captures and persists bounded, read-only snapshots of an explicitly selected local worktree. [Snapshot documentation](docs/v0.2/12-workspace-verification.md) describes content and identity digests, incomplete capture reasons and cancellation. It also exposes `verifyWorkspace` for explicit comparison. Run `threadport verify capsule.json --project /absolute/project [--data-dir /private/data] [--json]`: matched exits 0, drifted 4, unverifiable 6; input errors exit 2 and IO failures 5. Legacy Capsules without an explicit saved-snapshot evidence reference return unverifiable. `validate` remains schema-only. See the snapshot documentation for the reference protocol and SDK producer example; a match does not certify historical tests.
+`handoff` exports Markdown (`.md`) or a strict `threadport.handoff.v1` envelope. Validate both the envelope and Capsule. Safety flags describe a no-execution workflow; they are not a sandbox.
 
-`threadport/server` now exposes `startLocalServer({dataDir?})` for a protected loopback service and authenticated `GET /api/v1/status`. The server returns an in-memory token and an idempotent `close()` that stops indexing before closing the database. See [local server documentation](docs/v0.2/13-local-server.md). Business routes and the `ui` CLI are available.
+### Command evidence and applicability
 
-Start the local entry page with `threadport ui --no-open`, or use `threadport ui --demo --no-open` for isolated synthetic data. Open the printed fragment-token link; refreshing requires reopening the current terminal link. The offline workbench configures sources, finds history, edits revision-checked tasks, and previews the complete transfer text before generating a terminal command. You can paste the current terminal link to reconnect while keeping search filters. Ctrl-C stops the service.
+Prepared handoffs assess each recorded command against its own historical workspace snapshot. Changed code marks a known historical outcome stale while preserving the original exit code. Missing snapshot or environment evidence stays unknown, and incomplete execution evidence stays unverified. Native logs currently lack historical snapshot bindings, so they do not gain current test certification. Required context above 32 KiB returns `CONTEXT_BUDGET_EXCEEDED` without truncating constraints. See the [evidence applicability decision](docs/adr/0009-command-evidence-applicability.md) and [report-to-code audit](docs/verification/report-v0.2-audit.md).
 
+### Workspace verification and recovery
 
-Prepare a task continuation with `threadport prepare --task <id> --source-session <id> --to claude|codex --workspace <id>`, then run `threadport continue --handoff <uuid>` in your terminal (use the same optional `--data-dir` for both). Continue displays the complete context, target and workspace, requires typing `CONTINUE`, verifies again, and claims the handoff once before inheriting the terminal. Non-TTY use and `--yes` are rejected. Target nonzero exits are recorded separately and return CLI exit 5; a clean process exit does not mark the task complete. See the [version matrix](docs/compatibility.md) and [local workflows](docs/v0.2/13-local-server.md). Real cross-Agent certification is still pending; the workbench uses synthetic browser acceptance; actual vendor certification remains separate.
+Run `threadport verify capsule.json --project /absolute/project [--data-dir /private/data] [--json]`: matched exits `0`, drifted `4`, unverifiable `6`; input errors exit `2` and I/O failures `5`. Legacy Capsules without an explicit saved-snapshot evidence reference return unverifiable. A match does not certify historical tests.
 
-Prepared handoffs now assess each recorded command against its own historical workspace snapshot. Changed code marks a known historical outcome stale; the original exit code stays intact. Missing snapshot or environment evidence stays unknown, and incomplete execution evidence stays unverified. Native logs currently lack historical snapshot bindings, so they do not gain current test certification. Aggregate warnings include older commands whose excerpts were omitted. Required context that exceeds 32 KiB returns `CONTEXT_BUDGET_EXCEEDED` (HTTP 422 / CLI exit 2), without truncating constraints. See the [evidence decision](docs/adr/0009-command-evidence-applicability.md) and [report-to-code audit](docs/verification/report-v0.2-audit.md).
-
-Bundled browser dependency notices are included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-### Runtime remediation status
-
-See the [current remediation record](docs/verification/remediation-progress-2026-09-16.md) for exact commits and checks. Terminal consent binds a frozen launch plan: canonical executable identity, version, argv, cwd, context transport, expiry and nonce. These are checked again before one-use consumption. Inherited Agent settings/interpreters and the final filesystem-to-exec race remain outside complete control.
-
-Runs sharing one application data directory reserve the canonical workspace across processes and handoffs. Independent data directories do not coordinate; concurrent use of the same workspace through multiple stores is unsupported. Lost observers retain an `unknown` reservation. Use `threadport inspect-run --handoff <uuid>` and, only after checking the target has stopped, `threadport recover-run --handoff <uuid>` with the same data directory. Recovery requires a terminal and the displayed `RELEASE <nonce>` phrase, records the evidence and does not retry the consumed handoff. Schema 7 includes the additive runtime, assertion and execution-observation migrations; older binaries refuse the upgraded database.
-
-Workbench snapshots use raw.v2 / scope.v1: sensitive filenames are excluded before content reads, incomplete captures block preparation, and ignored path counts are visible. Internal leaf symlinks contribute link text only. External links, submodules, non-UTF8 paths and unborn repositories cannot produce a complete snapshot. Older scope versions cannot match new captures. See the [reading policy](docs/adr/0012-workspace-reading-policy.md); its filename heuristic does not detect every secret, and legacy artifact extraction has a separate boundary.
+Runs sharing one application data directory reserve the canonical workspace across processes and handoffs. Independent data directories do not coordinate. Lost observers retain an `unknown` reservation; use `threadport inspect-run --handoff <uuid>` and, only after checking that the target has stopped, `threadport recover-run --handoff <uuid>` with the same data directory. Recovery requires a terminal and the displayed `RELEASE <nonce>` phrase; it records the evidence and does not retry the consumed handoff.
 
 ### Reviewed decisions and conflicts
 
-The task workbench now keeps an immutable decision/constraint history. Save suggestions as candidates, explicitly confirm an entry, and select the entries it replaces. Different confirmed choices for the same topic and overlapping scope are shown as conflicts; you can also mark a conflict across topics. Resolve conflicts before preparing continuation. A concurrent save keeps your draft and offers an explicit baseline refresh. Missing source evidence is labeled unavailable without erasing your confirmation. See the [assertion decision](docs/adr/0013-assertion-ledger.md) and current verification record above.
+The task workbench keeps an immutable decision and constraint history. Save suggestions as candidates, explicitly confirm an entry, and select the entries it replaces. Different confirmed choices for the same topic and overlapping scope are shown as conflicts; conflicts must be resolved before preparing a continuation. A concurrent save keeps the draft and offers an explicit baseline refresh. Missing source evidence is labeled unavailable without erasing confirmation. See the [assertion ledger](docs/adr/0013-assertion-ledger.md).
+
+### Package and third-party boundaries
+
+`npm pack` builds through `prepack`; only runtime build files, SQL migrations, schemas, examples, package documentation, and bundled notices are distributed. Browser dependency notices are included in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). `targets` only locates candidates using PATH/PATHEXT; it does not run agents or look up utilities. Every candidate reports `launch_supported: false` until compatibility is independently established.
+
+</details>
+
+## License
+
+ThreadPort is released under the [Apache License 2.0](LICENSE).

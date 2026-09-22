@@ -1,0 +1,81 @@
+<svg width="1600" height="560" viewBox="0 0 1600 560" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">ThreadPort — portable, verifiable work state for coding agents</title>
+  <desc id="desc">A dark graphite field with a glowing capsule moving through observable evidence into a deliberate handoff.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111827"/>
+      <stop offset="0.55" stop-color="#172033"/>
+      <stop offset="1" stop-color="#101827"/>
+    </linearGradient>
+    <linearGradient id="line" x1="280" y1="370" x2="1290" y2="165" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2DB6A4"/>
+      <stop offset="0.52" stop-color="#8B7CF6"/>
+      <stop offset="1" stop-color="#C4B5FD"/>
+    </linearGradient>
+    <linearGradient id="capsule" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
+      <path d="M42 0H0V42" stroke="#FFFFFF" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="560" rx="28" fill="url(#bg)"/>
+  <rect x="32" y="32" width="1536" height="496" rx="22" fill="url(#grid)"/>
+  <circle cx="1340" cy="110" r="150" fill="#8B7CF6" fill-opacity="0.09"/>
+  <circle cx="250" cy="470" r="180" fill="#2DB6A4" fill-opacity="0.06"/>
+
+  <g opacity="0.72">
+    <path d="M236 370C420 370 436 214 608 214C770 214 798 376 968 376C1134 376 1138 168 1370 168" stroke="url(#line)" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 16"/>
+    <path d="M236 370C420 370 436 214 608 214C770 214 798 376 968 376C1134 376 1138 168 1370 168" stroke="url(#line)" stroke-opacity="0.18" stroke-width="18" stroke-linecap="round" filter="url(#glow)"/>
+  </g>
+
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+    <text x="118" y="124" fill="#94A3B8" font-size="15" font-weight="700" letter-spacing="4">LOCAL · OBSERVE · CONTINUE</text>
+    <text x="116" y="205" fill="#F8FAFC" font-size="64" font-weight="800" letter-spacing="-2">ThreadPort</text>
+    <text x="120" y="252" fill="#CBD5E1" font-size="23" font-weight="500">Portable, verifiable work state for coding agents.</text>
+    <text x="120" y="292" fill="#94A3B8" font-size="17">Find the unfinished task. Review the evidence. Continue deliberately.</text>
+
+    <g transform="translate(180 342)">
+      <rect width="184" height="64" rx="14" fill="#FFFFFF" fill-opacity="0.07" stroke="#FFFFFF" stroke-opacity="0.15"/>
+      <circle cx="32" cy="32" r="9" fill="#2DB6A4"/>
+      <text x="56" y="28" fill="#E2E8F0" font-size="13" font-weight="800" letter-spacing="1.5">DISCOVER</text>
+      <text x="56" y="47" fill="#94A3B8" font-size="12">local sessions</text>
+    </g>
+    <g transform="translate(466 342)">
+      <rect width="184" height="64" rx="14" fill="#FFFFFF" fill-opacity="0.07" stroke="#FFFFFF" stroke-opacity="0.15"/>
+      <circle cx="32" cy="32" r="9" fill="#8B7CF6"/>
+      <text x="56" y="28" fill="#E2E8F0" font-size="13" font-weight="800" letter-spacing="1.5">REVIEW</text>
+      <text x="56" y="47" fill="#94A3B8" font-size="12">evidence + gaps</text>
+    </g>
+    <g transform="translate(752 342)">
+      <rect width="184" height="64" rx="14" fill="#FFFFFF" fill-opacity="0.07" stroke="#FFFFFF" stroke-opacity="0.15"/>
+      <circle cx="32" cy="32" r="9" fill="#38BDF8"/>
+      <text x="56" y="28" fill="#E2E8F0" font-size="13" font-weight="800" letter-spacing="1.5">HANDOFF</text>
+      <text x="56" y="47" fill="#94A3B8" font-size="12">explicit consent</text>
+    </g>
+  </g>
+
+  <g transform="translate(1168 230)">
+    <rect x="0" y="0" width="232" height="144" rx="22" fill="#0B1220" fill-opacity="0.74" stroke="#FFFFFF" stroke-opacity="0.17"/>
+    <rect x="22" y="22" width="188" height="18" rx="9" fill="#FFFFFF" fill-opacity="0.08"/>
+    <rect x="22" y="57" width="142" height="10" rx="5" fill="#FFFFFF" fill-opacity="0.13"/>
+    <rect x="22" y="79" width="166" height="10" rx="5" fill="#FFFFFF" fill-opacity="0.09"/>
+    <rect x="22" y="101" width="112" height="10" rx="5" fill="url(#capsule)" fill-opacity="0.85"/>
+    <circle cx="190" cy="106" r="11" fill="#2DB6A4" fill-opacity="0.95"/>
+    <path d="M185 106L189 110L196 102" stroke="#07111C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g transform="translate(1340 168)" filter="url(#glow)">
+    <circle r="13" fill="#C4B5FD"/>
+    <circle r="5" fill="#FFFFFF"/>
+  </g>
+  <g transform="translate(608 214)"><circle r="10" fill="#8B7CF6" fill-opacity="0.9"/><circle r="4" fill="#FFFFFF"/></g>
+  <g transform="translate(968 376)"><circle r="10" fill="#2DB6A4" fill-opacity="0.9"/><circle r="4" fill="#FFFFFF"/></g>
+
+  <text x="1450" y="480" text-anchor="end" fill="#64748B" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">CAPSULE v1 · HUMAN IN THE LOOP</text>
+</svg>
