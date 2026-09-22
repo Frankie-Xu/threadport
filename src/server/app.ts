@@ -37,7 +37,7 @@ export function createLocalApp(store:Pick<SqliteStore,'statusCounts'|'close'>,in
 }
 export interface LocalServer {origin:string;token:string;closed:Promise<void>;close():Promise<void>}
 /** Only loopback and OS-assigned ports; no import-time DB, listener, scanner or logging. */
-export async function startLocalServer(options:{dataDir?:string;demo?:boolean}={}):Promise<LocalServer>{
+export async function startLocalServer(options:{dataDir?:string;demo?:boolean;autoRefresh?:boolean}={}):Promise<LocalServer>{
  const store=await openStore(options);
  const running=new Set<string>();let lastRefreshAt:string|null=null;
  const indexer=new IndexService(store,{onProgress:progress=>{
@@ -57,7 +57,7 @@ export async function startLocalServer(options:{dataDir?:string;demo?:boolean}={
   const retention=setInterval(()=>{try{store.maintenance().prune();}catch{/* Retry next hour; never discard user data after a failed transaction. */}},3600000);retention.unref();
   app.addHook('onClose',async()=>{clearInterval(retention);});
   await registerBootstrap(app,options.demo??false);
-  const origin=await app.listen({host:'127.0.0.1',port:0});indexer.start();
+  const origin=await app.listen({host:'127.0.0.1',port:0});if(options.autoRefresh!==false)indexer.start();
   return{origin,token,closed,close};
  }catch(error){await app.close();throw error;}
 }

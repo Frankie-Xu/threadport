@@ -16,7 +16,7 @@ const script = fileURLToPath(import.meta.url);
 if (process.argv[2] === "--worker") {
   const {profileSearch}=await import("./benchmark-profile.mjs");profileSearch(value=>process.send?.(value));
   const { startLocalServer } = await import("../dist/src/server/app.js");
-  const server = await startLocalServer({ dataDir: process.argv[3] });
+  const server = await startLocalServer({ dataDir: process.argv[3], autoRefresh: false });
   let cpu = process.cpuUsage(),
     time = performance.now();
   const sample = () => {
@@ -293,14 +293,12 @@ if (process.argv[2] === "--worker") {
         }) + "\n",
     ).join("");
     await appendFile(join(logs, "0.jsonl"), additions);
-    while (
-      (await request("/status")).data.capacity.events <
-      currentEvents + 20
-    ) {
-      if (performance.now() - incrementStarted > 30000)
-        throw new Error("Incremental visibility timeout");
-      await delay(100);
-    }
+    const incrementalJob = (
+      await request("/index-jobs", "POST", { sourceIds: [source.id] })
+    ).data.jobId;
+    await finished(incrementalJob);
+    if ((await request("/status")).data.capacity.events < currentEvents + 20)
+      throw new Error("Incremental visibility timeout");
     const incrementMs = performance.now() - incrementStarted;
     phase = "idle";
     idleCpu = [];
