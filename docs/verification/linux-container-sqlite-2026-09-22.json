@@ -1,0 +1,21 @@
+{
+  "schema": "threadport.linux-container-validation.v1",
+  "status": "passed",
+  "date": "2026-09-22",
+  "image": "node:24-bookworm",
+  "command": "docker run --rm -v ${PWD}:/source:ro node:24-bookworm bash -lc \"apt-get update -qq && apt-get install -y -qq sqlite3 && node /source/scripts/local-validation-container.mjs\"",
+  "host": {
+    "docker": "29.7.2"
+  },
+  "evidence": {
+    "npmCheck": "passed",
+    "testFiles": 83,
+    "testsPassed": 524,
+    "testsSkipped": 0,
+    "testsFailed": 0,
+    "docs": "314 local destinations in 115 Markdown files",
+    "redaction": "4 exported artifacts scanned",
+    "sqliteCli": "3.40.1",
+    "optionalSkipped": []
+  }
+}

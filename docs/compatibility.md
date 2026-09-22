@@ -2,6 +2,8 @@
 
 **证据时效：** 下方 CLI 接口与真实接续记录属于各自记录的旧安装包/版本，不认证后续运行时修复。当前提交、自动回归和待验收边界见 [整改状态](verification/remediation-progress-2026-09-16.md)。
 
+当前发布线为 `0.3.0-dev.0` Observe prerelease；发布边界和本轮验证见 [release notes](releases-v0.3.0-dev.0.md)。
+
 T13 核对 CLI 版本和参数接口，不把命令存在、help 匹配或进程退出 0 当作真实任务接续成功。所有探测返回 `auth: unknown`；登录由用户已有 Agent 安装处理，不修改认证或权限。
 
 | Agent / 版本 | 参数证据平台 | new-session | native-resume + 当前上下文 | 实际接续认证 |

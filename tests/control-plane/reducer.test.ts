@@ -45,6 +45,14 @@ describe('control plane reducer', () => {
   })]);
   expect(state.receipts['receipt-1']).toMatchObject({ status: 'unknown' });
  });
+ it('does not confirm a receipt event without a prepared manifest binding', () => {
+  const state = rebuildControlState([event({
+   eventId: 'forged-runtime-receipt', type: 'receipt.confirmed',
+   payload: { receipt: { receiptId: 'receipt-forged', handoffId: 'missing-manifest', targetSessionId: 's2', targetRunId: 'r2', manifestDigest: 'b'.repeat(64), stage: 'received' } }
+  })]);
+  expect(state.receipts['receipt-forged']).toMatchObject({ status: 'unknown' });
+  expect(state.attention).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'unverified-completion' })]));
+ });
  it('ends a confirmed responsibility only on an explicit ended event', () => {
   const base = event({ eventId: 'responsibility-1', type: 'responsibility.confirmed', taskId: 'task', payload: { id: 'resp-1', ownerSessionId: 's1', scope: 'task', roles: { executor: 's1' } } });
   const ended = event({ eventId: 'responsibility-2', type: 'responsibility.ended', taskId: 'task', ordinal: 2, payload: { id: 'resp-1', ownerSessionId: 's1', scope: 'task' } });

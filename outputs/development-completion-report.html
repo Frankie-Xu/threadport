@@ -1,10 +1,130 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ThreadPort 0.3.0-dev.0 开发完成报告</title>
-<style>:root{color-scheme:dark;--bg:#0b1020;--panel:#121a2b;--text:#eef3ff;--muted:#aebbd3;--line:#2d3c5b;--ok:#69e3a0;--warn:#ffd166;--bad:#ff8f8f}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#1d3159 0,transparent 38%),var(--bg);color:var(--text);font:15px/1.6 Segoe UI,Arial,sans-serif}.wrap{max-width:1100px;margin:auto;padding:34px 20px 60px}header{border-bottom:1px solid var(--line);padding-bottom:20px}h1{font-size:34px;line-height:1.15;margin:8px 0}.lede,.muted{color:var(--muted)}.lede{font-size:18px}.meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:12px}.grid{display:grid;gap:14px;margin-top:18px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.card{background:linear-gradient(145deg,var(--panel),#18233a);border:1px solid var(--line);border-radius:12px;padding:16px}.value{font-size:26px;font-weight:800}.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:8px 6px}th{color:var(--muted)}ul{padding-left:22px}li{margin:5px 0}code{color:#d9e7ff;background:#0a1222;border:1px solid #253450;border-radius:4px;padding:1px 4px}a{color:#7eb5ff}.callout{border-left:3px solid var(--warn);padding:8px 12px;color:var(--muted);margin-top:10px}.chart{height:170px}.chart svg{width:100%;height:100%}footer{border-top:1px solid var(--line);margin-top:18px;padding-top:14px;color:var(--muted);font-size:12px}@media(max-width:850px){.kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:620px){.kpis,.two{grid-template-columns:1fr}}
-</style></head><body><main class="wrap"><header><p class="muted">ThreadPort · development completion report</p><h1>控制平面 Observe 收口与 P0 审查</h1><p class="lede">当前版本为 <code>0.3.0-dev.0</code>。本轮完成 receipt/manifest/reducer/storage/API/UI 边界修复；真实 Agent 和真实用户验证按最新用户请求跳过，保持 HOLD，不计入通过率。</p><div class="meta"><span>HEAD <code>df4101f</code></span><span>origin/main <code>967ceee</code></span><span>branch <code>codex/report-refresh</code></span><span>2026-09-22</span></div></header>
-<section class="grid kpis"><div class="card"><div class="muted">P0 focused</div><div class="value ok">20 / 20</div><div class="muted">4 files suites</div></div><div class="card"><div class="muted">Full unit prior</div><div class="value ok">524 / 524</div><div class="muted">83 files, before final closeout slice</div></div><div class="card"><div class="muted">Browser E2E</div><div class="value ok">10 / 10</div><div class="muted">fixture-only final run</div></div><div class="card"><div class="muted">Package</div><div class="value ok">PASS</div><div class="muted">264 files · SHA recorded</div></div><div class="card"><div class="muted">Stable</div><div class="value warn">HOLD</div><div class="muted">requested skips and known limits</div></div></section>
-<section class="grid two"><article class="card"><h2>P0/P1 conclusions</h2><table><tr><th>Boundary</th><th>Conclusion</th></tr><tr><td>agent-report verified-complete</td><td class="ok">Rejected; cannot form verified completion.</td></tr><tr><td>direct verified receipt</td><td class="ok">Rejected with <code>RECEIPT_VERIFICATION_REQUIRED</code>.</td></tr><tr><td>manifest digest/target</td><td class="ok">Required; missing or mismatched target is rejected.</td></tr><tr><td>forged confirmation</td><td class="ok">Projects as unknown and raises attention.</td></tr><tr><td>persisted receipt projection</td><td class="ok">Task control API reads manifests/receipts from storage.</td></tr><tr><td>UI pending/unknown</td><td class="ok">Fact labels remain observed/unknown/coverage-gap; not verified.</td></tr></table></article><article class="card"><h2>Changed areas</h2><ul><li><code>src/control-plane/receipts.ts</code>, <code>reducer.ts</code>, <code>storage/control-plane-store.ts</code></li><li><code>src/server/control-plane-routes.ts</code>, <code>src/server/app.ts</code>, <code>src/version.ts</code></li><li><code>web/src/api.ts</code>, <code>web/src/features/task/detail.tsx</code></li><li><code>tests/control-plane/*</code>, <code>tests/server/app.test.ts</code></li><li><code>CHANGELOG.md</code>, release notes, review record</li></ul></article></section>
-<section class="card" style="margin-top:14px"><h2>Executable verification</h2><table><tr><th>Command</th><th>Result</th></tr><tr><td><code>npm run typecheck</code></td><td class="ok">PASS</td></tr><tr><td><code>npm test -- --run ...control-plane... ...server/control-plane...</code></td><td class="ok">PASS · 4 files / 20 tests</td></tr><tr><td><code>npm test -- --run tests/server/control-plane.test.ts</code></td><td class="ok">PASS · 1 test</td></tr><tr><td><code>npm run check:docs</code></td><td class="ok">PASS · 331 destinations / 115 Markdown files</td></tr><tr><td><code>git diff --check</code></td><td class="ok">PASS</td></tr><tr><td><code>npm run build</code>, format, redaction, pack, final E2E</td><td class="ok">Previously verified PASS; pack SHA <code>db2806e74fd5b9264be50b8291fe724b1c820120e6ca0e366090b104e63a675c</code>; E2E 10/10.</td></tr><tr><td><code>npm run test:coverage</code></td><td class="warn">HOLD / not claimed: first missing coverage dependency, then stale version assertion was fixed; duplicate long-running invocation was stopped before a complete coverage report.</td></tr><tr><td><code>npm run check:local</code></td><td class="warn">HOLD: source-check first hit the same stale version assertion; Chrome unavailable and Docker unavailable, so browser/package-with-browser/Linux steps were skipped-environment.</td></tr></table></section>
-<section class="grid two"><article class="card"><h2>Skipped by latest user request</h2><ul><li>Real Agent authentication/continuation: <strong class="warn">skipped-by-request / HOLD</strong>; no login or external Agent call.</li><li>Real user study: <strong class="warn">skipped-by-request / HOLD</strong>; no recruitment or user contact.</li><li>These items are excluded from all pass counts. Older plan documents are historical constraints, not additional authorization.</li></ul></article><article class="card"><h2>Remaining risks</h2><ul><li>Takeover state is in-memory; restart cannot restore active ownership.</li><li>Cross-agent auth, same-vendor resume, orphan repair and real platform matrix remain unverified.</li><li>Stable release remains HOLD; no stable tag, Release or npm publish.</li></ul></article></section>
-<section class="card" style="margin-top:14px"><h2>Gate chart</h2><div id="g" class="chart" role="img" aria-label="Observed gates and holds"></div><p class="callout">This report distinguishes verified local evidence, skipped-by-request gates, and environment skips. It does not turn a skipped gate into a pass.</p></section><footer>Review record: <a href="../docs/verification/control-plane-review-2026-09-22.md">control-plane-review-2026-09-22.md</a> · Release notes: <a href="../docs/releases-v0.3.0-dev.0.md">releases-v0.3.0-dev.0.md</a></footer></main>
-<script>const h=document.getElementById("g"),n="http://www.w3.org/2000/svg",s=document.createElementNS(n,"svg");s.setAttribute("viewBox","0 0 900 170");[["P0 local",1,"#69e3a0"],["build/package/E2E",1,"#69e3a0"],["coverage",0,"#ffd166"],["real Agent",0,"#ff8f8f"],["real users",0,"#ff8f8f"]].forEach((r,i)=>{let y=8+i*30,t=document.createElementNS(n,"text");t.setAttribute("x",8);t.setAttribute("y",y+17);t.setAttribute("fill","#aebbd3");t.textContent=r[0];s.appendChild(t);let b=document.createElementNS(n,"rect");b.setAttribute("x",180);b.setAttribute("y",y);b.setAttribute("width",r[1]?640:90);b.setAttribute("height",20);b.setAttribute("rx",5);b.setAttribute("fill",r[2]);s.appendChild(b);let v=document.createElementNS(n,"text");v.setAttribute("x",r[1]?835:285);v.setAttribute("y",y+17);v.setAttribute("fill","#eef3ff");v.textContent=r[1]?"PASS":"HOLD";s.appendChild(v)});h.appendChild(s);</script></body></html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ThreadPort 临时会话控制面审查交付报告</title>
+<style>
+:root{color-scheme:dark;--bg:#0a1018;--surface:#121c29;--surface2:#182638;--text:#f3f7fb;--muted:#a8b6c7;--line:#2b3b4d;--blue:#8bc9ff;--green:#7fe0ad;--amber:#ffd389;--red:#ff9d9d}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 480px at 80% -10%,#1f4162 0,transparent 60%),var(--bg);color:var(--text);font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}main{max-width:1220px;margin:auto;padding:38px 22px 64px}header{border-bottom:1px solid var(--line);padding-bottom:25px}.eyebrow{color:var(--blue);font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}h1{font-size:clamp(30px,5vw,48px);line-height:1.08;letter-spacing:-.04em;margin:10px 0 14px}h2{font-size:21px;line-height:1.25;margin:0 0 12px}h3{font-size:16px;margin:18px 0 8px}.lede{max-width:960px;color:var(--muted);font-size:17px}.meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:16px}.grid{display:grid;gap:16px;margin-top:18px}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.two{grid-template-columns:repeat(2,minmax(0,1fr))}.card{background:linear-gradient(145deg,var(--surface),var(--surface2));border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 16px 42px rgba(0,0,0,.16)}.kpi .label{color:var(--muted);font-size:12px}.kpi .value{font-size:28px;font-weight:750;margin:7px 0 3px}.kpi .note{font-size:12px;color:var(--muted)}.pass{color:var(--green)}.hold{color:var(--amber)}.fail{color:var(--red)}.muted{color:var(--muted)}table{width:100%;border-collapse:collapse}th,td{padding:9px 7px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}th{color:var(--muted);font-size:12px;font-weight:650}tr:last-child td{border-bottom:0}.status{font-weight:700;white-space:nowrap}code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;color:#d9ecff;background:#102237;border:1px solid #28445d;border-radius:5px;padding:1px 5px;font-size:.9em;overflow-wrap:anywhere}ul{margin:7px 0;padding-left:22px}li{margin:6px 0}.callout{margin-top:18px;border-left:3px solid var(--amber);background:#2c2617;padding:13px 15px;color:#f4dfad}.small{font-size:12px;color:var(--muted)}a{color:var(--blue)}.chart{min-height:190px;margin-top:8px}.chart svg{display:block;width:100%;height:auto}.chart-label{fill:var(--muted);font-size:12px}.chart-value{fill:var(--text);font-size:13px;font-weight:700}.chart-track{fill:#26384b}.chart-pass{fill:var(--green)}.chart-hold{fill:var(--amber)}.chart-skip{fill:#8ea5bd}footer{border-top:1px solid var(--line);margin-top:22px;padding-top:15px;color:var(--muted);font-size:12px}@media(max-width:850px){.kpis,.two{grid-template-columns:1fr 1fr}}@media(max-width:620px){main{padding:24px 14px 48px}.kpis,.two{grid-template-columns:1fr}th,td{font-size:12px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div class="eyebrow">ThreadPort · temporary-session control plane</div>
+<h1>临时会话开发执行审查</h1>
+<p class="lede">本报告核对了指定 Codex 任务的实际工作树、未完成审查项和可执行验证。非真实 Agent、非真实用户的路径已经重新测试；真实 Agent 延续和真实用户观察按最新用户要求明确跳过，因此不能被写成通过。</p>
+<div class="meta"><span>日期：2026-09-22</span><span>版本：<strong class="hold">0.3.0-dev.0</strong></span><span>结论：<strong class="hold">开发预发布可审查，稳定版 HOLD</strong></span></div>
+</header>
+
+<section class="grid kpis">
+<article class="card kpi"><div class="label">控制面缺口关闭</div><div class="value pass">7 项</div><div class="note">receipt、manifest、reducer、投影、过期语义与 smoke selector</div></article>
+<article class="card kpi"><div class="label">完整单测</div><div class="value pass">524/524</div><div class="note">83 个测试文件；Windows 与 Linux+SQLite 均通过</div></article>
+<article class="card kpi"><div class="label">覆盖率</div><div class="value pass">84.40%</div><div class="note">语句；分支 78.42%，函数 85.26%，行 93.33%</div></article>
+<article class="card kpi"><div class="label">明确跳过</div><div class="value hold">2 个门禁</div><div class="note">真实 Agent、真实用户；均为用户指定跳过</div></article>
+</section>
+
+<section class="grid two">
+<article class="card">
+<h2>范围与授权边界</h2>
+<ul>
+<li>本次执行依据是用户最新请求：检查临时会话执行完成度，继续审查未完成部分，测试除真实 Agent 和真实用户之外的全部内容。</li>
+<li>附件 <code>handoff-agent-control-plane-planning-2026-09-20.md</code> 被当作背景交接材料；它自己声明“不是已完成的实施计划，也不表示用户已授权实施”。附件中的旧基线不覆盖后续用户授权。</li>
+<li>没有调用真实外部 Agent，没有登录或联系真实用户，没有提交、推送、打 tag、发布 npm 或提升 stable。</li>
+</ul>
+</article>
+<article class="card">
+<h2>本轮修复与审查结果</h2>
+<ul>
+<li>禁止 agent-report 直接推进 <code>verified-complete</code>，直接写入该阶段也会被拒绝。</li>
+<li>receipt 必须绑定 immutable manifest digest、目标 session/run 和 nonce；未绑定的确认维持 unknown，并创建 attention。</li>
+<li>任务控制投影合并持久化 manifest/receipt；详情页展示 stage、status、target、evidence IDs 与 coverage 语义。</li>
+<li>过期 receipt 在重新打开后保持 expired，不被解释为完成。</li>
+<li>修复已安装包浏览器 smoke 对重复任务标题的严格选择器回归。</li>
+</ul>
+</article>
+</section>
+
+<section class="card" style="margin-top:16px">
+<h2>真实验证矩阵</h2>
+<table>
+<thead><tr><th>命令/路径</th><th>结果</th><th>实际证据</th></tr></thead>
+<tbody>
+<tr><td><code>npm run check:format</code></td><td class="status pass">PASS</td><td>源码、web、tests、scripts 换行和尾随空白门禁通过。</td></tr>
+<tr><td><code>npm run typecheck</code></td><td class="status pass">PASS</td><td>服务端和 Web TypeScript 编译通过。</td></tr>
+<tr><td><code>npm run build</code></td><td class="status pass">PASS</td><td>tsc build 与 Vite production build 通过。</td></tr>
+<tr><td><code>npm test</code></td><td class="status pass">PASS</td><td>83 files / 524 tests passed。</td></tr>
+<tr><td><code>npm run test:coverage</code></td><td class="status pass">PASS</td><td>statements 84.40%，branches 78.42%，functions 85.26%，lines 93.33%。</td></tr>
+<tr><td>control-plane focused tests</td><td class="status pass">PASS</td><td>6 files / 30 tests passed。</td></tr>
+<tr><td><code>npm run check:docs</code></td><td class="status pass">PASS</td><td>115 个 Markdown 文件中的 314 个本地目标通过。</td></tr>
+<tr><td><code>npm run check:redaction</code></td><td class="status pass">PASS</td><td>4 个导出产物通过脱敏检查。</td></tr>
+<tr><td><code>npm run check:pack</code></td><td class="status pass">PASS</td><td>264 files；public exports、CLI、local server、workspace verification、3 Cursor roundtrips 通过。</td></tr>
+<tr><td><code>npm run test:e2e</code></td><td class="status pass">PASS</td><td>10/10 fixture-only Playwright tests，39 秒。</td></tr>
+<tr><td><code>npm run test:package</code></td><td class="status pass">PASS</td><td>安装包浏览器 smoke 的编辑、reload 持久化、loopback-only access 通过；归档 SHA-256 为 <code>b1d4b59ac8796308014e87364ca8a4549ab644c19ef38ce70e0c6b1a403cea60</code>。</td></tr>
+<tr><td>Node 24 Linux container</td><td class="status pass">PASS</td><td>基础 <code>node:24-bookworm</code> 完整 <code>npm run check</code> 通过；83 files，521 passed，3 个 SQLite CLI 前置不足的可选 fixture skipped。</td></tr>
+<tr><td>Node 24 Linux + SQLite CLI</td><td class="status pass">PASS</td><td>隔离容器安装 SQLite CLI 3.40.1 后重跑完整 <code>npm run check</code>：83 files / 524 tests passed，0 skipped，0 failed。</td></tr>
+<tr><td>local-validation runner</td><td class="status hold">INCOMPLETE BY PROBE</td><td>最终 runner 为 2 passed / 0 failed / 2 skipped：source-check 与 Linux container 通过；browser/package 因 host probe 要求 <code>chrome.exe</code> 而 skipped，对应的 Playwright/package 路径随后直接通过。</td></tr>
+</tbody>
+</table>
+<p class="small">早先链接任务并发修改期间产生的 digest-only source-check failure 被保留为历史证据；工作树稳定后 fresh source-check 与 Linux container check 均通过。</p>
+</section>
+
+<section class="card" style="margin-top:16px">
+<h2>验证状态分布</h2>
+<p class="small">图中只统计本报告列出的事实：13 个非真实检查通过、2 个用户指定门禁保持 HOLD、基础容器的 3 个可选 fixture skip 已由带 SQLite CLI 的隔离 Linux 容器补跑为全通过。</p>
+<div class="chart" id="verification-outcomes" aria-label="验证状态分布图"></div>
+</section>
+
+<section class="grid two">
+<article class="card">
+<h2>按要求跳过的门禁</h2>
+<table><thead><tr><th>门禁</th><th>状态</th><th>边界</th></tr></thead><tbody>
+<tr><td>真实 Agent continuation/authentication</td><td class="status hold">skipped-by-request / HOLD</td><td>不调用真实外部 Agent；不能证明跨 Agent 身份认证或真实延续。</td></tr>
+<tr><td>真实用户 observation/usability</td><td class="status hold">skipped-by-request / HOLD</td><td>不接触参与者；不能证明真人恢复情境和可用性指标。</td></tr>
+</tbody></table>
+</article>
+<article class="card">
+<h2>仍未完成的边界</h2>
+<ul>
+<li>Claude/Codex 适配器在没有可信 parent/run/receipt 时仍是 observe-only，partial、none、stale、unknown 必须继续显示。</li>
+<li>takeover 目前是 live-process 可读、内存态；重启后的 durable takeover events 仍待开发。</li>
+<li>跨 Agent authentication、real continuation、权限变化和外部控制接口没有被 fixture 测试证明。</li>
+<li>local runner 的 Chrome 探针窄于 Playwright bundled browser；应在后续质量任务中改进探测，但直接 E2E/package 与带 SQLite CLI 的 Linux 全量检查已经提供了对应证据。</li>
+<li>稳定版必须等两个用户指定跳过门禁以及 durable takeover/security review。</li>
+</ul>
+</article>
+</section>
+
+<div class="callout"><strong>发布结论：</strong>非真实 Observe gate 已达到可审查的开发预发布状态 <code>0.3.0-dev.0</code>；stable 继续 HOLD。这个结论不把真实 Agent 或真实用户跳过项算作完成。</div>
+
+<footer>
+<p>证据文件：<a href="../docs/verification/control-plane-review-2026-09-22.md">control-plane-review-2026-09-22.md</a> · <a href="../docs/verification/local-validation-final-2026-09-22.json">local-validation-final-2026-09-22.json</a> · <a href="../docs/verification/linux-container-2026-09-22.json">linux-container-2026-09-22.json</a> · <a href="../docs/verification/linux-container-sqlite-2026-09-22.json">linux-container-sqlite-2026-09-22.json</a> · <a href="../docs/releases-v0.3.0-dev.0.md">releases-v0.3.0-dev.0.md</a></p>
+<p>本 HTML 自包含，无外部脚本、字体、图片或运行时依赖。</p>
+</footer>
+</main>
+<script>
+(function(){
+  const Charts = window.Charts = {
+    bar(id, config) {
+      const host = document.getElementById(id);
+      if (!host) return;
+      const width = 720, row = 42, left = 160, track = 420, max = Math.max(...config.values, 1);
+      const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('viewBox','0 0 '+width+' '+(config.labels.length*row+12));
+      config.labels.forEach((label,index)=>{
+        const y = index*row+9, trackNode=document.createElementNS('http://www.w3.org/2000/svg','rect'), bar=document.createElementNS('http://www.w3.org/2000/svg','rect');
+        trackNode.setAttribute('x',left);trackNode.setAttribute('y',y);trackNode.setAttribute('width',track);trackNode.setAttribute('height',12);trackNode.setAttribute('rx',6);trackNode.setAttribute('class','chart-track');
+        bar.setAttribute('x',left);bar.setAttribute('y',y);bar.setAttribute('width',String(track*config.values[index]/max));bar.setAttribute('height',12);bar.setAttribute('rx',6);bar.setAttribute('class',config.classes[index]);
+        const text=document.createElementNS('http://www.w3.org/2000/svg','text');text.setAttribute('x',0);text.setAttribute('y',y+11);text.setAttribute('class','chart-label');text.textContent=label;
+        const value=document.createElementNS('http://www.w3.org/2000/svg','text');value.setAttribute('x',left+track+12);value.setAttribute('y',y+11);value.setAttribute('class','chart-value');value.textContent=String(config.values[index]);
+        svg.append(text,trackNode,bar,value);
+      });
+      host.replaceChildren(svg);
+    }
+  };
+  Charts.bar('verification-outcomes',{labels:['Non-real checks passed','User-requested HOLD','Optional fixture skipped'],values:[13,2,0],classes:['chart-pass','chart-hold','chart-skip']});
+})();
+</script>
+</body>
+</html>

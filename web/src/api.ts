@@ -61,7 +61,7 @@ export interface ControlState {
   sessions: Record<string, { runState: string; health: string; lastEvidenceId: string | null; lastOccurredAt: string | null }>;
   lineage: { id: string; parentSessionId: string; childSessionId: string; relation: string; status: string; evidenceLevel: string }[];
   responsibilities: { id: string; taskId: string; status: string; roles: Record<string, string>; evidenceIds: string[] }[];
-  receipts: Record<string, { status: string; stage: string; targetSessionId: string; targetRunId: string }>;
+  receipts: Record<string, { receiptId: string; status: string; stage: string; targetSessionId: string; targetRunId: string; evidenceIds?: string[] }>;
   attention: { id: string; kind: string; severity: string; message: string; status: string }[];
 }
 export interface Envelope<T> {

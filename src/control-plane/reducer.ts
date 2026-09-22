@@ -88,8 +88,13 @@ function project(events: readonly ControlEvent[]): ControlState {
       if (typeof receipt.receiptId === 'string') {
         const current = state.receipts[receipt.receiptId];
         const agentReported = event.source.kind === 'agent-report';
-        const nextStatus = agentReported ? 'unknown' : event.type.endsWith('.confirmed') ? 'confirmed' : event.type.endsWith('.rejected') ? 'rejected' : receipt.status ?? 'pending';
+        const handoffId = typeof receipt.handoffId === 'string' ? receipt.handoffId : null;
+        const manifest = handoffId ? state.manifests[handoffId] : undefined;
+        const bound = !!manifest && manifest.digest === receipt.manifestDigest && manifest.targetSessionId === receipt.targetSessionId && manifest.targetRunId === receipt.targetRunId;
+        const verifiedStageHasEvidence = receipt.stage !== 'verified-complete' || (Array.isArray(receipt.evidenceIds) && receipt.evidenceIds.length > 0);
+        const nextStatus = agentReported ? 'unknown' : event.type.endsWith('.confirmed') ? (bound && verifiedStageHasEvidence ? 'confirmed' : 'unknown') : event.type.endsWith('.rejected') ? 'rejected' : receipt.status ?? 'pending';
         if (!current || event.type.endsWith('.confirmed') || event.type.endsWith('.rejected')) state.receipts[receipt.receiptId] = { ...current, ...receipt, status: nextStatus, evidenceIds: [...new Set([...(current?.evidenceIds ?? []), ...event.evidenceIds, event.eventId])] };
+        if (event.type.endsWith('.confirmed') && !agentReported && !bound) addAttention(state, { id: `unverified:${event.eventId}`, kind: 'unverified-completion', severity: 'warning', message: 'Receipt confirmation lacks a matching prepared manifest and target binding.', status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
       }
     }
     if (event.type === 'attention.opened') addAttention(state, { id: String(p.id ?? event.eventId), kind: String(p.kind ?? 'unknown'), severity: severity(p.severity), message: String(p.message ?? 'Control plane attention required.'), status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });

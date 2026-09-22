@@ -1,0 +1,111 @@
+{
+  "schema": "threadport.local-validation.v1",
+  "collectedAt": "2026-09-22T13:33:21.252Z",
+  "candidateSha": "df4101ff54208ba11ddf7f9461899738d63e0563",
+  "workingTree": {
+    "state": "dirty",
+    "dirty": true,
+    "statusDigest": "270a84dc5f6e7e897b74e7817d50e7f8d31304ce4d1c2d9ed17f924496320d68"
+  },
+  "sourceHash": "6ffddd609439fc6a0b13e1806a7123f63d9d3204e46e99692f9296b3468ec2bf",
+  "runtime": {
+    "node": "v24.19.0",
+    "npm": "11.17.0",
+    "platform": "win32",
+    "arch": "x64",
+    "kernel": "10.0.26200"
+  },
+  "probes": {
+    "chrome": false,
+    "docker": false
+  },
+  "steps": [
+    {
+      "id": "source-check",
+      "title": "Source typecheck, build, tests, and docs",
+      "command": {
+        "executable": "C:\\Program Files\\nodejs\\node.exe",
+        "args": [
+          "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+          "run",
+          "check"
+        ]
+      },
+      "status": "failed",
+      "exitCode": 1,
+      "startedAt": "2026-09-22T13:33:21.623Z",
+      "finishedAt": "2026-09-22T13:42:57.229Z",
+      "stdoutDigest": "19fe6f6d98f8df96798024bd2c58f847d6cedf7ff19e1b737ed69ea07176f133",
+      "stderrDigest": "dec8fc696152a7e99a2c6daba614d9bb0ba32a9ca9a97a5eea0371e1d23e6e7a",
+      "packages": [],
+      "errorCode": "EXIT_1"
+    },
+    {
+      "id": "browser-e2e",
+      "title": "Production browser flow",
+      "command": {
+        "executable": "C:\\Program Files\\nodejs\\node.exe",
+        "args": [
+          "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+          "run",
+          "test:e2e"
+        ]
+      },
+      "status": "skipped",
+      "exitCode": null,
+      "startedAt": "2026-09-22T13:42:57.232Z",
+      "finishedAt": "2026-09-22T13:42:57.232Z",
+      "stdoutDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "skipReason": "chrome unavailable"
+    },
+    {
+      "id": "package-smoke",
+      "title": "Isolated package smoke test",
+      "command": {
+        "executable": "C:\\Program Files\\nodejs\\node.exe",
+        "args": [
+          "C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js",
+          "run",
+          "test:package"
+        ]
+      },
+      "status": "skipped",
+      "exitCode": null,
+      "startedAt": "2026-09-22T13:42:57.233Z",
+      "finishedAt": "2026-09-22T13:42:57.233Z",
+      "stdoutDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "skipReason": "chrome unavailable"
+    },
+    {
+      "id": "linux-container",
+      "title": "Linux Node 24 container check",
+      "command": {
+        "executable": "docker",
+        "args": [
+          "run",
+          "--rm",
+          "-v",
+          "<workspace>:/source:ro",
+          "node:24-bookworm",
+          "node",
+          "/source/scripts/local-validation-container.mjs"
+        ]
+      },
+      "status": "skipped",
+      "exitCode": null,
+      "startedAt": "2026-09-22T13:42:57.235Z",
+      "finishedAt": "2026-09-22T13:42:57.235Z",
+      "stdoutDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderrDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "skipReason": "docker unavailable"
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 1,
+    "skipped": 3,
+    "status": "failed"
+  }
+}

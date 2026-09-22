@@ -18,6 +18,7 @@ export function createReceipt(input: ReceiptInput, context: ReceiptContext): Rec
 }
 export function advanceReceipt(current: ReceiptSummary, nextStage: ReceiptInput['stage'], source: 'runtime'|'threadport'|'user'|'agent-report' = 'threadport'): ReceiptSummary {
   const receipt = receiptSummarySchema.parse(current); if (receipt.status === 'expired' || receipt.status === 'rejected') return receipt;
+  if (source === 'agent-report' && nextStage === 'verified-complete') throw new DomainError('RECEIPT_VERIFICATION_REQUIRED','Agent-reported completion requires independent verification evidence.');
   const currentIndex = order.indexOf(receipt.stage), nextIndex = order.indexOf(nextStage); if (nextIndex < currentIndex) throw new DomainError('REVISION_CONFLICT','Receipt stages cannot move backwards.');
   const status = source === 'agent-report' ? 'unknown' : 'confirmed';
   return { ...receipt, stage: nextStage, status, confirmedAt: status === 'confirmed' ? new Date().toISOString() : receipt.confirmedAt };

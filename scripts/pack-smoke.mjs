@@ -130,7 +130,7 @@ try {
       const {chromium}=await import(${JSON.stringify(pathToFileURL(join(root,'node_modules/playwright/index.mjs')).href)});
       const browser=await chromium.launch({headless:true,...(process.env.THREADPORT_TEST_CHROME?{channel:'chrome'}:{})});
       try{const page=await browser.newPage();page.setDefaultTimeout(15000);let external=0;await page.route('**/*',route=>{if(new URL(route.request().url()).origin===parsed.origin)return route.continue();external++;return route.abort();});
-       await page.goto(url);await page.getByText('SDK task',{exact:true}).click();await page.getByRole('button',{name:'Edit task',exact:true}).click();await page.getByLabel('Objective',{exact:true}).fill('Installed package objective');await page.getByRole('button',{name:'Save changes'}).click();await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByText('Installed package objective',{exact:true}).waitFor();
+       await page.goto(url);await page.getByRole('link',{name:/SDK task Objective/}).first().click();await page.getByRole('button',{name:'Edit task',exact:true}).click();await page.getByLabel('Objective',{exact:true}).fill('Installed package objective');await page.getByRole('button',{name:'Save changes'}).click();await page.getByRole('dialog').waitFor({state:'hidden'});await page.getByText('Installed package objective',{exact:true}).waitFor();
        await page.reload();await page.getByLabel('Current terminal link').fill(url);await page.getByRole('button',{name:'Reconnect',exact:true}).click();await page.getByText('Installed package objective',{exact:true}).waitFor();assert.equal(external,0);
       }finally{await browser.close();}
       ` : ''}

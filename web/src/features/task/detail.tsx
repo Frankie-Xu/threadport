@@ -166,6 +166,15 @@ export function Detail({
                 Session {sessionId}: {run.runState} · {run.health} · last evidence {run.lastEvidenceId ?? "unknown"}
               </p>
             ))}
+            {Object.values(control.data?.data.receipts ?? {}).map((receipt) => {
+              const fact = receipt.status === "confirmed" ? "verified" : receipt.status === "pending" ? "observed" : receipt.status === "expired" ? "coverage-gap" : "unknown";
+              return <div className="source-row" key={receipt.receiptId}>
+                <strong>Handoff receipt {receipt.receiptId}</strong>
+                <StatusBadge>{fact}</StatusBadge>
+                <p>Stage: {receipt.stage} · status: {receipt.status} · target: {receipt.targetSessionId}/{receipt.targetRunId}</p>
+                <p>Evidence: {receipt.evidenceIds?.join(", ") || "none"}</p>
+              </div>;
+            })}
             {control.data?.data.attention.filter((item) => item.status === "open").map((item) => (
               <p className="notice" key={item.id}>{item.message}</p>
             ))}

@@ -1,0 +1,24 @@
+{
+  "schema": "threadport.linux-container-validation.v1",
+  "collectedAt": "2026-09-22T16:39:42.347Z",
+  "runtime": {
+    "image": "node:24-bookworm",
+    "command": "node /source/scripts/local-validation-container.mjs"
+  },
+  "host": {
+    "platform": "win32",
+    "docker": "29.7.2"
+  },
+  "status": "passed",
+  "command": "docker run --rm -v <workspace>:/source:ro node:24-bookworm node /source/scripts/local-validation-container.mjs",
+  "evidence": {
+    "npmCheck": "passed",
+    "testFiles": 83,
+    "testsPassed": 521,
+    "testsSkipped": 3,
+    "testsFailed": 0,
+    "docs": "314 local destinations in 115 Markdown files",
+    "redaction": "4 exported artifacts scanned",
+    "optionalSkipped": "3 cursor-export fixture tests skipped because the external SQLite CLI is unavailable in the container"
+  }
+}
