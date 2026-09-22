@@ -1,4 +1,5 @@
-import { controlEventSchema, type ControlEvent, type ContextManifestV1, type ObservationHealth, type ReceiptSummary, type RunFact, canonicalDigest } from './contracts.js';
+import { controlEventSchema, contextManifestSchema, receiptInputSchema, receiptSummarySchema, type ControlEvent, type ContextManifestV1, type ObservationHealth, type ReceiptSummary, type ReceiptInput, type RunFact, canonicalDigest } from './contracts.js';
+import { assertManifestDigest } from './manifest.js';
 
 export type EvidenceLevel = 'runtime-explicit' | 'trusted-integration' | 'user-confirmed' | 'inferred';
 export type LineageRelation = 'fork' | 'delegate' | 'handoff' | 'resume' | 'compact' | 'host-move' | 'manual-takeover';
@@ -11,7 +12,7 @@ export interface ControlState {
   lineage: LineageRecord[];
   responsibilities: ResponsibilityRecord[];
   manifests: Record<string, ContextManifestV1>;
-  receipts: Record<string, ReceiptSummary | Record<string, any>>;
+  receipts: Record<string, ReceiptSummary>;
   attention: AttentionItem[];
 }
 const eventLogs = new WeakMap<object, ControlEvent[]>();
@@ -29,6 +30,24 @@ function addAttention(state: ControlState, item: AttentionItem): void {
   const existing = state.attention.find(value => value.id === item.id);
   if (existing) return;
   state.attention.push(item);
+}
+function receiptPayload(event: ControlEvent): Record<string, unknown> {
+  const value = payload(event).receipt;
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : payload(event);
+}
+function receiptSummary(event: ControlEvent, input: ReceiptInput, receiptId: string, status: ReceiptSummary['status'], stage: ReceiptInput['stage']): ReceiptSummary {
+  return receiptSummarySchema.parse({
+    ...input,
+    receiptId,
+    stage,
+    status,
+    createdAt: event.recordedAt,
+    confirmedAt: status === 'confirmed' ? event.occurredAt ?? event.recordedAt : null,
+    evidenceIds: [...new Set([...event.evidenceIds, event.eventId])],
+  });
+}
+function receiptAttention(state: ControlState, event: ControlEvent, kind: string, message: string): void {
+  addAttention(state, { id: `receipt:${kind}:${event.eventId}`, kind, severity: 'warning', message, status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
 }
 function project(events: readonly ControlEvent[]): ControlState {
   const state: ControlState = { sessions: {}, lineage: [], responsibilities: [], manifests: {}, receipts: {}, attention: [] };
@@ -82,15 +101,42 @@ function project(events: readonly ControlEvent[]): ControlState {
       if (record.status === 'confirmed') record.confirmedAt = event.occurredAt ?? event.recordedAt;
       if (!existing) state.responsibilities.push(record);
     }
-    if (event.type === 'manifest.saved' && typeof p.handoffId === 'string' && p.manifest) state.manifests[p.handoffId] = p.manifest;
-    if (event.type.startsWith('receipt.')) {
-      const receipt = p.receipt && typeof p.receipt === 'object' ? p.receipt : p;
-      if (typeof receipt.receiptId === 'string') {
-        const current = state.receipts[receipt.receiptId];
-        const agentReported = event.source.kind === 'agent-report';
-        const nextStatus = agentReported ? 'unknown' : event.type.endsWith('.confirmed') ? 'confirmed' : event.type.endsWith('.rejected') ? 'rejected' : receipt.status ?? 'pending';
-        if (!current || event.type.endsWith('.confirmed') || event.type.endsWith('.rejected')) state.receipts[receipt.receiptId] = { ...current, ...receipt, status: nextStatus, evidenceIds: [...new Set([...(current?.evidenceIds ?? []), ...event.evidenceIds, event.eventId])] };
+    if (event.type === 'manifest.saved' && typeof p.handoffId === 'string' && p.manifest) {
+      const parsed = contextManifestSchema.safeParse(p.manifest);
+      if (!parsed.success) receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest is invalid and cannot be used to verify a receipt.');
+      else {
+        try { assertManifestDigest(parsed.data); state.manifests[p.handoffId] = parsed.data; }
+        catch { receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest digest does not match its contents.'); }
       }
+    }
+    if (event.type.startsWith('receipt.')) {
+      const raw = receiptPayload(event);
+      const receiptId = typeof raw.receiptId === 'string' ? raw.receiptId : null;
+      const { receiptId: _receiptId, status: _status, createdAt: _createdAt, confirmedAt: _confirmedAt, evidenceIds: _evidenceIds, ...inputRaw } = raw;
+      const parsed = receiptInputSchema.safeParse(inputRaw);
+      if (!receiptId || !parsed.success) { receiptAttention(state, event, 'receipt-integrity', 'Receipt input is incomplete or invalid.'); continue; }
+      const input = parsed.data;
+      const manifest = state.manifests[input.handoffId];
+      let integrity = true;
+      if (!manifest) { integrity = false; receiptAttention(state, event, 'coverage-gap', 'Receipt has no prepared manifest to verify against.'); }
+      else {
+        try { assertManifestDigest(manifest); }
+        catch { integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Prepared manifest digest is invalid.'); }
+        if (!manifest.targetSessionId || !manifest.targetRunId || manifest.targetSessionId !== input.targetSessionId || manifest.targetRunId !== input.targetRunId) { integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Receipt target does not match the prepared target.'); }
+        if (manifest.digest !== input.manifestDigest) { integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Receipt manifest digest does not match the prepared manifest.'); }
+      }
+      const evidence = event.evidenceIds.length > 0;
+      const agentReported = event.source.kind === 'agent-report';
+      const requestedVerified = input.stage === 'verified-complete';
+      const effectiveStage = requestedVerified && (agentReported || !evidence || !integrity) ? 'reported-complete' : input.stage;
+      if (requestedVerified && (agentReported || !evidence || !integrity)) receiptAttention(state, event, 'unverified-completion', 'Receipt claims verified completion without trusted verification evidence.');
+      const expired = Date.parse(input.expiresAt) <= Date.parse(event.occurredAt ?? event.recordedAt);
+      const nextStatus: ReceiptSummary['status'] = expired ? 'expired' : agentReported || !integrity || (event.type.endsWith('.confirmed') && !evidence) ? 'unknown' : event.type.endsWith('.confirmed') ? 'confirmed' : event.type.endsWith('.rejected') ? 'rejected' : 'pending';
+      const current = state.receipts[receiptId];
+      const nonceConflict = Object.values(state.receipts).some(item => item.receiptId !== receiptId && item.handoffId === input.handoffId && item.nonce === input.nonce);
+      if (nonceConflict) { receiptAttention(state, event, 'receipt-integrity', 'Receipt nonce was already used for a different request.'); }
+      const projected = receiptSummary(event, input, receiptId, nonceConflict ? 'unknown' : nextStatus, effectiveStage);
+      if (!current || current.status !== 'confirmed' || projected.status === 'confirmed') state.receipts[receiptId] = projected;
     }
     if (event.type === 'attention.opened') addAttention(state, { id: String(p.id ?? event.eventId), kind: String(p.kind ?? 'unknown'), severity: severity(p.severity), message: String(p.message ?? 'Control plane attention required.'), status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
     if (event.type === 'attention.resolved') { const item = state.attention.find(value => value.id === p.id); if (item) item.status = 'resolved'; }

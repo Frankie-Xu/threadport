@@ -37,4 +37,16 @@ test('retains a conflicting draft, resolves explicit replacement, and compiles o
  const response=await api('/handoffs','POST',prepare);expect(response.status).toBe(201);const result=await response.json();expect(result.data.capsule.decisions.map((d:{decision:string})=>d.decision)).toEqual(['Use C']);
  await page.getByText('Revision history (5)',{exact:true}).click();await expect(page.getByText('storage · superseded · revision 2: Use A',{exact:true})).toBeVisible();
  await page.screenshot({path:'output/playwright/assertions-desktop.png',fullPage:true});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-});
+ });
+ test('shows receipt stage, target, evidence and an unknown fact label',async({page})=>{
+  const handoffId='ui-receipt-handoff',targetSessionId='ui-target-session',targetRunId='ui-target-run';
+  const manifest=await data('/tasks/'+taskId+'/control/manifest','POST',{handoffId,taskRevision:1,targetSessionId,targetRunId});
+  await data('/handoffs/'+handoffId+'/receipts','POST',{targetSessionId,targetRunId,manifestDigest:manifest.digest,stage:'received',nonce:'ui-receipt-nonce-123456',expiresAt:'2030-01-01T00:00:00.000Z'});
+  await page.goto(server.origin+'/?v=inbox&t='+taskId+'#token='+server.token);
+  await expect(page.getByRole('heading',{name:'Handoff visibility',exact:true})).toBeVisible();
+  await expect(page.getByText(handoffId,{exact:true})).toBeVisible();
+  await expect(page.getByText('unknown',{exact:true}).last()).toBeVisible();
+  await expect(page.getByText('Stage: received · Status: pending',{exact:true})).toBeVisible();
+  await expect(page.getByText('Target: '+targetSessionId+' / '+targetRunId,{exact:true})).toBeVisible();
+  await expect(page.getByText('Evidence: none',{exact:true})).toBeVisible();
+ });

@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { assertManifestDigest } from '../control-plane/manifest.js';
+import { assertReceiptInputAllowed } from '../control-plane/receipts.js';
 
 export interface ResponsibilityRecordInput { id: string; taskId: string; scope: string; roles: Record<string, string>; status: 'proposed'|'confirmed'|'ended'; evidenceIds: string[]; confirmedAt: string|null }
 export interface RunObservation { observationId: string; runId: string; sessionId: string|null; runState: RunFact; health: ObservationHealth; observedAt: string|null; evidenceId: string|null }
@@ -55,15 +56,17 @@ export class ControlPlaneStore {
     assertManifestDigest(manifest);
     transaction(this.db, () => { const existing = this.db.prepare('SELECT body_json FROM context_manifests WHERE handoff_id=?').pluck().get(manifest.handoffId) as string|undefined; if (existing) { if (existing !== JSON.stringify(manifest)) throw new DomainError('REVISION_CONFLICT','Context manifests are immutable.'); return; } this.db.prepare('INSERT INTO context_manifests(handoff_id,task_id,task_revision,digest,body_json,created_at) VALUES(?,?,?,?,?,?)').run(manifest.handoffId,manifest.taskId,manifest.taskRevision,manifest.digest,JSON.stringify(manifest),manifest.createdAt); });
   }
-  getManifest(handoffId: string): ContextManifestV1|null { const body = this.db.prepare('SELECT body_json FROM context_manifests WHERE handoff_id=?').pluck().get(handoffId) as string|undefined; return body ? validate(contextManifestSchema, JSON.parse(body)) : null; }
+  getManifest(handoffId: string): ContextManifestV1|null { const body = this.db.prepare('SELECT body_json FROM context_manifests WHERE handoff_id=?').pluck().get(handoffId) as string|undefined; if (!body) return null; const manifest = validate(contextManifestSchema, JSON.parse(body)); assertManifestDigest(manifest); return manifest; }
   saveReceipt(input: ReceiptInput): ReceiptSummary {
     const receipt = validate(receiptInputSchema, input); const now = new Date().toISOString();
+    assertReceiptInputAllowed(receipt);
     return transaction(this.db, () => {
       const manifest = this.db.prepare('SELECT digest FROM context_manifests WHERE handoff_id=?').pluck().get(receipt.handoffId) as string|undefined;
       if (!manifest) throw new DomainError('CONTROL_COVERAGE_GAP','A prepared context manifest is required before accepting a receipt.');
       if (manifest !== receipt.manifestDigest) throw new DomainError('RECEIPT_DIGEST_MISMATCH','Receipt manifest digest does not match the prepared manifest.');
       const prepared = this.getManifest(receipt.handoffId)!;
-      if ((prepared.targetSessionId && prepared.targetSessionId !== receipt.targetSessionId) || (prepared.targetRunId && prepared.targetRunId !== receipt.targetRunId)) throw new DomainError('RECEIPT_TARGET_MISMATCH','Receipt target does not match the prepared target.');
+      assertManifestDigest(prepared);
+      if (!prepared.targetSessionId || !prepared.targetRunId || prepared.targetSessionId !== receipt.targetSessionId || prepared.targetRunId !== receipt.targetRunId) throw new DomainError('RECEIPT_TARGET_MISMATCH','Receipt target does not match the prepared target.');
       const existing = this.db.prepare('SELECT * FROM handoff_receipts WHERE handoff_id=? AND nonce=?').get(receipt.handoffId,receipt.nonce) as Record<string, unknown>|undefined;
       if (existing) {
         const same = existing.target_session_id === receipt.targetSessionId && existing.target_run_id === receipt.targetRunId && existing.manifest_digest === receipt.manifestDigest && existing.stage === receipt.stage && existing.expires_at === receipt.expiresAt;
@@ -76,6 +79,15 @@ export class ControlPlaneStore {
     });
   }
   listReceipts(handoffId: string): ReceiptSummary[] { return (this.db.prepare('SELECT * FROM handoff_receipts WHERE handoff_id=? ORDER BY created_at,receipt_id').all(handoffId) as Record<string, unknown>[]).map(row => this.rowReceipt(row)); }
+  listManifests(taskId?: string): ContextManifestV1[] {
+    const rows = (taskId === undefined
+      ? this.db.prepare('SELECT body_json FROM context_manifests ORDER BY created_at,handoff_id').all()
+      : this.db.prepare('SELECT body_json FROM context_manifests WHERE task_id=? ORDER BY created_at,handoff_id').all(taskId)) as { body_json: string }[];
+    return rows.map(row => { const manifest = validate(contextManifestSchema, JSON.parse(row.body_json)); assertManifestDigest(manifest); return manifest; });
+  }
+  listReceiptsForTask(taskId: string): ReceiptSummary[] {
+    return (this.db.prepare('SELECT r.* FROM handoff_receipts r JOIN context_manifests m ON m.handoff_id=r.handoff_id WHERE m.task_id=? ORDER BY r.created_at,r.receipt_id').all(taskId) as Record<string, unknown>[]).map(row => this.rowReceipt(row));
+  }
   saveResponsibility(record: ResponsibilityRecordInput): void { const value=validate(responsibilitySchema,record); transaction(this.db,()=>this.db.prepare('INSERT INTO responsibility_edges(id,task_id,scope,roles_json,status,evidence_ids_json,confirmed_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET task_id=excluded.task_id,scope=excluded.scope,roles_json=excluded.roles_json,status=excluded.status,evidence_ids_json=excluded.evidence_ids_json,confirmed_at=excluded.confirmed_at').run(value.id,value.taskId,value.scope,JSON.stringify(value.roles),value.status,JSON.stringify(value.evidenceIds),value.confirmedAt)); }
   saveRunObservation(observation: RunObservation): void { const value=validate(observationSchema,observation); transaction(this.db,()=>this.db.prepare('INSERT OR REPLACE INTO run_observations(observation_id,run_id,session_id,run_state,health,observed_at,evidence_id) VALUES(?,?,?,?,?,?,?)').run(value.observationId,value.runId,value.sessionId,value.runState,value.health,value.observedAt,value.evidenceId)); }
   private rowReceipt(row: Record<string, unknown>): ReceiptSummary { return validate(receiptSummarySchema,{ receiptId: row.receipt_id, handoffId: row.handoff_id, targetSessionId: row.target_session_id, targetRunId: row.target_run_id, manifestDigest: row.manifest_digest, stage: row.stage, status: row.status, nonce: row.nonce, expiresAt: row.expires_at, createdAt: row.created_at, confirmedAt: row.confirmed_at, evidenceIds: JSON.parse(String(row.evidence_ids_json)) }); }

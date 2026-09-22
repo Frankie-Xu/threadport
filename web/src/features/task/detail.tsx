@@ -67,6 +67,14 @@ export function Detail({
       ))}
     </div>
   );
+  const receiptFact = (receipt: ControlState["receipts"][string]) =>
+    receipt.status === "confirmed" && receipt.stage === "verified-complete"
+      ? "verified"
+      : receipt.status === "confirmed"
+        ? "observed"
+        : receipt.status === "expired"
+          ? "coverage-gap"
+          : "unknown";
   if (continuing && value)
     return (
       <HandoffPreview
@@ -166,6 +174,17 @@ export function Detail({
                 Session {sessionId}: {run.runState} · {run.health} · last evidence {run.lastEvidenceId ?? "unknown"}
               </p>
             ))}
+            <h3>Receipts</h3>
+            {Object.values(control.data?.data.receipts ?? {}).map((receipt) => (
+              <div className="source-row" key={receipt.receiptId}>
+                <strong>{receipt.handoffId}</strong>
+                <StatusBadge>{receiptFact(receipt)}</StatusBadge>
+                <p>Stage: {receipt.stage} · Status: {receipt.status}</p>
+                <p>Target: {receipt.targetSessionId} / {receipt.targetRunId}</p>
+                <p>Evidence: {receipt.evidenceIds.join(", ") || "none"}</p>
+              </div>
+            ))}
+            {!Object.keys(control.data?.data.receipts ?? {}).length && <p>No receipt is recorded; verification status is unknown.</p>}
             {control.data?.data.attention.filter((item) => item.status === "open").map((item) => (
               <p className="notice" key={item.id}>{item.message}</p>
             ))}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyControlEvent, rebuildControlState, emptyControlState } from '../../src/control-plane/reducer.js';
 import type { ControlEvent } from '../../src/control-plane/contracts.js';
+import { createContextManifest } from '../../src/control-plane/manifest.js';
 const event = (patch: Partial<ControlEvent>): ControlEvent => ({
  eventId: 'e-1', protocol: 'threadport.control-event.v1', occurredAt: '2026-09-20T00:00:00.000Z', recordedAt: '2026-09-20T00:00:00.000Z',
  source: { kind: 'runtime', sourceId: 'src', parserVersion: '1', coverage: 'full' }, taskId: 'task', sessionId: 's1', runId: 'r1', ordinal: 1,
@@ -37,14 +38,46 @@ describe('control plane reducer', () => {
    expect.objectContaining({ kind: 'event-conflict', severity: 'error' })
   ]));
  });
- it('does not mark an agent-reported verified completion as confirmed', () => {
-  const state = rebuildControlState([event({
-   eventId: 'agent-receipt', type: 'receipt.confirmed',
-   source: { kind: 'agent-report', sourceId: 'src', parserVersion: '1', coverage: 'partial' },
-   payload: { receiptId: 'receipt-1', stage: 'verified-complete', status: 'confirmed' }
-  })]);
-  expect(state.receipts['receipt-1']).toMatchObject({ status: 'unknown' });
- });
+  it('does not mark an agent-reported verified completion as confirmed', () => {
+   const manifest = createContextManifest({ handoffId: 'h-agent-min', taskId: 'task', taskRevision: 1, targetSessionId: 's1', targetRunId: 'r1', createdAt: '2026-09-20T00:00:00.000Z' });
+   const state = rebuildControlState([event({
+    eventId: 'agent-manifest', type: 'manifest.saved', evidenceIds: ['agent-manifest'], payload: { handoffId: manifest.handoffId, manifest }
+   }), event({
+    eventId: 'agent-receipt', type: 'receipt.confirmed',
+    source: { kind: 'agent-report', sourceId: 'src', parserVersion: '1', coverage: 'partial' },
+    payload: { receipt: { receiptId: 'receipt-1', handoffId: manifest.handoffId, targetSessionId: 's1', targetRunId: 'r1', manifestDigest: manifest.digest, stage: 'verified-complete', nonce: 'agent-receipt-nonce', expiresAt: '2026-09-21T00:00:00.000Z' } }
+   })]);
+   expect(state.receipts['receipt-1']).toMatchObject({ status: 'unknown' });
+  });
+  it('downgrades an agent-reported verified stage and keeps an attention item', () => {
+   const prepared = createContextManifest({ handoffId: 'h-agent', taskId: 'task', taskRevision: 1, targetSessionId: 's1', targetRunId: 'r1', createdAt: '2026-09-20T00:00:00.000Z' });
+   const state = rebuildControlState([
+    event({ eventId: 'manifest-agent', ordinal: 0, type: 'manifest.saved', evidenceIds: ['manifest-agent'], payload: { handoffId: prepared.handoffId, manifest: prepared } }),
+    event({ eventId: 'agent-verified', ordinal: 1, type: 'receipt.confirmed', source: { kind: 'agent-report', sourceId: 'agent', parserVersion: '1', coverage: 'partial' }, evidenceIds: ['agent-verified'], payload: { receipt: { receiptId: 'receipt-agent', handoffId: 'h-agent', targetSessionId: 's1', targetRunId: 'r1', manifestDigest: prepared.digest, stage: 'verified-complete', nonce: 'agent-nonce-123456', expiresAt: '2026-09-21T00:00:00.000Z' } } }),
+   ]);
+   expect(state.receipts['receipt-agent']).toMatchObject({ stage: 'reported-complete', status: 'unknown' });
+   expect(state.attention).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'unverified-completion', status: 'open' })]));
+  });
+  it('requires a valid manifest, target and evidence before confirming a receipt', () => {
+   const prepared = createContextManifest({ handoffId: 'h-valid', taskId: 'task', taskRevision: 1, targetSessionId: 's1', targetRunId: 'r1', createdAt: '2026-09-20T00:00:00.000Z' });
+   const base = { receiptId: 'receipt-valid', handoffId: 'h-valid', targetSessionId: 's1', targetRunId: 'r1', manifestDigest: prepared.digest, stage: 'received' as const, nonce: 'valid-nonce-123456', expiresAt: '2026-09-21T00:00:00.000Z' };
+   const valid = rebuildControlState([
+    event({ eventId: 'manifest-valid', type: 'manifest.saved', evidenceIds: ['manifest-valid'], payload: { handoffId: 'h-valid', manifest: prepared } }),
+    event({ eventId: 'receipt-valid-event', type: 'receipt.confirmed', evidenceIds: ['receipt-valid-event'], payload: { receipt: base } }),
+   ]);
+   expect(valid.receipts['receipt-valid']).toMatchObject({ status: 'confirmed', stage: 'received' });
+   const verified = rebuildControlState([
+    event({ eventId: 'manifest-verified', ordinal: 0, type: 'manifest.saved', evidenceIds: ['manifest-verified'], payload: { handoffId: 'h-valid', manifest: prepared } }),
+    event({ eventId: 'receipt-verified-event', ordinal: 1, type: 'receipt.confirmed', evidenceIds: ['receipt-verified-event'], payload: { receipt: { ...base, stage: 'verified-complete', nonce: 'verified-nonce-123456' } } }),
+   ]);
+   expect(verified.receipts['receipt-valid']).toMatchObject({ status: 'confirmed', stage: 'verified-complete' });
+   const forged = rebuildControlState([
+    event({ eventId: 'manifest-valid', type: 'manifest.saved', evidenceIds: ['manifest-valid'], payload: { handoffId: 'h-valid', manifest: prepared } }),
+    event({ eventId: 'receipt-forged-event', type: 'receipt.confirmed', evidenceIds: [], payload: { receipt: { ...base, manifestDigest: 'b'.repeat(64), targetSessionId: 'wrong' } } }),
+   ]);
+   expect(forged.receipts['receipt-valid']).toMatchObject({ status: 'unknown' });
+   expect(forged.attention).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'receipt-integrity' })]));
+  });
  it('ends a confirmed responsibility only on an explicit ended event', () => {
   const base = event({ eventId: 'responsibility-1', type: 'responsibility.confirmed', taskId: 'task', payload: { id: 'resp-1', ownerSessionId: 's1', scope: 'task', roles: { executor: 's1' } } });
   const ended = event({ eventId: 'responsibility-2', type: 'responsibility.ended', taskId: 'task', ordinal: 2, payload: { id: 'resp-1', ownerSessionId: 's1', scope: 'task' } });
