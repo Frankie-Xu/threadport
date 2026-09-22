@@ -61,7 +61,8 @@ export interface ControlState {
   sessions: Record<string, { runState: string; health: string; lastEvidenceId: string | null; lastOccurredAt: string | null }>;
   lineage: { id: string; parentSessionId: string; childSessionId: string; relation: string; status: string; evidenceLevel: string }[];
   responsibilities: { id: string; taskId: string; status: string; roles: Record<string, string>; evidenceIds: string[] }[];
-  receipts: Record<string, { status: string; stage: string; targetSessionId: string; targetRunId: string }>;
+  manifests: Record<string, { handoffId: string; taskId: string; taskRevision: number; digest: string; targetSessionId?: string; targetRunId?: string }>;
+  receipts: Record<string, { receiptId: string; handoffId: string; status: string; stage: string; targetSessionId: string; targetRunId: string; manifestDigest: string; expiresAt: string; evidenceIds: string[] }>;
   attention: { id: string; kind: string; severity: string; message: string; status: string }[];
 }
 export interface Envelope<T> {
@@ -85,6 +86,10 @@ const messages: Record<string, string> = {
   UNAUTHORIZED: "Reopen the current terminal link to reconnect.",
   NEXT_ACTION_REVIEW_REQUIRED: "Edit the next action and confirm a portable command or relative path. Redacted placeholders cannot be executed.",
   ASSERTION_CONFLICT: "Resolve conflicting decisions or unknown applicability in Decisions and constraints before continuing.",
+  RECEIPT_VERIFICATION_REQUIRED: "Verification evidence is required before a receipt can be marked complete.",
+  RECEIPT_DIGEST_MISMATCH: "The prepared context changed. Prepare the handoff again.",
+  RECEIPT_TARGET_MISMATCH: "The receipt target does not match the prepared session and run.",
+  RECEIPT_NONCE_CONFLICT: "This receipt nonce was already used for another request.",
   INVALID_INPUT: "Check the fields and try again.",
   CONTEXT_BUDGET_EXCEEDED:
     "Required context exceeds the preview limit. Narrow the task scope while retaining its constraints.",
