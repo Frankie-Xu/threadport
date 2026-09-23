@@ -1,5 +1,6 @@
 import { afterEach,expect,it } from 'vitest';
 import { startLocalServer } from '../../src/server/app.js';
+import { APP_VERSION } from '../../src/version.js';
 import { temporary } from '../helpers.js';
 const servers:{close():Promise<void>}[]=[];
 afterEach(async()=>{await Promise.all(servers.splice(0).map(server=>server.close()));});
@@ -12,7 +13,7 @@ it('binds loopback on a random port and protects even status reads',async()=>{
  }
  const response=await fetch(server.origin+'/api/v1/status',{headers:{authorization:`Bearer ${server.token}`,origin:server.origin}});
  expect(response.status).toBe(200);expect(response.headers.get('access-control-allow-origin')).toBeNull();
- expect(await response.json()).toMatchObject({data:{version:'0.2.0-dev.0',capacity:{events:0,eventLimit:100000}}});
+ expect(await response.json()).toMatchObject({data:{version:APP_VERSION,capacity:{events:0,eventLimit:100000}}});
 },30000);
 
 import { createLocalApp } from '../../src/server/app.js';
