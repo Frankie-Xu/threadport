@@ -1,6 +1,6 @@
 {
   "name": "threadport",
-  "version": "0.2.0-dev.0",
+  "version": "0.2.1",
   "description": "Portable, verifiable work state for coding agents.",
   "author": "Frankie-Xu",
   "type": "module",
