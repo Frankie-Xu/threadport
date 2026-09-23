@@ -1,4 +1,16 @@
-# v0.2 发布决策：BLOCKED
+# v0.2 发布决策：GitHub stable 已发布，npm 仍未发布
+
+## 2026-09-23 v0.2.1 stable 发布记录
+
+稳定版本为 `0.2.1`，发布提交为 `4854c4079985c5fe03e6bcf2720ca73f5e35229d`。tag [`v0.2.1`](https://github.com/Frankie-Xu/threadport/releases/tag/v0.2.1) 和 [GitHub Stable Release](https://github.com/Frankie-Xu/threadport/releases/tag/v0.2.1) 已创建，main CI run [`35812593138`](https://github.com/Frankie-Xu/threadport/actions/runs/35812593138) 的 Ubuntu、macOS、Windows Node 24 与 aggregate check 全部通过。
+
+GitHub asset `threadport-0.2.1.tgz` 为 264 个文件，`trackedChanges=false`，`sourceCommit=4854c4079985c5fe03e6bcf2720ca73f5e35229d`，SHA-256 为 `8659e7d286d8cf29d6ab7aac7c92fe57b3dd0359e9719ce0bf01a25c4ecd7d08`，SHA-512 integrity 为 `sha512-n4lIFDUnpeLwFwNkFrGcS1V1bqLLh2MzxIkXX1yuNekGbMZVtqBkxkzYXEPI7invSBQyaJ+8KPwkX+7Gy4iJ0g==`。证据见 [stable package manifest](packages/control-plane-stable-0.2.1.json)。
+
+npm stable publish 尚未执行：`npm whoami` 返回 `ENEEDAUTH`，当前环境没有 `.npmrc` registry token，也没有 `NPM_TOKEN`。因此 `npm view threadport@0.2.1` 当前返回 404；GitHub stable asset 是当前唯一已发布分发渠道。不要把 npm 未发布写成已完成。
+
+T14-B/T18、T20/T21、Q01–Q24 和 S01–S36 仍按真实证据保持 `unknown`、`coverage-gap`、`not_run` 或 `HOLD`；stable GitHub Release 不替代真实 Agent 或外部用户认证。
+
+## 历史 0.2.0 发布决策
 
 PR #70 已于 `80f6220bd3f4ef8ee23c88b38d75aee5a589b824` squash merge，合并后的三平台 Node 24 CI 已通过，但当前没有 0.2.0 stable 发布。稳定发布在创建 tag/Release 或执行 npm publish 前暂停：npm registry 已存在同名 `threadport@0.2.0`，其 `gitHead` 为其他仓库的 `7fe3e8d76419b48c7e1594a23959182a2838954b`，且当前环境 `npm whoami` 返回 `ENEEDAUTH`。不能把当前项目的 merge SHA 写成同一 npm 版本，也不能在身份验证缺失时执行发布。
 

@@ -50,15 +50,15 @@
 <header>
   <div class="eyebrow">ThreadPort · Control-plane delivery</div>
   <h1>Receipt 完整性与任务事实投影已收口</h1>
-  <p class="lede">本次开发完成 P0-A/P0-B/P0-C：无证据或 agent-report 不能形成 verified-complete；manifest、digest、target、expiry、nonce 和 reducer 投影受到校验；任务详情展示 receipt 阶段、状态、目标和 evidence。PR #70 已 squash merge 为 <code>80f6220bd3f4ef8ee23c88b38d75aee5a589b824</code>，合并后 CI 与 reviewed candidate 验证通过；stable 发布因 npm 包名/版本冲突和身份验证缺失暂停。</p>
-  <div class="meta"><span>合并提交：<code>80f6220bd3f4ef8ee23c88b38d75aee5a589b824</code></span><span>reviewed package：<code>sourceCommit=80f6220bd3f4ef8ee23c88b38d75aee5a589b824</code></span><span class="warn">状态：stable 发布 BLOCKED</span></div>
+  <p class="lede">本次开发完成 P0-A/P0-B/P0-C：无证据或 agent-report 不能形成 verified-complete；manifest、digest、target、expiry、nonce 和 reducer 投影受到校验；任务详情展示 receipt 阶段、状态、目标和 evidence。PR #70、PR #71 和 PR #72 已合并，发布提交为 <code>4854c4079985c5fe03e6bcf2720ca73f5e35229d</code>，<code>v0.2.1</code> GitHub stable 已发布；npm stable publish 因环境未认证尚未执行。</p>
+  <div class="meta"><span>发布提交：<code>4854c4079985c5fe03e6bcf2720ca73f5e35229d</code></span><span>stable package：<code>sourceCommit=4854c4079985c5fe03e6bcf2720ca73f5e35229d</code></span><span class="warn">状态：GitHub stable 已发布；npm 待认证</span></div>
 </header>
 <section class="grid kpis">
   <div class="card kpi"><div class="label">完成项</div><div class="value ok">3</div><div class="label">P0-A / P0-B / P0-C</div></div>
   <div class="card kpi"><div class="label">源码测试</div><div class="value ok">526 / 526</div><div class="label">83 个测试文件</div></div>
   <div class="card kpi"><div class="label">浏览器测试</div><div class="value ok">11 / 11</div><div class="label">Playwright 全通过</div></div>
   <div class="card kpi"><div class="label">安装包</div><div class="value ok">264</div><div class="label">文件 · Node 24.19.0 · win32/x64</div></div>
-  <div class="card kpi"><div class="label">Stable</div><div class="value warn">BLOCKED</div><div class="label">npm 版本冲突 / 凭据缺失；真实 Agent / 外部用户仍未完成</div></div>
+  <div class="card kpi"><div class="label">Stable</div><div class="value ok">v0.2.1</div><div class="label">GitHub 已发布；npm 未认证；真实 Agent / 外部用户仍未完成</div></div>
 </section>
 <section class="grid two">
 <article class="card"><h2>交付内容</h2><table><thead><tr><th>工作包</th><th>结果</th><th>证据</th></tr></thead><tbody>
@@ -70,26 +70,26 @@
 <li class="warn">T14-B/T18：真实 Claude/Codex、Ubuntu/macOS/Windows 及 native-resume/new-session 矩阵尚未关闭。</li>
 <li class="warn">T20：没有外部用户观察证据。</li>
 <li class="warn">T21：Q01–Q24 和原始 S01–S36 仍有 unavailable/unknown 项。</li>
-<li class="muted">PR #70 已 squash merge 为 <code>80f6220bd3f4ef8ee23c88b38d75aee5a589b824</code>；stable tag、stable GitHub Release 与 npm publish 仍未执行。npm registry 已存在其他仓库的 <code>threadport@0.2.0</code>，且当前 <code>npm whoami</code> 返回 <code>ENEEDAUTH</code>，因此发布在写入稳定记录前暂停。</li>
+<li class="muted">PR #70、#71、#72 已合并；<code>v0.2.1</code> stable tag、GitHub Release 和 264-file asset 已发布。npm publish 尚未执行，因为当前 <code>npm whoami</code> 返回 <code>ENEEDAUTH</code>，且 npm registry 当前没有 <code>threadport@0.2.1</code>。</li>
 </ul></article>
 </section>
 <section class="card" style="margin-top:24px"><h2>工作包状态分布</h2><p class="muted">已完成的 P0 工作包、待 PR 审查的候选和仍保持 HOLD 的后续门禁，按本报告列出的真实状态计数。</p><div class="chart" id="status-chart" style="height:300px"></div></section>
 <section class="card" style="margin-top:24px"><h2>验证结果</h2><table><thead><tr><th>命令 / 检查</th><th>真实结果</th><th>绑定</th></tr></thead><tbody>
 <tr><td><code>npm ci</code></td><td class="ok">通过；128 packages audited，0 vulnerabilities</td><td>Node 24.19.0 / win32 x64</td></tr>
-<tr><td><code>npm run check</code></td><td class="ok">通过；format、typecheck、build、526 tests、docs、redaction</td><td>merge SHA 80f6220</td></tr>
-<tr><td><code>npm run test:e2e</code></td><td class="ok">通过；11/11 browser tests</td><td>merge SHA 80f6220</td></tr>
-<tr><td><code>npm run check:pack</code></td><td class="ok">通过；264-file isolated package smoke</td><td>reviewed package 80f6220</td></tr>
-<tr><td><code>THREADPORT_PACKAGE_OUTPUT=output/package-reviewed-80f6220... npm run test:package</code></td><td class="ok">通过；installed browser smoke + 264-file package smoke</td><td>sourceCommit 80f6220</td></tr>
+<tr><td><code>npm run check</code></td><td class="ok">通过；format、typecheck、build、526 tests、docs、redaction</td><td>release commit 4854c40</td></tr>
+<tr><td><code>npm run test:e2e</code></td><td class="ok">通过；11/11 browser tests</td><td>release commit 4854c40</td></tr>
+<tr><td><code>npm run check:pack</code></td><td class="ok">通过；264-file isolated package smoke</td><td>stable asset 0.2.1</td></tr>
+<tr><td><code>npm run test:package</code></td><td class="ok">通过；installed browser smoke + 264-file package smoke</td><td>sourceCommit 4854c40</td></tr>
 <tr><td>交接快照 PR CI run <code>35742523025</code></td><td class="ok">通过；check + Ubuntu/macOS/Windows Node 24 全部通过</td><td>PR #70 / 已验证快照 4159d44；后续文档提交需单独核对 CI</td></tr>
 <tr><td>Retained tarball</td><td><code>threadport-0.2.0-dev.0.tgz</code><br>SHA-256 <code>9ea561a2a3a990b1c9fc048fdeb04413f7c69344a63da2314c8bf15fb86389ce</code></td><td>trackedChanges=false</td></tr>
 </tbody></table><div class="callout">首次 focused run 因未先构建而缺少 <code>dist/web/index.html</code>；该失败已保留。执行 <code>npm run build</code> 后 focused control-plane/server 测试为 26/26，通过后才继续完整验证。</div></section>
 <section class="grid two">
 <article class="card"><h2>公开 prerelease 事实</h2><p>GitHub Release <code>v0.2.0-dev.0</code> 的 tag 仍指向 <code>967ceee</code>，CI aggregate run 为 <code>35719556446</code>，资产 hash 为 <code>b3cb66cb671930d021bda9e710d96a617068b1700d2e1f1c4bb576b91dee3a6c</code>。发布说明中的 hash 占位文本已修正；候选 control-plane 改动没有写入该已发布包。</p></article>
-<article class="card"><h2>状态与回滚</h2><ul><li>合并后的三平台 Node 24 CI 已通过；reviewed package 绑定实际 merge SHA。</li><li>包验证是合成安装/浏览器检查，不等于真实 Agent 或用户认证。</li><li>stable 发布暂停：npm registry 已存在其他仓库的 <code>threadport@0.2.0</code>，且当前 <code>npm whoami</code> 返回 <code>ENEEDAUTH</code>。</li><li>如需回滚，按仓库历史提交回滚 control-plane 实现；保留首次失败和本次验证记录。</li></ul></article>
+<article class="card"><h2>状态与回滚</h2><ul><li>合并后的三平台 Node 24 CI 已通过；stable package 绑定发布提交。</li><li>包验证是合成安装/浏览器检查，不等于真实 Agent 或用户认证。</li><li>GitHub stable 已发布；npm stable publish 尚未执行，原因是当前 <code>npm whoami</code> 返回 <code>ENEEDAUTH</code>。</li><li>如需回滚，按仓库历史提交回滚 control-plane 实现；保留首次失败和本次验证记录。</li></ul></article>
 </section>
-<section class="card" style="margin-top:24px"><h2>下一步</h2><ol><li>先解决 npm 包名/版本冲突并取得可用身份验证，再决定是否创建 <code>v0.2.0</code> stable tag/Release；不要覆盖其他仓库的 <code>threadport@0.2.0</code>。</li><li>当前 reviewed candidate 已绑定合并 SHA <code>80f6220bd3f4ef8ee23c88b38d75aee5a589b824</code>，并通过合并后的三平台 Node 24 CI。</li><li>按计划补齐 T14-B/T18，保持没有证据的 Agent/平台路径为 <code>unknown</code>、<code>coverage-gap</code>、<code>not_run</code> 或 <code>HOLD</code>。</li></ol></section>
-<section class="card" style="margin-top:24px"><h2>开发交接</h2><p>已更新 <a href="../docs/verification/control-plane-handoff-2026-09-22.md">control-plane-handoff-2026-09-22.md</a>，记录 PR #70 的实际 merge SHA、合并后 CI 和 reviewed candidate。stable tag/Release/npm publish 尚未执行，原因是 npm 版本冲突与凭据缺失。</p><p>本次重新计算 merge SHA 上 tarball 的 SHA-256、SHA-512 并比较 264 个文件清单，全部与 reviewed evidence manifest 一致；历史 candidate 证据仍保留，未改写为新 HEAD 的证据。</p><p class="muted">已检查 release、RC 索引、Agent 矩阵、compatibility 与 user study 文档；只补充状态和时间边界。真实 Agent、外部用户与原 S01–S36 的证据缺口保持原状态。报告已通过静态页面检查；Codex 浏览器拒绝本地 file URL，未完成视觉渲染检查。</p></section>
-<footer><b>详细记录：</b> <a href="../docs/verification/control-plane-handoff-2026-09-22.md">开发交接单</a> · <a href="../docs/verification/control-plane-review-2026-09-22.md">control-plane-review-2026-09-22.md</a> · <a href="../docs/verification/release-0.2.0.md">release-0.2.0.md</a> · <a href="../docs/verification/packages/control-plane-candidate-2026-09-22.json">retained candidate package evidence JSON</a> · <a href="../docs/verification/packages/control-plane-reviewed-80f6220.json">reviewed merge package evidence JSON</a><br>报告生成日期：2026-09-22。页面为自包含 HTML，无外部资源或网络请求。</footer>
+<section class="card" style="margin-top:24px"><h2>下一步</h2><ol><li>在获得 npm 身份验证后，对已经存在的 <code>v0.2.1</code> GitHub stable asset 执行 npm publish 前复核；不要重复创建或移动 tag/Release。</li><li>当前 stable package 已绑定发布提交 <code>4854c4079985c5fe03e6bcf2720ca73f5e35229d</code>，并通过 main 三平台 Node 24 CI。</li><li>按计划补齐 T14-B/T18，保持没有证据的 Agent/平台路径为 <code>unknown</code>、<code>coverage-gap</code>、<code>not_run</code> 或 <code>HOLD</code>。</li></ol></section>
+<section class="card" style="margin-top:24px"><h2>开发交接</h2><p>已更新 <a href="../docs/verification/control-plane-handoff-2026-09-22.md">control-plane-handoff-2026-09-22.md</a>，记录 PR #70/#71/#72、发布提交、<code>v0.2.1</code> GitHub stable 和 npm 未发布状态。</p><p>stable asset 的 SHA-256、SHA-512、264 个文件清单与伴随 evidence manifest 一致；<code>sourceCommit</code> 等于发布提交，<code>trackedChanges=false</code>。</p><p class="muted">已检查 release、RC 索引、Agent 矩阵、compatibility 与 user study 文档；真实 Agent、外部用户与原 S01–S36 的证据缺口保持原状态。报告已通过静态页面检查；Codex 浏览器拒绝本地 file URL，未完成视觉渲染检查。</p></section>
+<footer><b>详细记录：</b> <a href="../docs/verification/control-plane-handoff-2026-09-22.md">开发交接单</a> · <a href="../docs/verification/control-plane-review-2026-09-22.md">control-plane-review-2026-09-22.md</a> · <a href="../docs/verification/release-0.2.0.md">release-0.2.0.md</a> · <a href="../docs/verification/packages/control-plane-candidate-2026-09-22.json">retained candidate package evidence JSON</a> · <a href="../docs/verification/packages/control-plane-reviewed-80f6220.json">reviewed merge package evidence JSON</a> · <a href="../docs/verification/packages/control-plane-stable-0.2.1.json">stable package evidence JSON</a><br>报告生成日期：2026-09-23。页面为自包含 HTML，无外部资源或网络请求。</footer>
 <script>
 /*!
  * charts-theme.js — single source of truth for all visual tokens
@@ -14283,6 +14283,6 @@ if (!Charts.theme && typeof console !== "undefined" && console.warn) {
 </script>
 <script>
 (function(){const t=Charts.theme,s=document.documentElement.style;s.setProperty('--paper',t.bg);s.setProperty('--ink',t.titleColor);s.setProperty('--muted',t.secondaryColor);})();
-Charts.column('status-chart',{title:'Three completed P0 packages, one blocked release, three held gates',subtitle:'Count of work packages listed in this delivery report',xAxis:{categories:['Completed','Blocked release','HOLD']},series:[{name:'Work packages',data:[3,1,3]}],legend:{enabled:false}});
+Charts.column('status-chart',{title:'Three completed P0 packages, one pending npm channel, three held gates',subtitle:'Count of work packages listed in this delivery report',xAxis:{categories:['Completed','npm pending','HOLD']},series:[{name:'Work packages',data:[3,1,3]}],legend:{enabled:false}});
 </script>
 </main></body></html>
