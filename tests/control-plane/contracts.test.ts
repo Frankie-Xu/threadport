@@ -3,6 +3,12 @@ import { createContextManifest } from '../../src/control-plane/manifest.js';
 import { controlEventSchema, canonicalDigest, redactControlPayload, contextManifestSchema, receiptInputSchema, safePayloadSchema } from '../../src/control-plane/contracts.js';
 
 describe('control plane contracts', () => {
+  it('requires a complete prepared target and rejects supplied empty identities',()=>{
+    const base={handoffId:'binding',taskId:'task',taskRevision:1};
+    for(const target of [{targetSessionId:'s'},{targetRunId:'r'},{targetSessionId:'',targetRunId:''},{targetSessionId:'s',targetRunId:''}])expect(()=>createContextManifest({...base,...target})).toThrow();
+    expect(createContextManifest(base).targetSessionId).toBeUndefined();
+    expect(createContextManifest({...base,targetSessionId:'s',targetRunId:'r'})).toMatchObject({targetSessionId:'s',targetRunId:'r'});
+  });
   it('rejects ambiguous duplicate manifest keys while keeping section namespaces distinct',()=>{
     const base={handoffId:'unique',taskId:'task',taskRevision:1};
     for(const field of ['items','constraints'])expect(()=>createContextManifest({...base,[field]:[{key:'same',text:'first'},{key:'same',text:'different'}]})).toThrow();

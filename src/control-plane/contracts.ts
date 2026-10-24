@@ -101,7 +101,7 @@ export const contextManifestSchema = z.object({
       keys.add(item.key);
     });
   }
-});
+}).refine(value=>(value.targetSessionId===undefined)===(value.targetRunId===undefined),{message:'Manifest target requires both session and run IDs.',path:['targetRunId']});
 export type ContextManifestV1 = z.infer<typeof contextManifestSchema>;
 
 export const receiptStageSchema = z.enum(['prepared', 'authorized', 'transported', 'received', 'accepted', 'observed-start', 'reported-complete', 'verified-complete']);

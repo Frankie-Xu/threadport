@@ -5,7 +5,7 @@ Base: `6ed3455`. Branch: `codex/projection-receipt-integrity`. Each numbered cha
 1. [x] Prototype-safe session/manifest/receipt projection dictionaries (`src/control-plane/reducer.ts`; reducer regressions).
 2. [x] Preserve unknown/incomplete coverage in merges and observation health (`coverage.ts`, reducer; coverage/reducer tests).
 3. [x] Reject duplicate manifest item/constraint keys (`contracts.ts`; contract tests).
-4. [ ] Require both target session/run IDs or neither; reject empty supplied IDs (`contracts.ts`, `manifest.ts`; contract tests).
+4. [x] Require both target session/run IDs or neither; reject empty supplied IDs (`contracts.ts`, `manifest.ts`; contract tests).
 5. [ ] Bind receipt validation and projected manifests to the actual handoff/target identity (`receipts.ts`, reducer; receipt/reducer tests).
 6. [ ] Share strict ISO timestamp validation between search/control plane and validate injected receipt clocks (`src/contracts/timestamp.ts`, search/control contracts, receipts; timestamp regressions).
 7. [ ] Prevent advancement after receipt expiry and expose pending stored receipt expiry without rewriting history (`receipts.ts`, control-plane store; deterministic clock tests).
@@ -20,3 +20,5 @@ Acceptance: targeted regressions, final Node 24 `npm run check`, 11 browser flow
 2: Node 24 coverage/reducer suites passed (20 tests). Unknown coverage is retained when mixed with partial coverage; partial/none/unknown runtime observations remain coverage-gap, not current.
 
 3: Node 24 contracts/storage suites passed (21 tests). Duplicate keys within either section are rejected; item and constraint namespaces remain separate.
+
+4: Node 24 contracts/storage/API suites passed (23 tests). Targets must have both valid IDs or neither; empty supplied IDs are no longer silently omitted.
