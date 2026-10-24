@@ -15,7 +15,7 @@ export async function inspect(agent:TargetAgent,versionPattern:RegExp,acceptedVe
  if((options.platform??process.platform)==='win32'&&!/\.(exe|com)$/i.test(detected.executable))return {...base,reason:'unsupported_executable'};
  const run=options.probe??probe;
  try{
-  const candidate=versionPattern.exec((await run(detected.executable,['--version'])).trim())?.[1]??null;
+  const candidate=new RegExp(versionPattern).exec((await run(detected.executable,['--version'])).trim())?.[1]??null;
   const version=candidate&&candidate.length<=80&&publicText(candidate)===candidate?candidate:null;
   const accepted=typeof acceptedVersions==='string'?[acceptedVersions]:acceptedVersions;
   if(!version||!accepted.includes(version))return {...base,version,reason:'unverified_version'};

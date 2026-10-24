@@ -1,8 +1,20 @@
-import { chmod, mkdtemp, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, it } from 'vitest';
 import { CodexRunner } from '../../src/targets/codex.js';
+import { inspect } from '../../src/targets/detect.js';
+
+it('keeps repeated version probes independent of the caller RegExp lastIndex',async()=>{
+ const root=await fakeCodexRoot();const pattern=/codex-cli (\S+)/g;pattern.lastIndex=42;
+ try{
+  for(let attempt=0;attempt<2;attempt++){
+   const result=await inspect('codex',pattern,'0.155.0-alpha.9',{path:root,probe:probe('0.155.0-alpha.9')});
+   expect(result).toMatchObject({installed:true,version:'0.155.0-alpha.9',reason:null});
+   expect(pattern.lastIndex).toBe(42);
+  }
+ }finally{await rm(root,{recursive:true,force:true});}
+});
 
 const HELP = 'Usage: codex [OPTIONS] [PROMPT]\nOptions: --cd <DIR>\n';
 const RESUME_HELP = 'Usage: codex resume [OPTIONS] [SESSION_ID] [PROMPT]\nOptions: --cd <DIR>\n';
