@@ -22,7 +22,7 @@ export function parseSearch(input:SearchInput):SearchQuery{
  if(from&&to&&from>to)invalid();
  const filters={terms,projectId:value.projectId??null,agent:value.agent??null,from,to,limit:value.limit};
  const digest=createHash('sha256').update(JSON.stringify(filters)).digest('hex');let after:SearchCursor|null=null;
- if(value.cursor){try{if(!/^[A-Za-z0-9_-]+$/.test(value.cursor))invalid();after=cursorSchema.parse(JSON.parse(Buffer.from(value.cursor,'base64url').toString('utf8')));}catch{invalid();}if(after.query!==digest)invalid();}
+ if(value.cursor){try{if(!/^[A-Za-z0-9_-]+$/.test(value.cursor))invalid();const decoded=Buffer.from(value.cursor,'base64url');if(decoded.toString('base64url')!==value.cursor)invalid();after=cursorSchema.parse(JSON.parse(decoded.toString('utf8')));}catch{invalid();}if(after.query!==digest)invalid();}
  return {...filters,digest,after};
 }
 export function encodeCursor(cursor:SearchCursor):string{return Buffer.from(JSON.stringify(cursorSchema.parse(cursor))).toString('base64url');}

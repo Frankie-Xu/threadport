@@ -5,7 +5,7 @@ Base: `249363b` (v0.2.1 release record), with the previously developed search hi
 Acceptance: each fix has a regression covering the observable failure, affected tests pass, and the final combined code passes `npm run check` on Node 24. Public entry points and cursor wire formats stay compatible with valid existing callers. Revert individual commits to roll back; no persisted data is rewritten.
 
 1. [x] Reject invalid timezone offsets in search filters and stored activity (`src/search/contracts.ts`; search tests).
-2. [ ] Require canonical search cursor encoding, rejecting ignored bytes and altered padding bits (`src/search/contracts.ts`; search tests).
+2. [x] Require canonical search cursor encoding, rejecting ignored bytes and altered padding bits (`src/search/contracts.ts`; search tests).
 3. [ ] Validate task/session/event pagination cursor shapes before freshness checks (`src/storage/api-store.ts`, `src/server/business-routes.ts`; route tests).
 4. [ ] Return actionable, private-path-safe errors for unavailable source/workspace directories (`src/server/business-routes.ts`; route tests).
 5. [ ] Prevent scheduled refresh overlap and recover after failures (`src/indexing/scheduler.ts`; fake timer tests).
@@ -18,3 +18,5 @@ Acceptance: each fix has a regression covering the observable failure, affected 
 Constraints: original untracked planning document is excluded; CLI probes in tests are synthetic, not real Agent certification. No stable-release claims are extended. Validation results and commit links are recorded after execution.
 
 Item 1: Node 24 search suite passed (15 tests). Invalid offsets produce INVALID_INPUT; invalid stored activity remains unknown.
+
+Item 2: Node 24 search suite passed (16 tests); canonical cursor resumes, altered unused padding bits are rejected.

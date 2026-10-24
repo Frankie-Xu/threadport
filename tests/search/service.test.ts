@@ -6,7 +6,19 @@ import { openStore, type SqliteStore } from '../../src/storage/sqlite-store.js';
 import { TaskService } from '../../src/tasks/service.js';
 import { IndexService } from '../../src/indexing/service.js';
 import { SearchService } from '../../src/search/service.js';
-import { parseSearch, searchTime } from '../../src/search/contracts.js';
+import { encodeCursor, parseSearch, searchTime } from '../../src/search/contracts.js';
+it('rejects noncanonical search cursor padding bits while accepting existing cursors',()=>{
+ const query=parseSearch({limit:1});let cursor='';
+ for(let n=1;n<=3;n++){
+  cursor=encodeCursor({v:1,query:query.digest,generation:0,activity:null,id:'s:'+ 'x'.repeat(n)});
+  if(cursor.length%4!==0)break;
+ }
+ const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+ const altered=cursor.slice(0,-1)+alphabet[alphabet.indexOf(cursor.at(-1)!)^1];
+ expect(Buffer.from(altered,'base64url')).toEqual(Buffer.from(cursor,'base64url'));
+ expect(parseSearch({limit:1,cursor}).after?.id).toMatch(/^s:x+$/);
+ expect(()=>parseSearch({limit:1,cursor:altered})).toThrow(expect.objectContaining({code:'INVALID_INPUT'}));
+});
 it('rejects impossible timezone offsets without leaking a RangeError',()=>{
  for(const value of ['2026-10-24T00:00:00+99:99','2026-10-24T00:00:00+24:00','2026-10-24T00:00:00+02:60']){
   expect(searchTime(value)).toBeNull();
