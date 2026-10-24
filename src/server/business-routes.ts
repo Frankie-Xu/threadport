@@ -22,7 +22,17 @@ const eventCursor=z.object({generation:z.number().int().nonnegative().safe(),ses
 const empty=z.object({}).strict();
 const p=(request:{params:unknown})=>z.object({id}).strict().parse(request.params).id;
 const revision=taskRevisionSchema;
-async function directory(root:string){if(!isAbsolute(root))throw new DomainError('INVALID_INPUT','Choose an absolute directory.');const info=await lstat(root);if(!info.isDirectory()||info.isSymbolicLink())throw new DomainError('INVALID_INPUT','Choose a physical directory.');const canonical=await realpath(root);if(canonical===parse(canonical).root)throw new DomainError('INVALID_INPUT','Choose a narrower directory.');return canonical;}
+async function directory(root:string){
+ if(!isAbsolute(root)||root.includes('\0'))throw new DomainError('INVALID_INPUT','Choose an absolute directory.');
+ try{
+  const info=await lstat(root);if(!info.isDirectory()||info.isSymbolicLink())throw new DomainError('INVALID_INPUT','Choose a physical directory.');
+  const canonical=await realpath(root);if(canonical===parse(canonical).root)throw new DomainError('INVALID_INPUT','Choose a narrower directory.');return canonical;
+ }catch(error){
+  if(error instanceof DomainError)throw error;
+  if(['ENOENT','ENOTDIR'].includes((error as NodeJS.ErrnoException).code??''))throw new DomainError('INVALID_INPUT','The selected directory does not exist. Choose an existing directory.');
+  throw new DomainError('IO_FAILED','The selected directory could not be read. Check its permissions and try again.');
+ }
+}
 export function registerBusinessRoutes(app:FastifyInstance,store:SqliteStore,indexer:IndexService){
  registerAssertionRoutes(app,store);
  const api=store.apiStore(),tasks=new TaskService(store),search=new SearchService(store);

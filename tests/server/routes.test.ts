@@ -17,6 +17,17 @@ it('classifies malformed pagination envelopes as input errors before checking fr
   expect((await api(endpoint+'?cursor=')).status).toBe(400);
  }
 },30000);
+it('reports unavailable source and workspace directories without exposing their paths',async()=>{
+ const {api}=await setup();const directory=await temporary(),file=join(directory,'private-file');await writeFile(file,'synthetic');
+ for(const root of [join(directory,'missing'),join(file,'child'),file,directory+'\0']){
+  for(const [endpoint,body] of [['/sources',{root,agent:'claude'}],['/workspaces',{root,confirmBinding:true}]] as const){
+   const response=await api(endpoint,'POST',body);
+   expect(response.status).toBe(400);expect(response.body.error.code).toBe('INVALID_INPUT');
+   expect(JSON.stringify(response.body)).not.toContain(directory);
+  }
+ }
+ expect((await api('/sources')).body.data).toEqual([]);expect((await api('/workspaces')).body.data).toEqual([]);
+},30000);
 it('creates explicit bindings and tasks with conflict-safe editing, filtering and strict inputs',async()=>{
  const {api}=await setup();const root=await project();
  const invalid=await api('/workspaces','POST',{root,confirmBinding:false});expect(invalid.status).toBe(400);expect(invalid.body.error).toMatchObject({code:'INVALID_INPUT',retryable:false,recovery:'none'});
