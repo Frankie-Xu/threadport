@@ -6,6 +6,14 @@ import { openStore, type SqliteStore } from '../../src/storage/sqlite-store.js';
 import { TaskService } from '../../src/tasks/service.js';
 import { IndexService } from '../../src/indexing/service.js';
 import { SearchService } from '../../src/search/service.js';
+import { parseSearch, searchTime } from '../../src/search/contracts.js';
+it('rejects impossible timezone offsets without leaking a RangeError',()=>{
+ for(const value of ['2026-10-24T00:00:00+99:99','2026-10-24T00:00:00+24:00','2026-10-24T00:00:00+02:60']){
+  expect(searchTime(value)).toBeNull();
+  for(const field of ['from','to'])expect(()=>parseSearch({[field]:value})).toThrow(expect.objectContaining({code:'INVALID_INPUT'}));
+ }
+ expect(searchTime('2026-10-24T08:00:00+08:00')).toBe('2026-10-24T00:00:00.000Z');
+});
 const stores:SqliteStore[]=[];const dirs:string[]=[];
 it('returns ordered, merged highlights regardless of query term order',async()=>{
  const {search,store}=await setup();
