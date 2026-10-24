@@ -16,7 +16,9 @@ export interface ControlState {
   attention: AttentionItem[];
 }
 const eventLogs = new WeakMap<object, ControlEvent[]>();
-export const emptyControlState = (): ControlState => { const state: ControlState = { sessions: {}, lineage: [], responsibilities: [], manifests: {}, receipts: {}, attention: [] }; eventLogs.set(state, []); return state; };
+const dictionary=<T>():Record<string,T>=>Object.create(null) as Record<string,T>;
+const newControlState=():ControlState=>({sessions:dictionary(),lineage:[],responsibilities:[],manifests:dictionary(),receipts:dictionary(),attention:[]});
+export const emptyControlState = (): ControlState => { const state=newControlState(); eventLogs.set(state, []); return state; };
 
 function eventOrder(a: ControlEvent, b: ControlEvent): number {
   const ordinalA = a.ordinal === null ? Number.MAX_SAFE_INTEGER : a.ordinal;
@@ -50,7 +52,7 @@ function receiptAttention(state: ControlState, event: ControlEvent, kind: string
   addAttention(state, { id: `receipt:${kind}:${event.eventId}`, kind, severity: 'warning', message, status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
 }
 function project(events: readonly ControlEvent[]): ControlState {
-  const state: ControlState = { sessions: {}, lineage: [], responsibilities: [], manifests: {}, receipts: {}, attention: [] };
+  const state=newControlState();
   for (const event of [...events].sort(eventOrder)) {
     const p = payload(event);
     const runId = event.sessionId ?? event.runId;

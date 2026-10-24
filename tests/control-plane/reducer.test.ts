@@ -8,6 +8,15 @@ const event = (patch: Partial<ControlEvent>): ControlEvent => ({
  type: 'run.started', payload: {}, idempotencyKey: null, evidenceIds: ['e-1'], ...patch
 });
 describe('control plane reducer', () => {
+ it('treats prototype property names as ordinary opaque identifiers',()=>{
+  const empty=emptyControlState();
+  for(const key of ['constructor','toString','hasOwnProperty']){
+   expect(empty.sessions[key]).toBeUndefined();expect(empty.manifests[key]).toBeUndefined();expect(empty.receipts[key]).toBeUndefined();
+   const state=rebuildControlState([event({sessionId:key,type:'run.unrecognized'})]);
+   expect(Object.hasOwn(state.sessions,key)).toBe(true);expect(state.sessions[key].runState).toBe('unknown');
+   expect(JSON.parse(JSON.stringify(state)).sessions[key].runState).toBe('unknown');
+  }
+ });
  it('rebuilds observed run state and keeps agent reports unverified', () => {
   const state = rebuildControlState([event({ type: 'run.started' }), event({ eventId: 'e-2', type: 'run.ended', ordinal: 2, evidenceIds: ['e-2'], source: { kind: 'agent-report', sourceId: 'src', parserVersion: '1', coverage: 'partial' } })]);
   expect(state.sessions.s1).toMatchObject({ runState: 'ended', health: 'unverified', lastEvidenceId: 'e-2' });
