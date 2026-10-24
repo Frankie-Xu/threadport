@@ -8,6 +8,17 @@ const event = (patch: Partial<ControlEvent>): ControlEvent => ({
  type: 'run.started', payload: {}, idempotencyKey: null, evidenceIds: ['e-1'], ...patch
 });
 describe('control plane reducer', () => {
+ it('retains replay conflicts across later events and exact duplicates in both replay modes',()=>{
+  const first=event({eventId:'conflicted'}),conflict=event({eventId:'conflicted',type:'run.ended',ordinal:2});
+  const later=event({eventId:'later',type:'run.waiting',ordinal:3});
+  let incremental=applyControlEvent(emptyControlState(),first);incremental=applyControlEvent(incremental,conflict);
+  for(const initial of [incremental,rebuildControlState([first,conflict])]){
+    const updated=applyControlEvent(applyControlEvent(initial,later),later);
+    expect(updated.attention.filter(item=>item.kind==='event-conflict')).toHaveLength(1);
+    expect(updated).toEqual(rebuildControlState([first,conflict,later]));
+    expect(updated.sessions.s1.runState).toBe('waiting');
+  }
+ });
  it('preserves the first valid immutable manifest when later events try to replace it',()=>{
   const base={handoffId:'immutable',taskId:'task',taskRevision:1,createdAt:'2026-09-20T00:00:00.000Z'};
   const first=createContextManifest({...base,items:[{key:'objective',text:'reviewed'}]});

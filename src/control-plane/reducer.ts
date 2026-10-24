@@ -16,6 +16,7 @@ export interface ControlState {
   attention: AttentionItem[];
 }
 const eventLogs = new WeakMap<object, ControlEvent[]>();
+const eventConflicts=new WeakMap<object,ReadonlySet<string>>();
 const dictionary=<T>():Record<string,T>=>Object.create(null) as Record<string,T>;
 const newControlState=():ControlState=>({sessions:dictionary(),lineage:[],responsibilities:[],manifests:dictionary(),receipts:dictionary(),attention:[]});
 export const emptyControlState = (): ControlState => { const state=newControlState(); eventLogs.set(state, []); return state; };
@@ -32,6 +33,12 @@ function addAttention(state: ControlState, item: AttentionItem): void {
   const existing = state.attention.find(value => value.id === item.id);
   if (existing) return;
   state.attention.push(item);
+}
+function retainConflicts(state:ControlState,conflicts:Iterable<string>):void{
+  const ids=new Set(conflicts);
+  for(const eventId of ids)addAttention(state,{id:`conflict:${eventId}`,kind:'event-conflict',severity:'error',message:'The same event ID was replayed with different content.',status:'open',evidenceIds:[eventId]});
+  state.attention.sort((a,b)=>a.id.localeCompare(b.id));
+  eventConflicts.set(state,ids);
 }
 function receiptPayload(event: ControlEvent): Record<string, unknown> {
   const value = payload(event).receipt;
@@ -158,10 +165,9 @@ export function applyControlEvent(state: ControlState, input: ControlEvent): Con
   const previous = eventLogs.get(state) ?? [];
   const same = previous.find(item => item.eventId === event.eventId);
   const events = same ? previous : [...previous, event];
-  if (same && canonicalDigest(same) !== canonicalDigest(event)) {
-    const next = project(events); addAttention(next, { id: `conflict:${event.eventId}`, kind: 'event-conflict', severity: 'error', message: 'The same event ID was replayed with different content.', status: 'open', evidenceIds: [event.eventId] }); eventLogs.set(next, events); return next;
-  }
-  const next = project(events); eventLogs.set(next, events); return next;
+  const conflicts=new Set(eventConflicts.get(state));
+  if(same&&canonicalDigest(same)!==canonicalDigest(event))conflicts.add(event.eventId);
+  const next = project(events);retainConflicts(next,conflicts);eventLogs.set(next, events); return next;
 }
 export function rebuildControlState(events: Iterable<ControlEvent>): ControlState {
   const unique = new Map<string, ControlEvent>();
@@ -173,7 +179,6 @@ export function rebuildControlState(events: Iterable<ControlEvent>): ControlStat
     else if (canonicalDigest(previous) !== canonicalDigest(event)) conflicts.push(event.eventId);
   }
   const state = project([...unique.values()]);
-  for (const eventId of [...new Set(conflicts)]) addAttention(state, { id: `conflict:${eventId}`, kind: 'event-conflict', severity: 'error', message: 'The same event ID was replayed with different content.', status: 'open', evidenceIds: [eventId] });
-  state.attention.sort((a,b) => a.id.localeCompare(b.id));
+  retainConflicts(state,conflicts);
   eventLogs.set(state, [...unique.values()]); return state;
 }
