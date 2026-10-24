@@ -11,7 +11,7 @@ Acceptance: targeted regressions for each item; final Node 24 `npm run check`, `
 5. [x] Dispose takeover timeout handles and preserve state advanced while a stop request is pending (`src/control-plane/takeover.ts`; fake timers/deferred controller tests).
 6. [x] Validate takeover identities, timeout bounds and successor identity before state mutation (`src/control-plane/takeover.ts`; invalid-input regression).
 7. [x] Strict control status/ingest arguments, bounded JSON imports and preflight validation before opening storage (`src/cli-control.ts`, shared argument/import helpers; CLI tests).
-8. [ ] Strict receipt CLI arguments and schema preflight with predictable exit codes (`src/cli-control.ts`; CLI tests; depends on 7's parser).
+8. [x] Strict receipt CLI arguments and schema preflight with predictable exit codes (`src/cli-control.ts`; CLI tests; depends on 7's parser).
 9. [ ] Strict takeover CLI arguments before touching the in-memory manager (`src/cli-control.ts`; CLI tests; depends on 7's parser).
 10. [ ] Honor cancellation before discovery/read and before committing imported control events (`src/control-plane/ingest.ts`; synthetic-source cancellation tests).
 
@@ -30,3 +30,5 @@ Items 2 and 3 add store read methods without changing existing read APIs. Invali
 6: Node 24 takeover/API suites passed, 9 tests. Invalid IDs, non-finite/fractional/out-of-range timeouts and invalid successors fail before mutation or controller invocation.
 
 7: Node 24 CLI/storage suites passed, 14 tests. Unknown/duplicate/missing options, invalid JSON, empty batches, invalid events, oversized files and invalid UTF-8 fail before creating storage. Valid single-event import/status succeeds. Manual imports are capped at 1 MiB and 1,000 events.
+
+8: Node 24 CLI/receipt suites passed, 6 tests. Receipt argument/schema errors do not create storage; identical retries retain output, manifest conflicts/forged completion return conflict exit code 4 and missing manifests return input exit code 2.
