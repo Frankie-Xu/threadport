@@ -93,7 +93,15 @@ export const contextManifestSchema = z.object({
   taskRevision: z.number().int().positive().safe(), createdAt: isoDate, digest: digestSchema,
   targetSessionId: controlIdSchema.optional(), targetRunId: controlIdSchema.optional(),
   items: z.array(manifestItemSchema).max(256), constraints: z.array(constraintSchema).max(128)
-}).strict();
+}).strict().superRefine((value,ctx)=>{
+  for(const field of ['items','constraints'] as const){
+    const keys=new Set<string>();
+    value[field].forEach((item,index)=>{
+      if(keys.has(item.key))ctx.addIssue({code:z.ZodIssueCode.custom,path:[field,index,'key'],message:'Manifest keys must be unique within each section.'});
+      keys.add(item.key);
+    });
+  }
+});
 export type ContextManifestV1 = z.infer<typeof contextManifestSchema>;
 
 export const receiptStageSchema = z.enum(['prepared', 'authorized', 'transported', 'received', 'accepted', 'observed-start', 'reported-complete', 'verified-complete']);

@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import { createContextManifest } from '../../src/control-plane/manifest.js';
 import { controlEventSchema, canonicalDigest, redactControlPayload, contextManifestSchema, receiptInputSchema, safePayloadSchema } from '../../src/control-plane/contracts.js';
 
 describe('control plane contracts', () => {
+  it('rejects ambiguous duplicate manifest keys while keeping section namespaces distinct',()=>{
+    const base={handoffId:'unique',taskId:'task',taskRevision:1};
+    for(const field of ['items','constraints'])expect(()=>createContextManifest({...base,[field]:[{key:'same',text:'first'},{key:'same',text:'different'}]})).toThrow();
+    const manifest=createContextManifest({...base,items:[{key:'same',text:'item'}],constraints:[{key:'same',text:'constraint'}]});
+    expect(manifest.items[0].key).toBe('same');expect(manifest.constraints[0].key).toBe('same');
+  });
   it('returns schema errors for cyclic, deep, oversized and non-JSON payloads',()=>{
     const cycle:Record<string,unknown>={};cycle.self=cycle;
     let deep:unknown='leaf';for(let i=0;i<40;i++)deep={child:deep};
