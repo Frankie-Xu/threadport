@@ -77,6 +77,14 @@ export function prepareCommandEvidence(
   observations:ReadonlyMap<string,ExecutionObservation>=new Map(),
 ): { byEvent: Map<string, CommandEvidence>; verification: VerificationReport; warnings: string[] } {
   const snapshots = new Map<string, WorkspaceSnapshot | null>();
+  const readSnapshot=(id:string|null):WorkspaceSnapshot|null=>{
+    if(id===null)return null;
+    if(!snapshots.has(id)){
+      try{snapshots.set(id,getSnapshot(id));}
+      catch{snapshots.set(id,null);}
+    }
+    return snapshots.get(id)!;
+  };
   const byEvent = new Map<string, CommandEvidence>();
   const counts = {stale: 0, unknown: 0, unverified: 0};
   const review = compareWorkspaceSnapshots(current, current);
@@ -86,10 +94,9 @@ export function prepareCommandEvidence(
   for (const event of events) {
     const run = event.commandRun;
     if (!run) continue;
-    if (run.snapshotId !== null && !snapshots.has(run.snapshotId)) snapshots.set(run.snapshotId, getSnapshot(run.snapshotId));
-    const historical = run.snapshotId === null ? null : snapshots.get(run.snapshotId)!;
+    const historical = readSnapshot(run.snapshotId);
     const observation=observations.get(event.id);
-    const evidence = evaluateCommandEvidence(event, historical, current,observation?{record:observation,after:observation.afterSnapshotId?getSnapshot(observation.afterSnapshotId):null}:undefined)!;
+    const evidence = evaluateCommandEvidence(event, historical, current,observation?{record:observation,after:readSnapshot(observation.afterSnapshotId)}:undefined)!;
     byEvent.set(event.id, evidence);
     counts[evidence.applicability]++;
     const report: VerificationReport = historical && historical.id === run.snapshotId

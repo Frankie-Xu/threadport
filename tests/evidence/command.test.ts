@@ -1,4 +1,5 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
+import { prepareCommandEvidence } from '../../src/handoff/evidence.js';
 import type { NormalizedEvent } from '../../src/domain/models.js';
 import type { WorkspaceSnapshot } from '../../src/workspace/contracts.js';
 import { commandEvidenceSchema, commandEvidenceSummary, evaluateCommandEvidence } from '../../src/evidence/command.js';
@@ -17,6 +18,16 @@ const event: NormalizedEvent = {
     exitCode: 0, startedAt: null, completedAt: null, eventId: 'event', snapshotId: 'baseline',
   },
 };
+it('retains unverifiable command evidence when a historical snapshot cannot be read',()=>{
+ const lookup=vi.fn(()=>{throw new Error('synthetic unreadable snapshot');});
+ const second={...event,id:'second',commandRun:{...event.commandRun!,eventId:'second'}};
+ const result=prepareCommandEvidence([event,second],current,lookup);
+ expect(lookup).toHaveBeenCalledTimes(1);
+ expect(result.verification).toMatchObject({status:'unverifiable',reasons:[{code:'READ_FAILED'}]});
+ expect(result.byEvent.size).toBe(2);
+ for(const evidence of result.byEvent.values())expect(evidence).toMatchObject({applicability:'unknown',historical:{result:'succeeded'},workspace:{status:'unverifiable'}});
+ expect(result.warnings.join(' ')).toContain('2 unknown');
+});
 
 it('retains historical success but marks changed content as stale, never failed', () => {
   const evidence = evaluateCommandEvidence(event, snapshot, { ...current, digest: 'd'.repeat(64) })!;

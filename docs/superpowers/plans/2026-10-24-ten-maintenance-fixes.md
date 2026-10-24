@@ -9,7 +9,7 @@ Acceptance: each fix has a regression covering the observable failure, affected 
 3. [x] Validate task/session/event pagination cursor shapes before freshness checks (`src/storage/api-store.ts`, `src/server/business-routes.ts`; route tests).
 4. [x] Return actionable, private-path-safe errors for unavailable source/workspace directories (`src/server/business-routes.ts`; route tests).
 5. [x] Prevent scheduled refresh overlap and recover after failures (`src/indexing/scheduler.ts`; fake timer tests).
-6. [ ] Retain explicit unverifiable command evidence if historical snapshot reads fail (`src/handoff/evidence.ts`; handoff tests).
+6. [x] Retain explicit unverifiable command evidence if historical snapshot reads fail (`src/handoff/evidence.ts`; handoff tests).
 7. [ ] Preserve literal Markdown source text containing tildes (`src/markdown.ts`; parsed Markdown tests).
 8. [ ] Avoid argument-count overflow when exporting text with many backtick runs (`src/tasks/export.ts`; export regression).
 9. [ ] Share API error recovery classification between browser and server (`src/contracts/api-errors.ts`, server compatibility facade, `web/src/api.ts`; classification tests).
@@ -26,3 +26,5 @@ Item 3: Node 24 routes suite passed (8 tests), including malformed task/session/
 Item 4: Node 24 routes suite passed (9 tests); missing paths, non-directory ancestors, files and NUL input return private-path-safe 400 errors without creating bindings.
 
 Item 5: Node 24 scheduler/indexing suites passed (11 tests); slow refreshes skip overlapping ticks and recover after asynchronous rejection or synchronous failure.
+
+Item 6: Node 24 evidence/handoff suites passed (24 tests); unreadable historical snapshots retain unknown applicability, and repeated failed lookups are cached per preparation.
