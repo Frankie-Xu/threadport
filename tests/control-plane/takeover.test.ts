@@ -3,6 +3,16 @@ import { TakeoverManager } from '../../src/control-plane/takeover.js';
 afterEach(()=>vi.useRealTimers());
 
 describe('takeover state machine',()=>{
+ it('validates identities and deadlines before calling controllers or mutating state',async()=>{
+  const manager=new TakeoverManager(),requestStop=vi.fn(async()=>true);
+  const base={taskId:'t',runId:'r',ownerSessionId:'s',targetSessionId:'s',controller:{requestStop}};
+  for(const key of ['taskId','runId','ownerSessionId','targetSessionId'])for(const value of ['','bad/id','x'.repeat(513)])await expect(manager.request({...base,[key]:value})).rejects.toMatchObject({code:'INVALID_INPUT'});
+  for(const timeoutMs of [0,-1,1.5,30001,NaN,Infinity])await expect(manager.request({...base,timeoutMs})).rejects.toMatchObject({code:'INVALID_INPUT'});
+  expect(requestStop).not.toHaveBeenCalled();expect(manager.list()).toEqual([]);
+  const record=await manager.request({...base,timeoutMs:30000});
+  for(const successor of ['','bad/id','x'.repeat(513)])expect(()=>manager.confirmSuccessor(record.id,successor)).toThrowError(expect.objectContaining({code:'INVALID_INPUT'}));
+  expect(manager.get(record.id).status).toBe('stop-confirmed');
+ });
  it('cleans timeout handles after fast success, refusal and controller failure',async()=>{
   vi.useFakeTimers();const manager=new TakeoverManager();
   for(const [runId,requestStop] of [['success',async()=>true],['refusal',async()=>false],['failure',async()=>{throw new Error('synthetic');}]] as const){
