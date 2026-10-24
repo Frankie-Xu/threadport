@@ -43,13 +43,15 @@ export class ControlPlaneStore {
   }
   readAllEvents(): ControlEvent[] {
     const events: ControlEvent[] = [];
-    let afterSequence = 0;
-    for (;;) {
-      const page = this.readEvents(afterSequence, 1000);
-      events.push(...page);
-      if (page.length < 1000) return events;
-      afterSequence += page.length;
-    }
+    for(const row of this.db.prepare('SELECT event_json FROM control_events ORDER BY sequence').iterate())events.push(validate(controlEventSchema,JSON.parse((row as {event_json:string}).event_json)));
+    return events;
+  }
+  readTaskEvents(taskId:string):ControlEvent[]{return this.readScopedEvents('taskId',taskId);}
+  readRunEvents(runId:string):ControlEvent[]{return this.readScopedEvents('runId',runId);}
+  private readScopedEvents(field:'taskId'|'runId',value:string):ControlEvent[]{
+    const id=validate(controlIdSchema,value),events:ControlEvent[]=[];
+    for(const row of this.db.prepare(`SELECT event_json FROM control_events WHERE json_extract(event_json,'$.${field}')=? ORDER BY sequence`).iterate(id))events.push(validate(controlEventSchema,JSON.parse((row as {event_json:string}).event_json)));
+    return events;
   }
   saveManifest(input: ContextManifestV1): void {
     const manifest = validate(contextManifestSchema, input);
@@ -79,6 +81,7 @@ export class ControlPlaneStore {
     });
   }
   listReceipts(handoffId: string): ReceiptSummary[] { return (this.db.prepare('SELECT * FROM handoff_receipts WHERE handoff_id=? ORDER BY created_at,receipt_id').all(handoffId) as Record<string, unknown>[]).map(row => this.rowReceipt(row)); }
+  listAllReceipts():ReceiptSummary[]{return (this.db.prepare('SELECT r.* FROM handoff_receipts r JOIN context_manifests m ON m.handoff_id=r.handoff_id ORDER BY r.created_at,r.receipt_id').all() as Record<string,unknown>[]).map(row=>this.rowReceipt(row));}
   listManifests(taskId?: string): ContextManifestV1[] {
     const rows = (taskId === undefined
       ? this.db.prepare('SELECT body_json FROM context_manifests ORDER BY created_at,handoff_id').all()
