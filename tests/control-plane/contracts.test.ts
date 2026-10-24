@@ -1,7 +1,22 @@
 import { describe, expect, it } from 'vitest';
-import { controlEventSchema, canonicalDigest, redactControlPayload, contextManifestSchema, receiptInputSchema } from '../../src/control-plane/contracts.js';
+import { controlEventSchema, canonicalDigest, redactControlPayload, contextManifestSchema, receiptInputSchema, safePayloadSchema } from '../../src/control-plane/contracts.js';
 
 describe('control plane contracts', () => {
+  it('returns schema errors for cyclic, deep, oversized and non-JSON payloads',()=>{
+    const cycle:Record<string,unknown>={};cycle.self=cycle;
+    let deep:unknown='leaf';for(let i=0;i<40;i++)deep={child:deep};
+    for(const value of [cycle,deep,Array.from({length:100},()=>Array(100).fill(1)),new Date(),{token:'private'}]){
+      const parsed=safePayloadSchema.safeParse(value);expect(parsed.success).toBe(false);
+      if(!parsed.success)expect(parsed.error.issues[0].message).toBe('Invalid or oversized control payload.');
+    }
+  });
+  it('accepts shared acyclic containers and preserves own JSON keys',()=>{
+    const shared=['value'];expect(safePayloadSchema.parse({a:shared,b:shared})).toEqual({a:['value'],b:['value']});
+    const input=JSON.parse('{"__proto__":{"flag":1},"value":2}');const parsed=safePayloadSchema.parse(input);
+    expect(Object.prototype.hasOwnProperty.call(parsed,'__proto__')).toBe(true);
+    expect(canonicalDigest(parsed)).toBe(canonicalDigest(input));
+    expect(Object.getPrototypeOf(parsed)).toBe(Object.prototype);
+  });
   const base = {
     eventId: 'evt-1', protocol: 'threadport.control-event.v1' as const,
     occurredAt: null, recordedAt: '2026-09-20T00:00:00.000Z',

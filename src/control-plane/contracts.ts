@@ -8,7 +8,8 @@ const isoDate = z.string().datetime({ offset: true });
 const forbiddenKey = /(?:token|secret|password|api[-_]?key|authorization|cookie|reasoning|system[-_ ]?prompt|raw[-_ ]?log|source[-_ ]?path|absolute[-_ ]?path|private[-_ ]?key)/i;
 const absolutePath = /^(?:[A-Za-z]:[\\/]|[\\]{2}|\/)/;
 export type SafePayload = null | boolean | number | string | SafePayload[] | { [key: string]: SafePayload };
-function safePayload(value: unknown, seen = new Set<unknown>()): SafePayload {
+function safePayload(value: unknown, seen = new Set<unknown>(), depth=0, budget={remaining:4096}): SafePayload {
+  if(depth>32||--budget.remaining<0)throw new Error('Payload exceeds its traversal budget.');
   if (value === null || typeof value === 'boolean') return value;
   if (typeof value === 'number') {
     if (!Number.isFinite(value) || !Number.isSafeInteger(value)) throw new Error('Unsafe payload number.');
@@ -20,21 +21,26 @@ function safePayload(value: unknown, seen = new Set<unknown>()): SafePayload {
   }
   if (typeof value !== 'object' || seen.has(value)) throw new Error('Unsafe payload value.');
   seen.add(value);
+  try{
   if (Array.isArray(value)) {
     if (value.length > 512) throw new Error('Payload array is too large.');
-    return value.map(item => safePayload(item, seen));
+    return value.map(item => safePayload(item, seen, depth+1, budget));
   }
+  if(Object.getPrototypeOf(value)!==Object.prototype&&Object.getPrototypeOf(value)!==null)throw new Error('Payload must contain JSON objects.');
   const result: Record<string, SafePayload> = {};
   const entries = Object.entries(value as Record<string, unknown>);
   if (entries.length > 128) throw new Error('Payload object is too large.');
   for (const [key, item] of entries) {
     if (key.length > 128 || forbiddenKey.test(key)) throw new Error('Payload contains a forbidden field.');
-    result[key] = safePayload(item, seen);
+    Object.defineProperty(result,key,{value:safePayload(item, seen, depth+1, budget),enumerable:true,writable:true,configurable:true});
   }
-  seen.delete(value);
   return result;
+  }finally{seen.delete(value);}
 }
-export const safePayloadSchema = z.unknown().transform(value => safePayload(value));
+export const safePayloadSchema = z.unknown().transform((value,ctx) => {
+  try{return safePayload(value);}
+  catch{ctx.addIssue({code:z.ZodIssueCode.custom,message:'Invalid or oversized control payload.'});return z.NEVER;}
+});
 
 export const sourceSchema = z.object({
   kind: z.enum(['source-log', 'runtime', 'threadport', 'user', 'agent-report']),
