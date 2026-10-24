@@ -7,6 +7,16 @@ import { TaskService } from '../../src/tasks/service.js';
 import { IndexService } from '../../src/indexing/service.js';
 import { SearchService } from '../../src/search/service.js';
 const stores:SqliteStore[]=[];const dirs:string[]=[];
+it('returns ordered, merged highlights regardless of query term order',async()=>{
+ const {search,store}=await setup();
+ const task=await new TaskService(store).create({projectId:'p',title:'🙂 Alpha beta banana'});
+ for(const q of ['beta alpha','alpha beta','ana banana','ana']){
+  const item=(await search.search({q,projectId:'p'})).items.find(item=>item.task?.id===task.id)!;
+  const match=item.matches.find(match=>match.field==='title')!;
+  const expected=q.includes('alpha')?[{start:3,end:8},{start:9,end:13}]:q==='ana'?[{start:15,end:20}]:[{start:14,end:20}];
+  expect(match.highlights).toEqual(expected);
+ }
+});
 afterEach(async()=>{for(const store of stores.splice(0))store.close();for(const dir of dirs.splice(0))await rm(dir,{recursive:true,force:true});});
 async function setup(){
  const dir=await mkdtemp(join(tmpdir(),'tp-search-'));dirs.push(dir);const store=await openStore({dataDir:join(dir,'data')});stores.push(store);
