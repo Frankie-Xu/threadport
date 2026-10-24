@@ -8,7 +8,6 @@ import { TakeoverManager } from './control-plane/takeover.js';
 import type { CliIo } from './cli.js';
 import { DomainError } from './domain/errors.js';
 const controlIds = new Set(['status','ingest']);
-function value(args:string[],name:string):string|undefined { const i=args.indexOf(name); return i<0?undefined:args[i+1]; }
 export async function runControlCommand(args:string[],io:CliIo):Promise<number>{
  let store:Awaited<ReturnType<typeof openStore>>|undefined;
  try{
@@ -37,4 +36,19 @@ export async function runReceiptCommand(args:string[],io:CliIo):Promise<number>{
 }
 
 const takeover = new TakeoverManager();
-export async function runTakeoverCommand(args:string[],io:CliIo):Promise<number>{const sub=args[0];try{if(sub==='request'){const runId=value(args,'--run');const taskId=value(args,'--task');const owner=value(args,'--owner');const target=value(args,'--target');if(!runId||!taskId||!owner||!target){io.stderr.write('takeover request requires --run, --task, --owner and --target.\n');return 2;}io.stdout.write(JSON.stringify(await takeover.request({runId,taskId,ownerSessionId:owner,targetSessionId:target}))+'\n');return 0;}if(sub==='acknowledge'){const id=value(args,'--id');const successor=value(args,'--successor');if(!id||!successor){io.stderr.write('takeover acknowledge requires --id and --successor.\n');return 2;}io.stdout.write(JSON.stringify(takeover.acknowledge(id,successor))+'\n');return 0;}io.stderr.write('takeover requires request or acknowledge.\n');return 2;}catch(error){io.stderr.write('Takeover operation failed.\n');return error instanceof DomainError&&error.code==='TAKEOVER_CONFLICT'?4:5;}}
+export async function runTakeoverCommand(args:string[],io:CliIo):Promise<number>{
+ try{
+  const sub=args[0];
+  if(sub==='request'){
+   const keys=['--run','--task','--owner','--target'];const options=parseControlOptions(args.slice(1),keys,keys);
+   const input={runId:controlIdSchema.parse(options['--run']),taskId:controlIdSchema.parse(options['--task']),ownerSessionId:controlIdSchema.parse(options['--owner']),targetSessionId:controlIdSchema.parse(options['--target'])};
+   io.stdout.write(JSON.stringify(await takeover.request(input))+'\n');return 0;
+  }
+  if(sub==='acknowledge'){
+   const keys=['--id','--successor'];const options=parseControlOptions(args.slice(1),keys,keys);
+   const id=controlIdSchema.parse(options['--id']),successor=controlIdSchema.parse(options['--successor']);
+   io.stdout.write(JSON.stringify(takeover.acknowledge(id,successor))+'\n');return 0;
+  }
+  throw new DomainError('INVALID_INPUT','Choose takeover request or acknowledge.');
+ }catch(error){io.stderr.write('Takeover operation failed.\n');return controlExitCode(error);}
+}

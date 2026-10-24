@@ -12,6 +12,17 @@ async function cli(args:string[],cwd:string){
 }
 const event={eventId:'cli-event',protocol:'threadport.control-event.v1',occurredAt:null,recordedAt:'2026-10-25T00:00:00.000Z',source:{kind:'threadport',sourceId:'test',parserVersion:null,coverage:'full'},taskId:'task',sessionId:'session',runId:'run',ordinal:0,type:'run.started',payload:{},idempotencyKey:null,evidenceIds:[]};
 const receiptArgs=['--id','handoff','--target-session','session','--target-run','run','--manifest-digest','a'.repeat(64),'--stage','received','--nonce','cli-nonce-1234567890','--expires-at','2030-01-01T00:00:00.000Z'];
+it('strictly parses takeover requests and acknowledgements before changing responsibility',async()=>{
+ const cwd=await temporary(),request=['request','--run','cli-run','--task','task','--owner','session','--target','session'];
+ for(const args of [[],['unknown'],request.slice(0,-1),[...request,'--run','different'],[...request,'--unknown','x'],request.map(value=>value==='cli-run'?'bad/id':value),['acknowledge','--id','missing','--successor'],['acknowledge','--id','missing','--successor','valid','--successor','other']]){
+  const result=await cli(['takeover',...args],cwd);expect(result.code).toBe(2);expect(result.stdout).toBe('');
+ }
+ const valid=await cli(['takeover',...request],cwd);expect(valid.code).toBe(0);
+ const record=JSON.parse(valid.stdout);expect(record).toMatchObject({status:'stop-unavailable',ownerSessionId:'session'});
+ expect((await cli(['takeover','acknowledge','--id',record.id,'--successor','next'],cwd)).code).toBe(4);
+ expect((await cli(['takeover','acknowledge','--id','missing','--successor','next'],cwd)).code).toBe(2);
+ expect(await readdir(cwd)).toEqual([]);
+});
 
 it('preflights receipt options and schema fields before creating storage',async()=>{
  const cwd=await temporary();
