@@ -1,9 +1,20 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import Database from 'better-sqlite3';
 import { mkdtemp, rm } from 'node:fs/promises'; import { join } from 'node:path'; import { tmpdir } from 'node:os';
 import { openStore } from '../../src/storage/sqlite-store.js'; import { createContextManifest } from '../../src/control-plane/manifest.js'; import type { ControlEvent } from '../../src/control-plane/contracts.js';
 const dirs:string[]=[]; afterEach(async()=>{for(const d of dirs.splice(0)) await rm(d,{recursive:true,force:true});});
 const ev=(id:string, body:Partial<ControlEvent>={}):ControlEvent=>({eventId:id,protocol:'threadport.control-event.v1',occurredAt:null,recordedAt:'2026-09-20T00:00:00.000Z',source:{kind:'threadport',sourceId:'tp',parserVersion:'1',coverage:'full'},taskId:null,sessionId:'s',runId:'r',ordinal:null,type:'run.started',payload:{},idempotencyKey:null,evidenceIds:[id],...body});
 describe('control plane storage',()=>{
+ it('replays events once across sequence gaps beyond the first page',async()=>{
+  const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});
+  try{
+   const cp=store.controlPlane();cp.appendEvents(Array.from({length:1010},(_,i)=>ev('gap-'+i)));
+   const db=new Database(join(d,'threadport.sqlite'));
+   try{db.prepare('DELETE FROM control_events WHERE sequence<=?').run(5);}finally{db.close();}
+   const ids=cp.readAllEvents().map(event=>event.eventId);
+   expect(ids).toEqual(Array.from({length:1005},(_,i)=>'gap-'+(i+5)));
+  }finally{store.close();}
+ });
  it('appends idempotent events and exposes conflicts',async()=>{const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});try{const cp=store.controlPlane();expect(cp.appendEvents([ev('e1')])).toEqual({inserted:['e1'],duplicate:[]});expect(cp.appendEvents([ev('e1')])).toEqual({inserted:[],duplicate:['e1']});expect(()=>cp.appendEvents([ev('e1',{payload:{reason:'different'}})] )).toThrowError(expect.objectContaining({code:'REVISION_CONFLICT'}));expect(cp.readEvents()).toHaveLength(1);}finally{store.close();}});
  it('treats equivalent payload key order as an idempotent replay',async()=>{const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});try{const cp=store.controlPlane();const first=ev('e-order',{payload:{reason:'same',exitCode:0}});const replay=ev('e-order',{payload:{exitCode:0,reason:'same'}});expect(cp.appendEvents([first])).toEqual({inserted:['e-order'],duplicate:[]});expect(cp.appendEvents([replay])).toEqual({inserted:[],duplicate:['e-order']});}finally{store.close();}});
  it('keeps manifests immutable and retries identical receipts',async()=>{const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});try{const cp=store.controlPlane();const manifest=createContextManifest({handoffId:'h1',taskId:'t1',taskRevision:1,targetSessionId:'s2',targetRunId:'r2',createdAt:'2026-09-20T00:00:00.000Z'});cp.saveManifest(manifest);expect(cp.getManifest('h1')).toEqual(manifest);expect(()=>cp.saveManifest({...manifest,digest:'b'.repeat(64)})).toThrowError(expect.objectContaining({code:'RECEIPT_DIGEST_MISMATCH'}));const input={handoffId:'h1',targetSessionId:'s2',targetRunId:'r2',manifestDigest:manifest.digest,stage:'received' as const,nonce:'nonce-1234567890',expiresAt:'2026-09-21T00:00:00.000Z'};const a=cp.saveReceipt(input);const b=cp.saveReceipt(input);expect(b).toEqual(a);expect(cp.listReceipts('h1')).toHaveLength(1);}finally{store.close();}});

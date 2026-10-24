@@ -43,13 +43,8 @@ export class ControlPlaneStore {
   }
   readAllEvents(): ControlEvent[] {
     const events: ControlEvent[] = [];
-    let afterSequence = 0;
-    for (;;) {
-      const page = this.readEvents(afterSequence, 1000);
-      events.push(...page);
-      if (page.length < 1000) return events;
-      afterSequence += page.length;
-    }
+    for(const row of this.db.prepare('SELECT event_json FROM control_events ORDER BY sequence').iterate())events.push(validate(controlEventSchema,JSON.parse((row as {event_json:string}).event_json)));
+    return events;
   }
   saveManifest(input: ContextManifestV1): void {
     const manifest = validate(contextManifestSchema, input);
