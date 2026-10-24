@@ -36,3 +36,22 @@ Items 2 and 3 add store read methods without changing existing read APIs. Invali
 9: Node 24 CLI/takeover suites passed, 13 tests. Malformed/duplicate options and invalid identities are rejected before calling the manager; unavailable stop remains a conflict and missing takeover IDs return exit code 2.
 
 10: Node 24 ingestion suite passed, 3 tests. Pre-cancelled operations do not discover/read; sources ignoring cancellation cannot commit; discovery closes and valid imports still succeed.
+
+## Combined local acceptance
+
+Node 24.18.1 / macOS: `npm run check` passed, 86 files / 557 tests, including types/build/format/docs/redaction. `npm run test:e2e` passed all 11 browser flows. `npm run test:package` passed with 272 files, isolated public exports/CLI/server/workspace verification, three Cursor roundtrips and installed-browser smoke. Runtime candidate: `8c356cfd9aa095af257d8ab418bf8646f736b0dd`. Archive SHA-256: `12a887e99c37123080cf775fbbf9d1aae1e94942fae760ffda608f38d9ba81dd`. The subsequent evidence commit changes only this plan.
+
+| Item | Independently pushed implementation |
+| --- | --- |
+| 1. Sequence-gap replay | [9c115e4](https://github.com/Frankie-Xu/threadport/commit/9c115e4) |
+| 2. Scoped event decoding | [4653c5d](https://github.com/Frankie-Xu/threadport/commit/4653c5d) |
+| 3. Bulk receipt query | [5ca02cd](https://github.com/Frankie-Xu/threadport/commit/5ca02cd) |
+| 4. Bounded payload validation | [16e4893](https://github.com/Frankie-Xu/threadport/commit/16e4893) |
+| 5. Takeover timeout/state lifecycle | [3e98acc](https://github.com/Frankie-Xu/threadport/commit/3e98acc) |
+| 6. Takeover input validation | [5e319bc](https://github.com/Frankie-Xu/threadport/commit/5e319bc) |
+| 7. Strict control CLI/import | [ffe0b44](https://github.com/Frankie-Xu/threadport/commit/ffe0b44) |
+| 8. Strict receipt CLI | [f9eef61](https://github.com/Frankie-Xu/threadport/commit/f9eef61) |
+| 9. Strict takeover CLI | [a0323a7](https://github.com/Frankie-Xu/threadport/commit/a0323a7) |
+| 10. Import cancellation | [8c356cf](https://github.com/Frankie-Xu/threadport/commit/8c356cf) |
+
+Hosted CI and merge outcome will be recorded in the PR after all checks pass. These local results do not substitute for that gate.
