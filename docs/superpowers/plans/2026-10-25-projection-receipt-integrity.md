@@ -34,3 +34,20 @@ Acceptance: targeted regressions, final Node 24 `npm run check`, 11 browser flow
 9: Node 24 reducer/storage suites passed (29 tests). Different valid content cannot replace the first manifest; identical manifest replay stays idempotent and conflicts remain visible.
 
 10: Node 24 reducer/API suites passed (18 tests). Event-conflict warnings survive subsequent events and exact duplicates, including updates from a rebuilt state; batch and incremental projections agree.
+
+## Combined local acceptance
+
+Runtime `5b9996957c0b54c109048a214f0ece74ba9e6f22`, Node 24.18.1 / macOS: `npm run check` passed (87 files / 578 tests), including types/build/format/docs/redaction. `npm run test:e2e` passed all 11 browser flows. `npm run test:package` passed (274 files), isolated exports/CLI/server/workspace checks, three Cursor roundtrips and installed-browser smoke. Archive SHA-256: `5322c814188ff83f5441efd59ba2b3ec4b8206dcd1c1f426f9ba7f8d5a55515d`. The following evidence commit changes documentation only. Hosted CI and merge SHA will be recorded in the PR after passing.
+
+| Item | Separately pushed implementation |
+| --- | --- |
+| 1. Prototype-safe projections | [117ec82](https://github.com/Frankie-Xu/threadport/commit/117ec82) |
+| 2. Coverage uncertainty | [69b620a](https://github.com/Frankie-Xu/threadport/commit/69b620a) |
+| 3. Unique manifest keys | [d83b4d7](https://github.com/Frankie-Xu/threadport/commit/d83b4d7) |
+| 4. Complete target binding | [e695df3](https://github.com/Frankie-Xu/threadport/commit/e695df3) |
+| 5. Receipt/manifest identity | [80b6f53](https://github.com/Frankie-Xu/threadport/commit/80b6f53) |
+| 6. Valid timestamp clocks | [d7b32be](https://github.com/Frankie-Xu/threadport/commit/d7b32be) |
+| 7. Receipt expiry lifecycle | [69b81c3](https://github.com/Frankie-Xu/threadport/commit/69b81c3) |
+| 8. Transition input validation | [33c9fb7](https://github.com/Frankie-Xu/threadport/commit/33c9fb7) |
+| 9. Immutable manifest replay | [611efba](https://github.com/Frankie-Xu/threadport/commit/611efba) |
+| 10. Persistent conflict attention | [5b99969](https://github.com/Frankie-Xu/threadport/commit/5b99969) |
