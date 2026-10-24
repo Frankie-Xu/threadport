@@ -3,6 +3,7 @@ import type Database from 'better-sqlite3';
 import { createHash,randomUUID } from 'node:crypto';
 import { DomainError } from '../domain/errors.js';
 import type { Task } from '../domain/models.js';
+import { decodePageCursor, offsetCursorSchema } from '../contracts/pagination.js';
 export class BusinessStore {
  constructor(private readonly db:Database.Database){}
  generation(){return this.db.prepare('SELECT generation FROM search_state WHERE id=1').pluck().get() as number;}
@@ -21,7 +22,7 @@ export class BusinessStore {
   return this.db.transaction(()=>{
    const generation=this.db.prepare('SELECT generation FROM search_state WHERE id=1').pluck().get() as number;
    let offset=0;
-   if(cursor){try{const value=JSON.parse(Buffer.from(cursor,'base64url').toString('utf8'));if(value.key!==key||value.generation!==generation)throw new DomainError('SEARCH_STALE','Task list changed; restart pagination.');if(!Number.isSafeInteger(value.offset)||value.offset<0)throw new Error();offset=value.offset;}catch(error){if(error instanceof DomainError)throw error;throw new DomainError('INVALID_INPUT','Invalid task cursor.');}}
+   if(cursor){const value=decodePageCursor(cursor,offsetCursorSchema);if(value.key!==key||value.generation!==generation)throw new DomainError('SEARCH_STALE','Task list changed; restart pagination.');offset=value.offset;}
    const rows=this.db.prepare("SELECT body_json FROM tasks WHERE json_extract(body_json,'$.archived')=? AND (? IS NULL OR project_id=?) AND (? IS NULL OR json_extract(body_json,'$.lifecycle')=?) AND instr(lower(json_extract(body_json,'$.title')||' '||json_extract(body_json,'$.objective.text')),lower(?))>0 ORDER BY updated_at DESC,id LIMIT ? OFFSET ?").pluck().all(Number(input.archived),input.projectId??null,input.projectId??null,input.lifecycle??null,input.lifecycle??null,input.q,input.limit+1,offset) as string[];
    return{data:rows.slice(0,input.limit).map(body=>JSON.parse(body) as Task),nextCursor:rows.length>input.limit?Buffer.from(JSON.stringify({key,generation,offset:offset+input.limit})).toString('base64url'):null};
   })();
@@ -30,7 +31,7 @@ export class BusinessStore {
   const {cursor,...filters}=input,key=createHash('sha256').update(JSON.stringify(filters)).digest('hex');
   return this.db.transaction(()=>{
    const generation=this.generation();let offset=0;
-   if(cursor){try{const value=JSON.parse(Buffer.from(cursor,'base64url').toString('utf8'));if(value.key!==key||value.generation!==generation)throw new DomainError('SEARCH_STALE','Sessions changed; restart pagination.');if(!Number.isSafeInteger(value.offset)||value.offset<0)throw new Error();offset=value.offset;}catch(error){if(error instanceof DomainError)throw error;throw new DomainError('INVALID_INPUT','Invalid session cursor.');}}
+   if(cursor){const value=decodePageCursor(cursor,offsetCursorSchema);if(value.key!==key||value.generation!==generation)throw new DomainError('SEARCH_STALE','Sessions changed; restart pagination.');offset=value.offset;}
    const rows=this.db.prepare("SELECT s.id,src.agent,s.project_id AS projectId,s.workspace_id AS workspaceId,s.last_event_at AS lastEventAt,coalesce(json_extract(s.metadata_json,'$.session.status'),json_extract(s.metadata_json,'$.status')) AS status FROM sessions s JOIN sources src ON src.id=s.source_id WHERE src.enabled=1 AND NOT EXISTS(SELECT 1 FROM task_sessions ts WHERE ts.session_id=s.id) AND (? IS NULL OR s.project_id=? OR s.project_id IS NULL) ORDER BY s.last_event_at DESC,s.id LIMIT ? OFFSET ?").all(input.projectId??null,input.projectId??null,input.limit+1,offset) as {id:string;agent:string;projectId:string|null;workspaceId:string|null;lastEventAt:string|null;status:string|null}[];
    return{data:rows.slice(0,input.limit).map(row=>({...row,title:'Imported session',status:row.status??'unknown'})),nextCursor:rows.length>input.limit?Buffer.from(JSON.stringify({key,generation,offset:offset+input.limit})).toString('base64url'):null};
   })();

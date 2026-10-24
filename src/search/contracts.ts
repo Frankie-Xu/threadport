@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { DomainError } from '../domain/errors.js';
 const id=z.string().min(1).max(512);
-const date=z.string().max(40).datetime({offset:true});
+const date=z.string().max(40).datetime({offset:true}).refine(value=>
+ /(?:Z|[+-](?:[01]\d|2[0-3]):?[0-5]\d)$/.test(value)&&Number.isFinite(Date.parse(value)));
 const inputSchema=z.object({q:z.string().max(1024).default(''),projectId:id.optional(),agent:z.enum(['claude','codex']).optional(),from:date.optional(),to:date.optional(),cursor:z.string().min(1).max(2048).optional(),limit:z.number().int().min(1).max(100).default(50)}).strict();
 export interface SearchInput {q?:string;projectId?:string;agent?:'claude'|'codex';from?:string;to?:string;cursor?:string;limit?:number}
 export function searchTime(value:unknown):string|null{const parsed=date.safeParse(value);return parsed.success?new Date(parsed.data).toISOString():null;}
@@ -21,7 +22,7 @@ export function parseSearch(input:SearchInput):SearchQuery{
  if(from&&to&&from>to)invalid();
  const filters={terms,projectId:value.projectId??null,agent:value.agent??null,from,to,limit:value.limit};
  const digest=createHash('sha256').update(JSON.stringify(filters)).digest('hex');let after:SearchCursor|null=null;
- if(value.cursor){try{if(!/^[A-Za-z0-9_-]+$/.test(value.cursor))invalid();after=cursorSchema.parse(JSON.parse(Buffer.from(value.cursor,'base64url').toString('utf8')));}catch{invalid();}if(after.query!==digest)invalid();}
+ if(value.cursor){try{if(!/^[A-Za-z0-9_-]+$/.test(value.cursor))invalid();const decoded=Buffer.from(value.cursor,'base64url');if(decoded.toString('base64url')!==value.cursor)invalid();after=cursorSchema.parse(JSON.parse(decoded.toString('utf8')));}catch{invalid();}if(after.query!==digest)invalid();}
  return {...filters,digest,after};
 }
 export function encodeCursor(cursor:SearchCursor):string{return Buffer.from(JSON.stringify(cursorSchema.parse(cursor))).toString('base64url');}

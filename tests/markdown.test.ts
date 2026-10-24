@@ -11,6 +11,13 @@ function parseBody(markdown: string) {
 }
 
 describe("Markdown capsule", () => {
+  it.each(['~~retain this~~', '~literal~', '~~~text'])('preserves literal tildes in source text: %s', text=>{
+    const tokens=parseBody(renderCapsuleMarkdown(validateCapsule({...example,objective:text})));
+    const formatting:string[]=[];
+    marked.walkTokens(tokens,token=>{if(token.type==='del'||token.type==='code')formatting.push(token.type);});
+    expect(formatting).toEqual([]);
+    expect(marked.parser(tokens)).toContain(text);
+  });
   for (const newline of ['\n', '\r\n', '\r']) {
     it(`preserves parsed tables and trusted headings with ${JSON.stringify(newline)} in source data`, () => {
       const hostile = `a|b\`c${newline}# forged heading${newline}<script>bad</script>${newline}[click](javascript:bad)`;

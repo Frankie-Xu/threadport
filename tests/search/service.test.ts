@@ -6,7 +6,37 @@ import { openStore, type SqliteStore } from '../../src/storage/sqlite-store.js';
 import { TaskService } from '../../src/tasks/service.js';
 import { IndexService } from '../../src/indexing/service.js';
 import { SearchService } from '../../src/search/service.js';
+import { encodeCursor, parseSearch, searchTime } from '../../src/search/contracts.js';
+it('rejects noncanonical search cursor padding bits while accepting existing cursors',()=>{
+ const query=parseSearch({limit:1});let cursor='';
+ for(let n=1;n<=3;n++){
+  cursor=encodeCursor({v:1,query:query.digest,generation:0,activity:null,id:'s:'+ 'x'.repeat(n)});
+  if(cursor.length%4!==0)break;
+ }
+ const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+ const altered=cursor.slice(0,-1)+alphabet[alphabet.indexOf(cursor.at(-1)!)^1];
+ expect(Buffer.from(altered,'base64url')).toEqual(Buffer.from(cursor,'base64url'));
+ expect(parseSearch({limit:1,cursor}).after?.id).toMatch(/^s:x+$/);
+ expect(()=>parseSearch({limit:1,cursor:altered})).toThrow(expect.objectContaining({code:'INVALID_INPUT'}));
+});
+it('rejects impossible timezone offsets without leaking a RangeError',()=>{
+ for(const value of ['2026-10-24T00:00:00+99:99','2026-10-24T00:00:00+24:00','2026-10-24T00:00:00+02:60']){
+  expect(searchTime(value)).toBeNull();
+  for(const field of ['from','to'])expect(()=>parseSearch({[field]:value})).toThrow(expect.objectContaining({code:'INVALID_INPUT'}));
+ }
+ expect(searchTime('2026-10-24T08:00:00+08:00')).toBe('2026-10-24T00:00:00.000Z');
+});
 const stores:SqliteStore[]=[];const dirs:string[]=[];
+it('returns ordered, merged highlights regardless of query term order',async()=>{
+ const {search,store}=await setup();
+ const task=await new TaskService(store).create({projectId:'p',title:'🙂 Alpha beta banana'});
+ for(const q of ['beta alpha','alpha beta','ana banana','ana']){
+  const item=(await search.search({q,projectId:'p'})).items.find(item=>item.task?.id===task.id)!;
+  const match=item.matches.find(match=>match.field==='title')!;
+  const expected=q.includes('alpha')?[{start:3,end:8},{start:9,end:13}]:q==='ana'?[{start:15,end:20}]:[{start:14,end:20}];
+  expect(match.highlights).toEqual(expected);
+ }
+});
 afterEach(async()=>{for(const store of stores.splice(0))store.close();for(const dir of dirs.splice(0))await rm(dir,{recursive:true,force:true});});
 async function setup(){
  const dir=await mkdtemp(join(tmpdir(),'tp-search-'));dirs.push(dir);const store=await openStore({dataDir:join(dir,'data')});stores.push(store);

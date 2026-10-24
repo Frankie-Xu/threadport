@@ -6,6 +6,28 @@ import { openStore } from '../../src/storage/sqlite-store.js';
 import { temporary,project } from '../helpers.js';
 const servers:{close():Promise<void>}[]=[];afterEach(async()=>{for(const server of servers.splice(0))await server.close();});
 async function setup(){const dataDir=await temporary();const server=await startLocalServer({dataDir});servers.push(server);return{dataDir,server,async api(path:string,method='GET',body?:unknown){const response=await fetch(server.origin+'/api/v1'+path,{method,headers:{authorization:`Bearer ${server.token}`,...(method!=='GET'?{'content-type':'application/json'}:{})},body:body===undefined?undefined:JSON.stringify(body)});return{status:response.status,body:await response.json()};}};}
+it('classifies malformed pagination envelopes as input errors before checking freshness',async()=>{
+ const {api,dataDir}=await setup();const store=await openStore({dataDir});store.saveSession('cursor-session');store.close();
+ for(const endpoint of ['/tasks','/sessions/unassigned','/sessions/cursor-session/events']){
+  for(const value of [null,[],{},true,{generation:'0',offset:0},{generation:0,offset:-1}]){
+   const cursor=Buffer.from(JSON.stringify(value)).toString('base64url');
+   const response=await api(endpoint+'?cursor='+cursor);
+   expect(response.status).toBe(400);expect(response.body.error.code).toBe('INVALID_INPUT');
+  }
+  expect((await api(endpoint+'?cursor=')).status).toBe(400);
+ }
+},30000);
+it('reports unavailable source and workspace directories without exposing their paths',async()=>{
+ const {api}=await setup();const directory=await temporary(),file=join(directory,'private-file');await writeFile(file,'synthetic');
+ for(const root of [join(directory,'missing'),join(file,'child'),file,directory+'\0']){
+  for(const [endpoint,body] of [['/sources',{root,agent:'claude'}],['/workspaces',{root,confirmBinding:true}]] as const){
+   const response=await api(endpoint,'POST',body);
+   expect(response.status).toBe(400);expect(response.body.error.code).toBe('INVALID_INPUT');
+   expect(JSON.stringify(response.body)).not.toContain(directory);
+  }
+ }
+ expect((await api('/sources')).body.data).toEqual([]);expect((await api('/workspaces')).body.data).toEqual([]);
+},30000);
 it('creates explicit bindings and tasks with conflict-safe editing, filtering and strict inputs',async()=>{
  const {api}=await setup();const root=await project();
  const invalid=await api('/workspaces','POST',{root,confirmBinding:false});expect(invalid.status).toBe(400);expect(invalid.body.error).toMatchObject({code:'INVALID_INPUT',retryable:false,recovery:'none'});
