@@ -105,7 +105,7 @@ function project(events: readonly ControlEvent[]): ControlState {
     }
     if (event.type === 'manifest.saved' && typeof p.handoffId === 'string' && p.manifest) {
       const parsed = contextManifestSchema.safeParse(p.manifest);
-      if (!parsed.success) receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest is invalid and cannot be used to verify a receipt.');
+      if (!parsed.success||parsed.data.handoffId!==p.handoffId) receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest is invalid or belongs to another handoff.');
       else {
         try { assertManifestDigest(parsed.data); state.manifests[p.handoffId] = parsed.data; }
         catch { receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest digest does not match its contents.'); }

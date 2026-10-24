@@ -6,7 +6,7 @@ Base: `6ed3455`. Branch: `codex/projection-receipt-integrity`. Each numbered cha
 2. [x] Preserve unknown/incomplete coverage in merges and observation health (`coverage.ts`, reducer; coverage/reducer tests).
 3. [x] Reject duplicate manifest item/constraint keys (`contracts.ts`; contract tests).
 4. [x] Require both target session/run IDs or neither; reject empty supplied IDs (`contracts.ts`, `manifest.ts`; contract tests).
-5. [ ] Bind receipt validation and projected manifests to the actual handoff/target identity (`receipts.ts`, reducer; receipt/reducer tests).
+5. [x] Bind receipt validation and projected manifests to the actual handoff/target identity (`receipts.ts`, reducer; receipt/reducer tests).
 6. [ ] Share strict ISO timestamp validation between search/control plane and validate injected receipt clocks (`src/contracts/timestamp.ts`, search/control contracts, receipts; timestamp regressions).
 7. [ ] Prevent advancement after receipt expiry and expose pending stored receipt expiry without rewriting history (`receipts.ts`, control-plane store; deterministic clock tests).
 8. [ ] Validate runtime receipt transition stage/source values before terminal shortcuts (`receipts.ts`; receipt tests).
@@ -22,3 +22,5 @@ Acceptance: targeted regressions, final Node 24 `npm run check`, 11 browser flow
 3: Node 24 contracts/storage suites passed (21 tests). Duplicate keys within either section are rejected; item and constraint namespaces remain separate.
 
 4: Node 24 contracts/storage/API suites passed (23 tests). Targets must have both valid IDs or neither; empty supplied IDs are no longer silently omitted.
+
+5: Node 24 receipt/reducer suites passed (18 tests). Receipt context cannot substitute a different manifest handoff/target, and replay cannot register a manifest under an alias handoff.

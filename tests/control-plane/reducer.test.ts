@@ -8,6 +8,12 @@ const event = (patch: Partial<ControlEvent>): ControlEvent => ({
  type: 'run.started', payload: {}, idempotencyKey: null, evidenceIds: ['e-1'], ...patch
 });
 describe('control plane reducer', () => {
+ it('does not register a valid manifest under another handoff ID',()=>{
+  const manifest=createContextManifest({handoffId:'actual',taskId:'task',taskRevision:1});
+  const state=rebuildControlState([event({type:'manifest.saved',payload:{handoffId:'alias',manifest}})]);
+  expect(state.manifests.alias).toBeUndefined();expect(state.manifests.actual).toBeUndefined();
+  expect(state.attention.some(item=>item.kind==='manifest-integrity')).toBe(true);
+ });
  it.each(['partial','none','unknown'] as const)('keeps %s coverage out of current observation health',coverage=>{
   const state=rebuildControlState([event({source:{kind:'runtime',sourceId:'src',parserVersion:'1',coverage}})]);
   expect(state.sessions.s1.health).toBe('coverage-gap');

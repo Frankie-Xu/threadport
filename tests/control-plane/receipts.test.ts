@@ -22,6 +22,13 @@ const input = {
 };
 
 describe('receipt verification integrity', () => {
+  it('binds receipts to the manifest handoff and target even if caller context agrees with a different identity',()=>{
+    const context={manifest,targetSessionId:'session-target',targetRunId:'run-target',now:'2026-09-20T01:00:00.000Z'};
+    expect(()=>createReceipt({...input,handoffId:'other-handoff'},context)).toThrowError(expect.objectContaining({code:'RECEIPT_TARGET_MISMATCH'}));
+    expect(()=>createReceipt({...input,targetSessionId:'other',targetRunId:'other'},{...context,targetSessionId:'other',targetRunId:'other'})).toThrowError(expect.objectContaining({code:'RECEIPT_TARGET_MISMATCH'}));
+    const unbound=createContextManifest({handoffId:manifest.handoffId,taskId:manifest.taskId,taskRevision:1});
+    expect(()=>createReceipt({...input,manifestDigest:unbound.digest},{...context,manifest:unbound})).toThrowError(expect.objectContaining({code:'RECEIPT_TARGET_MISMATCH'}));
+  });
   it('does not allow an unverified input to create a verified-complete receipt', () => {
     expect(() => createReceipt({ ...input, stage: 'verified-complete' }, { manifest, targetSessionId: 'session-target', targetRunId: 'run-target', now: '2026-09-20T01:00:00.000Z' })).toThrowError(expect.objectContaining({ code: 'RECEIPT_VERIFICATION_REQUIRED' }));
   });

@@ -12,7 +12,7 @@ export function validateReceipt(input: ReceiptInput, context: ReceiptContext): R
   const receipt = receiptInputSchema.parse(input); assertManifestDigest(context.manifest);
   assertReceiptInputAllowed(receipt);
   if (receipt.manifestDigest !== context.manifest.digest) throw new DomainError('RECEIPT_DIGEST_MISMATCH','Receipt manifest digest does not match the prepared manifest.');
-  if (receipt.targetSessionId !== context.targetSessionId || receipt.targetRunId !== context.targetRunId) throw new DomainError('RECEIPT_TARGET_MISMATCH','Receipt target does not match the prepared target.');
+  if (receipt.handoffId!==context.manifest.handoffId||receipt.targetSessionId!==context.manifest.targetSessionId||receipt.targetRunId!==context.manifest.targetRunId||receipt.targetSessionId !== context.targetSessionId || receipt.targetRunId !== context.targetRunId) throw new DomainError('RECEIPT_TARGET_MISMATCH','Receipt handoff or target does not match the prepared manifest.');
   const now = Date.parse(context.now ?? new Date().toISOString()); if (Date.parse(receipt.expiresAt) <= now) throw new DomainError('REVISION_CONFLICT','Receipt has expired.');
   return receipt;
 }
