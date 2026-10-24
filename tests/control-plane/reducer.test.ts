@@ -8,6 +8,47 @@ const event = (patch: Partial<ControlEvent>): ControlEvent => ({
  type: 'run.started', payload: {}, idempotencyKey: null, evidenceIds: ['e-1'], ...patch
 });
 describe('control plane reducer', () => {
+ it('retains replay conflicts across later events and exact duplicates in both replay modes',()=>{
+  const first=event({eventId:'conflicted'}),conflict=event({eventId:'conflicted',type:'run.ended',ordinal:2});
+  const later=event({eventId:'later',type:'run.waiting',ordinal:3});
+  let incremental=applyControlEvent(emptyControlState(),first);incremental=applyControlEvent(incremental,conflict);
+  for(const initial of [incremental,rebuildControlState([first,conflict])]){
+    const updated=applyControlEvent(applyControlEvent(initial,later),later);
+    expect(updated.attention.filter(item=>item.kind==='event-conflict')).toHaveLength(1);
+    expect(updated).toEqual(rebuildControlState([first,conflict,later]));
+    expect(updated.sessions.s1.runState).toBe('waiting');
+  }
+ });
+ it('preserves the first valid immutable manifest when later events try to replace it',()=>{
+  const base={handoffId:'immutable',taskId:'task',taskRevision:1,createdAt:'2026-09-20T00:00:00.000Z'};
+  const first=createContextManifest({...base,items:[{key:'objective',text:'reviewed'}]});
+  const replacement=createContextManifest({...base,taskRevision:2,items:[{key:'objective',text:'different'}]});
+  const events=[event({eventId:'manifest-first',ordinal:0,type:'manifest.saved',payload:{handoffId:'immutable',manifest:first}}),event({eventId:'manifest-replacement',ordinal:1,type:'manifest.saved',payload:{handoffId:'immutable',manifest:replacement}})];
+  const state=rebuildControlState(events);expect(state.manifests.immutable).toEqual(first);
+  expect(state.attention.some(item=>item.kind==='manifest-conflict')).toBe(true);
+  const replay=rebuildControlState([events[0],event({...events[0],eventId:'same-content',ordinal:2})]);
+  expect(replay.manifests.immutable).toEqual(first);expect(replay.attention).toEqual([]);
+ });
+ it('does not register a valid manifest under another handoff ID',()=>{
+  const manifest=createContextManifest({handoffId:'actual',taskId:'task',taskRevision:1});
+  const state=rebuildControlState([event({type:'manifest.saved',payload:{handoffId:'alias',manifest}})]);
+  expect(state.manifests.alias).toBeUndefined();expect(state.manifests.actual).toBeUndefined();
+  expect(state.attention.some(item=>item.kind==='manifest-integrity')).toBe(true);
+ });
+ it.each(['partial','none','unknown'] as const)('keeps %s coverage out of current observation health',coverage=>{
+  const state=rebuildControlState([event({source:{kind:'runtime',sourceId:'src',parserVersion:'1',coverage}})]);
+  expect(state.sessions.s1.health).toBe('coverage-gap');
+  expect(state.attention.some(item=>item.kind==='coverage-gap')).toBe(true);
+ });
+ it('treats prototype property names as ordinary opaque identifiers',()=>{
+  const empty=emptyControlState();
+  for(const key of ['constructor','toString','hasOwnProperty']){
+   expect(empty.sessions[key]).toBeUndefined();expect(empty.manifests[key]).toBeUndefined();expect(empty.receipts[key]).toBeUndefined();
+   const state=rebuildControlState([event({sessionId:key,type:'run.unrecognized'})]);
+   expect(Object.hasOwn(state.sessions,key)).toBe(true);expect(state.sessions[key].runState).toBe('unknown');
+   expect(JSON.parse(JSON.stringify(state)).sessions[key].runState).toBe('unknown');
+  }
+ });
  it('rebuilds observed run state and keeps agent reports unverified', () => {
   const state = rebuildControlState([event({ type: 'run.started' }), event({ eventId: 'e-2', type: 'run.ended', ordinal: 2, evidenceIds: ['e-2'], source: { kind: 'agent-report', sourceId: 'src', parserVersion: '1', coverage: 'partial' } })]);
   expect(state.sessions.s1).toMatchObject({ runState: 'ended', health: 'unverified', lastEvidenceId: 'e-2' });

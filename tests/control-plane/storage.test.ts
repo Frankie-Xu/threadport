@@ -6,6 +6,24 @@ import { openStore } from '../../src/storage/sqlite-store.js'; import { createCo
 const dirs:string[]=[]; afterEach(async()=>{for(const d of dirs.splice(0)) await rm(d,{recursive:true,force:true});});
 const ev=(id:string, body:Partial<ControlEvent>={}):ControlEvent=>({eventId:id,protocol:'threadport.control-event.v1',occurredAt:null,recordedAt:'2026-09-20T00:00:00.000Z',source:{kind:'threadport',sourceId:'tp',parserVersion:'1',coverage:'full'},taskId:null,sessionId:'s',runId:'r',ordinal:null,type:'run.started',payload:{},idempotencyKey:null,evidenceIds:[id],...body});
 describe('control plane storage',()=>{
+ it('projects pending receipt expiry without rewriting a persisted confirmation or pending history',async()=>{
+  const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});
+  try{
+   const cp=store.controlPlane(),manifest=createContextManifest({handoffId:'deadline',taskId:'task',taskRevision:1,targetSessionId:'s',targetRunId:'r'});cp.saveManifest(manifest);
+   const expiry=Date.now()+3600000,input={handoffId:'deadline',targetSessionId:'s',targetRunId:'r',manifestDigest:manifest.digest,stage:'received' as const,nonce:'expiry-nonce-123456',expiresAt:new Date(expiry).toISOString()};
+   expect(cp.saveReceipt(input).status).toBe('pending');
+   const clock=vi.spyOn(Date,'now').mockReturnValue(expiry);
+   try{
+    expect(cp.listReceipts('deadline')[0].status).toBe('expired');expect(cp.listAllReceipts()[0].status).toBe('expired');expect(cp.listReceiptsForTask('task')[0].status).toBe('expired');expect(cp.saveReceipt(input).status).toBe('expired');
+    const db=new Database(join(d,'threadport.sqlite'));
+    try{
+     expect(db.prepare('SELECT status FROM handoff_receipts').pluck().get()).toBe('pending');
+     db.prepare('UPDATE handoff_receipts SET status=?,confirmed_at=?').run('confirmed',new Date(expiry-500).toISOString());
+     expect(cp.listReceipts('deadline')[0].status).toBe('confirmed');
+    }finally{db.close();}
+   }finally{clock.mockRestore();}
+  }finally{store.close();}
+ });
  it('loads global receipt state with one receipt query for multiple manifests',async()=>{
   const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});
   try{

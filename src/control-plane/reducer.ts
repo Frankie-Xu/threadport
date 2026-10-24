@@ -16,7 +16,10 @@ export interface ControlState {
   attention: AttentionItem[];
 }
 const eventLogs = new WeakMap<object, ControlEvent[]>();
-export const emptyControlState = (): ControlState => { const state: ControlState = { sessions: {}, lineage: [], responsibilities: [], manifests: {}, receipts: {}, attention: [] }; eventLogs.set(state, []); return state; };
+const eventConflicts=new WeakMap<object,ReadonlySet<string>>();
+const dictionary=<T>():Record<string,T>=>Object.create(null) as Record<string,T>;
+const newControlState=():ControlState=>({sessions:dictionary(),lineage:[],responsibilities:[],manifests:dictionary(),receipts:dictionary(),attention:[]});
+export const emptyControlState = (): ControlState => { const state=newControlState(); eventLogs.set(state, []); return state; };
 
 function eventOrder(a: ControlEvent, b: ControlEvent): number {
   const ordinalA = a.ordinal === null ? Number.MAX_SAFE_INTEGER : a.ordinal;
@@ -24,12 +27,18 @@ function eventOrder(a: ControlEvent, b: ControlEvent): number {
   return ordinalA - ordinalB || (a.occurredAt ?? '\uffff').localeCompare(b.occurredAt ?? '\uffff') || a.eventId.localeCompare(b.eventId) || a.recordedAt.localeCompare(b.recordedAt);
 }
 function payload(event: ControlEvent): Record<string, any> { return (event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)) ? event.payload as Record<string, any> : {}; }
-function observedHealth(event: ControlEvent): ObservationHealth { return event.source.kind === 'agent-report' ? 'unverified' : event.source.coverage === 'none' ? 'coverage-gap' : 'current'; }
+function observedHealth(event: ControlEvent): ObservationHealth { return event.source.kind === 'agent-report' ? 'unverified' : event.source.coverage !== 'full' ? 'coverage-gap' : 'current'; }
 function severity(value: unknown): AttentionItem['severity'] { return value === 'error' || value === 'warning' ? value : 'info'; }
 function addAttention(state: ControlState, item: AttentionItem): void {
   const existing = state.attention.find(value => value.id === item.id);
   if (existing) return;
   state.attention.push(item);
+}
+function retainConflicts(state:ControlState,conflicts:Iterable<string>):void{
+  const ids=new Set(conflicts);
+  for(const eventId of ids)addAttention(state,{id:`conflict:${eventId}`,kind:'event-conflict',severity:'error',message:'The same event ID was replayed with different content.',status:'open',evidenceIds:[eventId]});
+  state.attention.sort((a,b)=>a.id.localeCompare(b.id));
+  eventConflicts.set(state,ids);
 }
 function receiptPayload(event: ControlEvent): Record<string, unknown> {
   const value = payload(event).receipt;
@@ -50,7 +59,7 @@ function receiptAttention(state: ControlState, event: ControlEvent, kind: string
   addAttention(state, { id: `receipt:${kind}:${event.eventId}`, kind, severity: 'warning', message, status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
 }
 function project(events: readonly ControlEvent[]): ControlState {
-  const state: ControlState = { sessions: {}, lineage: [], responsibilities: [], manifests: {}, receipts: {}, attention: [] };
+  const state=newControlState();
   for (const event of [...events].sort(eventOrder)) {
     const p = payload(event);
     const runId = event.sessionId ?? event.runId;
@@ -103,9 +112,14 @@ function project(events: readonly ControlEvent[]): ControlState {
     }
     if (event.type === 'manifest.saved' && typeof p.handoffId === 'string' && p.manifest) {
       const parsed = contextManifestSchema.safeParse(p.manifest);
-      if (!parsed.success) receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest is invalid and cannot be used to verify a receipt.');
+      if (!parsed.success||parsed.data.handoffId!==p.handoffId) receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest is invalid or belongs to another handoff.');
       else {
-        try { assertManifestDigest(parsed.data); state.manifests[p.handoffId] = parsed.data; }
+        try {
+          assertManifestDigest(parsed.data);
+          const current=state.manifests[p.handoffId];
+          if(current&&canonicalDigest(current)!==canonicalDigest(parsed.data))receiptAttention(state,event,'manifest-conflict','A prepared manifest cannot be replaced by different replayed content.');
+          else state.manifests[p.handoffId] = parsed.data;
+        }
         catch { receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest digest does not match its contents.'); }
       }
     }
@@ -140,7 +154,7 @@ function project(events: readonly ControlEvent[]): ControlState {
     }
     if (event.type === 'attention.opened') addAttention(state, { id: String(p.id ?? event.eventId), kind: String(p.kind ?? 'unknown'), severity: severity(p.severity), message: String(p.message ?? 'Control plane attention required.'), status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
     if (event.type === 'attention.resolved') { const item = state.attention.find(value => value.id === p.id); if (item) item.status = 'resolved'; }
-    if (event.source.coverage === 'none' || event.source.coverage === 'unknown') addAttention(state, { id: `coverage:${event.source.sourceId}:${event.type}`, kind: 'coverage-gap', severity: 'warning', message: 'Evidence source coverage is incomplete.', status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
+    if (event.source.coverage !== 'full') addAttention(state, { id: `coverage:${event.source.sourceId}:${event.type}`, kind: 'coverage-gap', severity: 'warning', message: 'Evidence source coverage is incomplete.', status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
     if (event.type === 'handoff.reported-complete' || event.type === 'run.ended' && event.source.kind === 'agent-report') addAttention(state, { id: `unverified:${event.eventId}`, kind: 'unverified-completion', severity: 'warning', message: 'Agent-reported completion requires verification evidence.', status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
   }
   state.lineage.sort((a,b) => a.id.localeCompare(b.id)); state.responsibilities.sort((a,b) => a.id.localeCompare(b.id)); state.attention.sort((a,b) => a.id.localeCompare(b.id));
@@ -151,10 +165,9 @@ export function applyControlEvent(state: ControlState, input: ControlEvent): Con
   const previous = eventLogs.get(state) ?? [];
   const same = previous.find(item => item.eventId === event.eventId);
   const events = same ? previous : [...previous, event];
-  if (same && canonicalDigest(same) !== canonicalDigest(event)) {
-    const next = project(events); addAttention(next, { id: `conflict:${event.eventId}`, kind: 'event-conflict', severity: 'error', message: 'The same event ID was replayed with different content.', status: 'open', evidenceIds: [event.eventId] }); eventLogs.set(next, events); return next;
-  }
-  const next = project(events); eventLogs.set(next, events); return next;
+  const conflicts=new Set(eventConflicts.get(state));
+  if(same&&canonicalDigest(same)!==canonicalDigest(event))conflicts.add(event.eventId);
+  const next = project(events);retainConflicts(next,conflicts);eventLogs.set(next, events); return next;
 }
 export function rebuildControlState(events: Iterable<ControlEvent>): ControlState {
   const unique = new Map<string, ControlEvent>();
@@ -166,7 +179,6 @@ export function rebuildControlState(events: Iterable<ControlEvent>): ControlStat
     else if (canonicalDigest(previous) !== canonicalDigest(event)) conflicts.push(event.eventId);
   }
   const state = project([...unique.values()]);
-  for (const eventId of [...new Set(conflicts)]) addAttention(state, { id: `conflict:${eventId}`, kind: 'event-conflict', severity: 'error', message: 'The same event ID was replayed with different content.', status: 'open', evidenceIds: [eventId] });
-  state.attention.sort((a,b) => a.id.localeCompare(b.id));
+  retainConflicts(state,conflicts);
   eventLogs.set(state, [...unique.values()]); return state;
 }
