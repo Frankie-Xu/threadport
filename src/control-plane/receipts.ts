@@ -21,10 +21,11 @@ export function createReceipt(input: ReceiptInput, context: ReceiptContext): Rec
   const receipt = validateReceipt(input, context); const createdAt = context.now ?? new Date().toISOString();
   return receiptSummarySchema.parse({ ...receipt, receiptId:`receipt-${randomUUID()}`, status:'pending', createdAt, confirmedAt:null, evidenceIds:[] });
 }
-export function advanceReceipt(current: ReceiptSummary, nextStage: ReceiptInput['stage'], source: 'runtime'|'threadport'|'user'|'agent-report' = 'threadport'): ReceiptSummary {
-  const receipt = receiptSummarySchema.parse(current); if (receipt.status === 'expired' || receipt.status === 'rejected') return receipt;
+export function advanceReceipt(current: ReceiptSummary, nextStage: ReceiptInput['stage'], source: 'runtime'|'threadport'|'user'|'agent-report' = 'threadport', now=new Date().toISOString()): ReceiptSummary {
+  const receipt = receiptSummarySchema.parse(current),clock=isoTimestampSchema.parse(now); if (receipt.status === 'expired' || receipt.status === 'rejected') return receipt;
+  if(Date.parse(receipt.expiresAt)<=Date.parse(clock))return {...receipt,status:'expired'};
   const currentIndex = order.indexOf(receipt.stage), nextIndex = order.indexOf(nextStage); if (nextIndex < currentIndex) throw new DomainError('REVISION_CONFLICT','Receipt stages cannot move backwards.');
   if (nextStage === 'verified-complete' && (source === 'agent-report' || receipt.evidenceIds.length === 0)) throw new DomainError('RECEIPT_VERIFICATION_REQUIRED','A verified-complete receipt requires trusted evidence.');
   const status = source === 'agent-report' ? 'unknown' : 'confirmed';
-  return { ...receipt, stage: nextStage, status, confirmedAt: status === 'confirmed' ? new Date().toISOString() : receipt.confirmedAt };
+  return { ...receipt, stage: nextStage, status, confirmedAt: status === 'confirmed' ? clock : receipt.confirmedAt };
 }

@@ -8,7 +8,7 @@ Base: `6ed3455`. Branch: `codex/projection-receipt-integrity`. Each numbered cha
 4. [x] Require both target session/run IDs or neither; reject empty supplied IDs (`contracts.ts`, `manifest.ts`; contract tests).
 5. [x] Bind receipt validation and projected manifests to the actual handoff/target identity (`receipts.ts`, reducer; receipt/reducer tests).
 6. [x] Share strict ISO timestamp validation between search/control plane and validate injected receipt clocks (`src/contracts/timestamp.ts`, search/control contracts, receipts; timestamp regressions).
-7. [ ] Prevent advancement after receipt expiry and expose pending stored receipt expiry without rewriting history (`receipts.ts`, control-plane store; deterministic clock tests).
+7. [x] Prevent advancement after receipt expiry and expose pending stored receipt expiry without rewriting history (`receipts.ts`, control-plane store; deterministic clock tests).
 8. [ ] Validate runtime receipt transition stage/source values before terminal shortcuts (`receipts.ts`; receipt tests).
 9. [ ] Preserve the first valid immutable manifest during event replay (`reducer.ts`; conflicting replay tests).
 10. [ ] Retain event-conflict attention through subsequent incremental updates (`reducer.ts`; batch/incremental parity tests).
@@ -26,3 +26,5 @@ Acceptance: targeted regressions, final Node 24 `npm run check`, 11 browser flow
 5: Node 24 receipt/reducer suites passed (18 tests). Receipt context cannot substitute a different manifest handoff/target, and replay cannot register a manifest under an alias handoff.
 
 6: Node 24 contracts/receipt/search suites passed (31 tests). Impossible control-event/receipt offsets and injected invalid clocks are rejected; existing search timestamp behavior uses the same shared schema.
+
+7: Node 24 receipt/storage/API suites passed (19 tests). Advancement stops at the exact deadline using an optional deterministic clock. Pending reads and retries show expiry without updating SQLite; stored confirmed milestones remain confirmed on read.

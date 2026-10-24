@@ -22,6 +22,12 @@ const input = {
 };
 
 describe('receipt verification integrity', () => {
+  it('does not advance receipts at or beyond their deadline and preserves the original record',()=>{
+    const pending=createReceipt(input,{manifest,targetSessionId:'session-target',targetRunId:'run-target',now:'2026-09-20T01:00:00.000Z'});
+    for(const now of [input.expiresAt,'2026-09-22T00:00:00.000Z'])expect(advanceReceipt(pending,'accepted','runtime',now)).toMatchObject({status:'expired',stage:'received',confirmedAt:null});
+    expect(pending.status).toBe('pending');
+    expect(advanceReceipt(pending,'accepted','runtime','2026-09-20T02:00:00.000Z')).toMatchObject({status:'confirmed',stage:'accepted',confirmedAt:'2026-09-20T02:00:00.000Z'});
+  });
   it('rejects invalid injected clocks instead of bypassing expiry with NaN',()=>{
     for(const now of ['tomorrow','2026-09-20T01:00:00+99:99'])expect(()=>validateReceipt(input,{manifest,targetSessionId:'session-target',targetRunId:'run-target',now})).toThrow();
   });
@@ -38,9 +44,9 @@ describe('receipt verification integrity', () => {
 
   it('requires trusted evidence before advancing to verified-complete', () => {
     const pending = createReceipt(input, { manifest, targetSessionId: 'session-target', targetRunId: 'run-target', now: '2026-09-20T01:00:00.000Z' });
-    expect(() => advanceReceipt(pending, 'verified-complete', 'agent-report')).toThrowError(expect.objectContaining({ code: 'RECEIPT_VERIFICATION_REQUIRED' }));
-    expect(() => advanceReceipt(pending, 'verified-complete', 'threadport')).toThrowError(expect.objectContaining({ code: 'RECEIPT_VERIFICATION_REQUIRED' }));
+    expect(() => advanceReceipt(pending, 'verified-complete', 'agent-report','2026-09-20T01:00:00.000Z')).toThrowError(expect.objectContaining({ code: 'RECEIPT_VERIFICATION_REQUIRED' }));
+    expect(() => advanceReceipt(pending, 'verified-complete', 'threadport','2026-09-20T01:00:00.000Z')).toThrowError(expect.objectContaining({ code: 'RECEIPT_VERIFICATION_REQUIRED' }));
     const withEvidence = { ...pending, evidenceIds: ['evidence-1'] };
-    expect(advanceReceipt(withEvidence, 'verified-complete', 'threadport')).toMatchObject({ stage: 'verified-complete', status: 'confirmed', evidenceIds: ['evidence-1'] });
+    expect(advanceReceipt(withEvidence, 'verified-complete', 'threadport','2026-09-20T01:00:00.000Z')).toMatchObject({ stage: 'verified-complete', status: 'confirmed', evidenceIds: ['evidence-1'] });
   });
 });
