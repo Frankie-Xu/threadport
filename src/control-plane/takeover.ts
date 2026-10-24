@@ -12,7 +12,17 @@ export class TakeoverManager {
   const now = new Date().toISOString(); const record:TakeoverRecord={id:`takeover-${randomUUID()}`,taskId:input.taskId,runId:input.runId,ownerSessionId:input.ownerSessionId,targetSessionId:input.targetSessionId,successorSessionId:null,status:'requested',requestedAt:now,updatedAt:now,attention:null}; this.records.set(record.id,record);
   if (!input.controller) { record.status='stop-unavailable'; record.attention='No reliable stop control is available; original owner remains responsible.'; record.updatedAt=new Date().toISOString(); return {...record}; }
   record.status='stop-requested'; record.updatedAt=new Date().toISOString();
-  try { const timeout=input.timeoutMs ?? 5000; const result=await Promise.race([input.controller.requestStop({runId:input.runId,sessionId:input.targetSessionId}),new Promise<boolean>(resolve=>setTimeout(()=>resolve(false),timeout))]); if(result){record.status='stop-confirmed';} else {record.status='stop-unavailable';record.attention='Stop was requested but no confirmation was received.';} } catch { record.status='stop-unavailable';record.attention='Stop request failed; confirmation is unavailable.'; }
+  let timer:ReturnType<typeof setTimeout>|undefined;
+  try {
+   const deadline=new Promise<boolean>(resolve=>{timer=setTimeout(()=>resolve(false),input.timeoutMs??5000);});
+   const result=await Promise.race([input.controller.requestStop({runId:input.runId,sessionId:input.targetSessionId}),deadline]);
+   if(record.status==='stop-requested'){
+    if(result)record.status='stop-confirmed';
+    else{record.status='stop-unavailable';record.attention='Stop was requested but no confirmation was received.';}
+   }
+  }catch{
+   if(record.status==='stop-requested'){record.status='stop-unavailable';record.attention='Stop request failed; confirmation is unavailable.';}
+  }finally{if(timer!==undefined)clearTimeout(timer);}
   record.updatedAt=new Date().toISOString(); return {...record};
  }
  get(id:string):TakeoverRecord { const record=this.records.get(id); if(!record) throw new DomainError('NOT_FOUND','Takeover does not exist.'); return {...record}; }
