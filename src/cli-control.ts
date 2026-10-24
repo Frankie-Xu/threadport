@@ -14,7 +14,7 @@ export async function runControlCommand(args:string[],io:CliIo):Promise<number>{
  const sub=args[0]; if(!sub || !controlIds.has(sub)){io.stderr.write('control requires status or ingest.\n');return 2;}
  let store:Awaited<ReturnType<typeof openStore>>|undefined;
  try{store=await openStore({dataDir:dataDir(args,io)});const cp=store.controlPlane();
-  if(sub==='status'){const task=value(args,'--task');if(!task){io.stderr.write('control status requires --task.\n');return 2;}const state=rebuildControlState(cp.readAllEvents().filter(e=>e.taskId===task));io.stdout.write(JSON.stringify(state)+'\n');return 0;}
+  if(sub==='status'){const task=value(args,'--task');if(!task){io.stderr.write('control status requires --task.\n');return 2;}const state=rebuildControlState(cp.readTaskEvents(task));io.stdout.write(JSON.stringify(state)+'\n');return 0;}
   const file=value(args,'--file');if(!file){io.stderr.write('control ingest requires --file.\n');return 2;}const parsed=JSON.parse(await readFile(resolve(io.cwd(),file),'utf8'));const events=Array.isArray(parsed)?parsed:[parsed];const valid=events.map(item=>controlEventSchema.parse(item));io.stdout.write(JSON.stringify(cp.appendEvents(valid))+'\n');return 0;
  }catch(error){io.stderr.write('Control plane operation failed.\n');return error instanceof DomainError&&error.code==='INVALID_INPUT'?2:error instanceof DomainError&&error.code==='REVISION_CONFLICT'?4:5;}finally{store?.close();}
 }

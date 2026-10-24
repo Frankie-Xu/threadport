@@ -1,10 +1,23 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import Database from 'better-sqlite3';
+import { ControlPlaneService } from '../../src/control-plane/service.js';
 import { mkdtemp, rm } from 'node:fs/promises'; import { join } from 'node:path'; import { tmpdir } from 'node:os';
 import { openStore } from '../../src/storage/sqlite-store.js'; import { createContextManifest } from '../../src/control-plane/manifest.js'; import type { ControlEvent } from '../../src/control-plane/contracts.js';
 const dirs:string[]=[]; afterEach(async()=>{for(const d of dirs.splice(0)) await rm(d,{recursive:true,force:true});});
 const ev=(id:string, body:Partial<ControlEvent>={}):ControlEvent=>({eventId:id,protocol:'threadport.control-event.v1',occurredAt:null,recordedAt:'2026-09-20T00:00:00.000Z',source:{kind:'threadport',sourceId:'tp',parserVersion:'1',coverage:'full'},taskId:null,sessionId:'s',runId:'r',ordinal:null,type:'run.started',payload:{},idempotencyKey:null,evidenceIds:[id],...body});
 describe('control plane storage',()=>{
+ it('reads only the selected task/run and does not decode unrelated event bodies',async()=>{
+  const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});
+  try{
+   const cp=store.controlPlane();cp.appendEvents([ev('scope-a',{taskId:'task-a',sessionId:'sa',runId:'ra'}),ev('scope-b',{taskId:'task-b',sessionId:'sb',runId:'rb'})]);
+   const db=new Database(join(d,'threadport.sqlite'));
+   try{db.prepare("UPDATE control_events SET event_json=json_set(event_json,'$.recordedAt','invalid') WHERE event_id=?").run('scope-b');}finally{db.close();}
+   expect(cp.readTaskEvents('task-a').map(e=>e.eventId)).toEqual(['scope-a']);
+   expect(cp.readRunEvents('ra').map(e=>e.eventId)).toEqual(['scope-a']);
+   expect(Object.keys(new ControlPlaneService(cp).state('task-a').sessions)).toEqual(['sa']);
+   expect(()=>cp.readTaskEvents('')).toThrowError(expect.objectContaining({code:'INVALID_INPUT'}));
+  }finally{store.close();}
+ });
  it('replays events once across sequence gaps beyond the first page',async()=>{
   const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});
   try{

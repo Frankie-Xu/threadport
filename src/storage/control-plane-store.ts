@@ -46,6 +46,13 @@ export class ControlPlaneStore {
     for(const row of this.db.prepare('SELECT event_json FROM control_events ORDER BY sequence').iterate())events.push(validate(controlEventSchema,JSON.parse((row as {event_json:string}).event_json)));
     return events;
   }
+  readTaskEvents(taskId:string):ControlEvent[]{return this.readScopedEvents('taskId',taskId);}
+  readRunEvents(runId:string):ControlEvent[]{return this.readScopedEvents('runId',runId);}
+  private readScopedEvents(field:'taskId'|'runId',value:string):ControlEvent[]{
+    const id=validate(controlIdSchema,value),events:ControlEvent[]=[];
+    for(const row of this.db.prepare(`SELECT event_json FROM control_events WHERE json_extract(event_json,'$.${field}')=? ORDER BY sequence`).iterate(id))events.push(validate(controlEventSchema,JSON.parse((row as {event_json:string}).event_json)));
+    return events;
+  }
   saveManifest(input: ContextManifestV1): void {
     const manifest = validate(contextManifestSchema, input);
     assertManifestDigest(manifest);
