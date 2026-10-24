@@ -36,3 +36,22 @@ Item 8: Node 24 export/task suites passed (8 tests). Export preserves a 450 KB s
 Item 9: Node 24 error/API suites passed (16 tests); browser and server share recovery classification, including migration failures, local network errors and explicit caller overrides. Existing server imports remain compatible.
 
 Item 10: Node 24 target detection/runner suites passed (9 tests). Repeated global-RegExp probes preserve the caller state and detect the same version; no real Agent is launched.
+
+## Combined acceptance
+
+Node 24 / macOS: `npm run check` passed (84 files / 540 tests), including type checks, build, format, documentation links and redaction. `npm run test:e2e` passed (11 browser flows). `npm run test:package` passed (268 packaged files), including isolated public exports, CLI/server/workspace checks, three Cursor roundtrips and installed browser smoke. Generated archive SHA-256: `8830e95e99b24fe2d5f02b15d465cd153549a1c29938ebedd2634480237ab9fd` (runtime `2d71a84`; subsequent acceptance commit changes tests/documentation only).
+
+The full suite exposed an existing receipt fixture expiring on 2026-09-30. Its pending-receipt scenario now uses a one-hour relative expiry; production expiry checks and the dedicated receipt validation tests remain intact. Export-test token filters use explicit TypeScript narrowing. The subsequent frozen-source full run and browser/package checks all passed. No hosted CI result is claimed: this branch was pushed without opening or merging a PR.
+
+| Item | Separate pushed commit |
+| --- | --- |
+| 1. Search timezone validation | [619ba55](https://github.com/Frankie-Xu/threadport/commit/619ba55) |
+| 2. Canonical search cursors | [9984ea7](https://github.com/Frankie-Xu/threadport/commit/9984ea7) |
+| 3. Pagination envelope validation | [f96ab0e](https://github.com/Frankie-Xu/threadport/commit/f96ab0e) |
+| 4. Directory error recovery | [ade8121](https://github.com/Frankie-Xu/threadport/commit/ade8121) |
+| 5. Non-overlapping refresh scheduling | [302b5c9](https://github.com/Frankie-Xu/threadport/commit/302b5c9) |
+| 6. Unreadable snapshot fallback | [f6084db](https://github.com/Frankie-Xu/threadport/commit/f6084db) |
+| 7. Literal Markdown tildes | [86c3cea](https://github.com/Frankie-Xu/threadport/commit/86c3cea) |
+| 8. Large, well-formed task exports | [30fec48](https://github.com/Frankie-Xu/threadport/commit/30fec48) |
+| 9. Shared error recovery policy | [2203576](https://github.com/Frankie-Xu/threadport/commit/2203576) |
+| 10. Stateless version matching | [2d71a84](https://github.com/Frankie-Xu/threadport/commit/2d71a84) |
