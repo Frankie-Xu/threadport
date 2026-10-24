@@ -12,7 +12,7 @@ Acceptance: each fix has a regression covering the observable failure, affected 
 6. [x] Retain explicit unverifiable command evidence if historical snapshot reads fail (`src/handoff/evidence.ts`; handoff tests).
 7. [x] Preserve literal Markdown source text containing tildes (`src/markdown.ts`; parsed Markdown tests).
 8. [x] Avoid argument-count overflow when exporting text with many backtick runs (`src/tasks/export.ts`; export regression).
-9. [ ] Share API error recovery classification between browser and server (`src/contracts/api-errors.ts`, server compatibility facade, `web/src/api.ts`; classification tests).
+9. [x] Share API error recovery classification between browser and server (`src/contracts/api-errors.ts`, server compatibility facade, `web/src/api.ts`; classification tests).
 10. [ ] Make repeated version probes independent of RegExp state (`src/targets/detect.ts`; synthetic read-only probe tests).
 
 Constraints: original untracked planning document is excluded; CLI probes in tests are synthetic, not real Agent certification. No stable-release claims are extended. Validation results and commit links are recorded after execution.
@@ -32,3 +32,5 @@ Item 6: Node 24 evidence/handoff suites passed (24 tests); unreadable historical
 Item 7: Node 24 Markdown suite passed (8 tests), including parsed strikethrough/fence regressions and the existing checked-in example.
 
 Item 8: Node 24 export/task suites passed (8 tests). Export preserves a 450 KB synthetic command with 150,000 backtick runs without argument overflow. Parsed-Markdown validation also exposed and fixed inline evidence-ID fences swallowing later headings; sections and command blocks now parse correctly.
+
+Item 9: Node 24 error/API suites passed (16 tests); browser and server share recovery classification, including migration failures, local network errors and explicit caller overrides. Existing server imports remain compatible.

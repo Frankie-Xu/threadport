@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { classifyError, type ApiRecovery } from "../../src/contracts/api-errors.js";
 import type {
   Task,
   DerivedTaskState,
@@ -72,14 +73,7 @@ export interface Page<T> {
   data: T[];
   nextCursor: string | null;
 }
-export type RecoveryAction =
-  | "reconnect"
-  | "retry"
-  | "refresh"
-  | "edit-and-save"
-  | "review-path"
-  | "export-only"
-  | "none";
+export type RecoveryAction = ApiRecovery;
 const messages: Record<string, string> = {
   NETWORK_ERROR:
     "The local service is unavailable. Check your terminal and try again.",
@@ -107,27 +101,18 @@ export class ApiError extends Error {
   constructor(
     readonly code: string,
     readonly status = 0,
-    readonly retryable = false,
-    readonly recovery: RecoveryAction = recoveryFor(code),
+    readonly retryable = classifyError(code).retryable,
+    readonly recovery: RecoveryAction = classifyError(code).recovery,
     message?: string,
   ) {
     super(messages[code] ?? message ?? "The operation could not be completed. Try again.");
     this.name = "ApiError";
   }
 }
-function recoveryFor(code: string): RecoveryAction {
-  if (code === "NETWORK_ERROR" || code === "UNAUTHORIZED" || code === "UNAVAILABLE") return "reconnect";
-  if (code === "STORAGE_BUSY" || code === "SEARCH_STALE") return "retry";
-  if (code === "REVISION_CONFLICT" || code === "NOT_FOUND") return "refresh";
-  if (code === "REDACTION_REQUIRED" || code === "IO_FAILED") return "review-path";
-  if (code === "CONTEXT_BUDGET_EXCEEDED" || code === "ASSERTION_CONFLICT" || code === "NEXT_ACTION_REVIEW_REQUIRED") return "edit-and-save";
-  if (code === "TARGET_UNSUPPORTED") return "export-only";
-  return "none";
-}
 function retryableFor(code: string, value?: unknown): boolean {
   return typeof value === "boolean"
     ? value
-    : code === "NETWORK_ERROR" || code === "STORAGE_BUSY" || code === "SEARCH_STALE";
+    : classifyError(code).retryable;
 }
 export interface ApiClient {
   onExpired?: () => void;
@@ -151,7 +136,7 @@ function createApi(token: string): ApiClient {
     const recoveryActions: readonly string[] = ["reconnect", "retry", "refresh", "edit-and-save", "review-path", "export-only", "none"];
     const recovery = typeof value?.error?.recovery === "string" && recoveryActions.includes(value.error.recovery)
       ? value.error.recovery as RecoveryAction
-      : recoveryFor(code);
+      : classifyError(code).recovery;
     const message = typeof value?.error?.message === "string" ? value.error.message : undefined;
     return new ApiError(code, response.status, retryable, recovery, message);
   }
