@@ -17,5 +17,11 @@ export class ReadSlots {
  private release(){const next=this.queue.shift();if(next)next();else this.active--;}
 }
 export function scheduleRefresh(refresh:()=>Promise<unknown>):()=>void{
- const timer=setInterval(()=>{void refresh().catch(()=>{/* Individual jobs retain their failure status. */});},15000);timer.unref();return()=>clearInterval(timer);
+ let active=false;
+ const timer=setInterval(async()=>{
+  if(active)return;
+  active=true;
+  try{await refresh();}catch{/* Individual jobs retain their failure status. */}
+  finally{active=false;}
+ },15000);timer.unref();return()=>clearInterval(timer);
 }
