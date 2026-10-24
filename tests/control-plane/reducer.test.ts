@@ -8,6 +8,11 @@ const event = (patch: Partial<ControlEvent>): ControlEvent => ({
  type: 'run.started', payload: {}, idempotencyKey: null, evidenceIds: ['e-1'], ...patch
 });
 describe('control plane reducer', () => {
+ it.each(['partial','none','unknown'] as const)('keeps %s coverage out of current observation health',coverage=>{
+  const state=rebuildControlState([event({source:{kind:'runtime',sourceId:'src',parserVersion:'1',coverage}})]);
+  expect(state.sessions.s1.health).toBe('coverage-gap');
+  expect(state.attention.some(item=>item.kind==='coverage-gap')).toBe(true);
+ });
  it('treats prototype property names as ordinary opaque identifiers',()=>{
   const empty=emptyControlState();
   for(const key of ['constructor','toString','hasOwnProperty']){

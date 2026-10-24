@@ -3,7 +3,7 @@
 Base: `6ed3455`. Branch: `codex/projection-receipt-integrity`. Each numbered change gets a regression, separate commit and push. Then create one PR, require all three platform jobs and aggregate check on the final head, squash-merge and synchronize local main.
 
 1. [x] Prototype-safe session/manifest/receipt projection dictionaries (`src/control-plane/reducer.ts`; reducer regressions).
-2. [ ] Preserve unknown/incomplete coverage in merges and observation health (`coverage.ts`, reducer; coverage/reducer tests).
+2. [x] Preserve unknown/incomplete coverage in merges and observation health (`coverage.ts`, reducer; coverage/reducer tests).
 3. [ ] Reject duplicate manifest item/constraint keys (`contracts.ts`; contract tests).
 4. [ ] Require both target session/run IDs or neither; reject empty supplied IDs (`contracts.ts`, `manifest.ts`; contract tests).
 5. [ ] Bind receipt validation and projected manifests to the actual handoff/target identity (`receipts.ts`, reducer; receipt/reducer tests).
@@ -16,3 +16,5 @@ Base: `6ed3455`. Branch: `codex/projection-receipt-integrity`. Each numbered cha
 Acceptance: targeted regressions, final Node 24 `npm run check`, 11 browser flows and isolated `npm run test:package`; final-head Ubuntu/macOS/Windows CI plus required `check`. No dependency, schema, version or release change. Ambiguous manifests (duplicate keys or half-bound targets), invalid dates and unrecognized transition sources become explicit validation failures; valid unambiguous persisted formats keep their digest algorithm. Pending expiry is a read-time projection only. Item 7 uses item 6's validated clock; other items can be assessed independently. Rollback the squash commit as a unit or revert in reverse dependency order; no stored data is rewritten. Rollback is planned, not exercised. Preserve the original untracked planning file.
 
 1: Node 24 reducer/API suites passed (12 tests). Prototype-named IDs remain own JSON-visible entries, with no inherited phantom state.
+
+2: Node 24 coverage/reducer suites passed (20 tests). Unknown coverage is retained when mixed with partial coverage; partial/none/unknown runtime observations remain coverage-gap, not current.
