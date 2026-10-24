@@ -81,6 +81,7 @@ export class ControlPlaneStore {
     });
   }
   listReceipts(handoffId: string): ReceiptSummary[] { return (this.db.prepare('SELECT * FROM handoff_receipts WHERE handoff_id=? ORDER BY created_at,receipt_id').all(handoffId) as Record<string, unknown>[]).map(row => this.rowReceipt(row)); }
+  listAllReceipts():ReceiptSummary[]{return (this.db.prepare('SELECT r.* FROM handoff_receipts r JOIN context_manifests m ON m.handoff_id=r.handoff_id ORDER BY r.created_at,r.receipt_id').all() as Record<string,unknown>[]).map(row=>this.rowReceipt(row));}
   listManifests(taskId?: string): ContextManifestV1[] {
     const rows = (taskId === undefined
       ? this.db.prepare('SELECT body_json FROM context_manifests ORDER BY created_at,handoff_id').all()

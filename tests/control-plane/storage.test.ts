@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { ControlPlaneService } from '../../src/control-plane/service.js';
 import { mkdtemp, rm } from 'node:fs/promises'; import { join } from 'node:path'; import { tmpdir } from 'node:os';
@@ -6,6 +6,22 @@ import { openStore } from '../../src/storage/sqlite-store.js'; import { createCo
 const dirs:string[]=[]; afterEach(async()=>{for(const d of dirs.splice(0)) await rm(d,{recursive:true,force:true});});
 const ev=(id:string, body:Partial<ControlEvent>={}):ControlEvent=>({eventId:id,protocol:'threadport.control-event.v1',occurredAt:null,recordedAt:'2026-09-20T00:00:00.000Z',source:{kind:'threadport',sourceId:'tp',parserVersion:'1',coverage:'full'},taskId:null,sessionId:'s',runId:'r',ordinal:null,type:'run.started',payload:{},idempotencyKey:null,evidenceIds:[id],...body});
 describe('control plane storage',()=>{
+ it('loads global receipt state with one receipt query for multiple manifests',async()=>{
+  const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});
+  try{
+   const cp=store.controlPlane();const ids:string[]=[];
+   for(let i=0;i<3;i++){
+    const manifest=createContextManifest({handoffId:'bulk-'+i,taskId:'bulk-task-'+i,taskRevision:1,targetSessionId:'s',targetRunId:'r'});cp.saveManifest(manifest);
+    ids.push(cp.saveReceipt({handoffId:manifest.handoffId,targetSessionId:'s',targetRunId:'r',manifestDigest:manifest.digest,stage:'received',nonce:'bulk-nonce-1234567890',expiresAt:'2030-01-01T00:00:00.000Z'}).receiptId);
+   }
+   const spy=vi.spyOn(Database.prototype,'prepare');
+   try{
+    const state=new ControlPlaneService(cp).state();
+    expect(Object.keys(state.receipts).sort()).toEqual(ids.sort());expect(Object.keys(state.manifests)).toHaveLength(3);
+    expect(spy.mock.calls.filter(([sql])=>/^SELECT.*FROM handoff_receipts/.test(sql))).toHaveLength(1);
+   }finally{spy.mockRestore();}
+  }finally{store.close();}
+ });
  it('reads only the selected task/run and does not decode unrelated event bodies',async()=>{
   const d=await mkdtemp(join(tmpdir(),'tp-cp-'));dirs.push(d);const store=await openStore({dataDir:d});
   try{

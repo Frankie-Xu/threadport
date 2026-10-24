@@ -6,7 +6,7 @@ Acceptance: targeted regressions for each item; final Node 24 `npm run check`, `
 
 1. [x] Read all control events correctly across noncontiguous SQLite sequence values (`src/storage/control-plane-store.ts`; storage regression).
 2. [x] Filter task/run control events in SQLite rather than materializing unrelated event bodies (`src/storage/control-plane-store.ts`, service, HTTP routes, status CLI; scope tests).
-3. [ ] Fetch global receipt state in one query instead of one query per manifest (`src/storage/control-plane-store.ts`, service; query-count regression).
+3. [x] Fetch global receipt state in one query instead of one query per manifest (`src/storage/control-plane-store.ts`, service; query-count regression).
 4. [ ] Make payload validation bounded, consistent with Zod safeParse, and correct for repeated acyclic containers (`src/control-plane/contracts.ts`; contract tests).
 5. [ ] Dispose takeover timeout handles and preserve state advanced while a stop request is pending (`src/control-plane/takeover.ts`; fake timers/deferred controller tests).
 6. [ ] Validate takeover identities, timeout bounds and successor identity before state mutation (`src/control-plane/takeover.ts`; invalid-input regression).
@@ -20,3 +20,5 @@ Items 2 and 3 add store read methods without changing existing read APIs. Invali
 1: Node 24 storage suite passed, 10 tests; 1,005 surviving events across sequence gaps are returned exactly once in insertion order.
 
 2: Node 24 storage/API suites passed, 12 tests; scoped reads preserve order and ignore unrelated malformed event bodies before decoding. SQL still scans the event table; no indexed-query speedup is claimed.
+
+3: Node 24 storage suite passed, 12 tests; three manifests retain all receipts while global state executes one receipt SELECT instead of one per manifest.
