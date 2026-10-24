@@ -2,10 +2,10 @@ import { publicText } from "../privacy.js";
 import type { TaskService } from "./service.js";
 import type { Claim } from "../domain/models.js";
 const fence = (text: string) => {
-  const value = publicText(text),
-    ticks = "`".repeat(
-      Math.max(3, ...(value.match(/`+/g) ?? []).map((run) => run.length + 1)),
-    );
+  const value = publicText(text);
+  let length=3;
+  for(const [run] of value.matchAll(/`+/g))length=Math.max(length,run.length+1);
+  const ticks="`".repeat(length);
   return ticks + "text\n" + value + "\n" + ticks;
 };
 const claim = (label: string, value: Claim | null) =>
@@ -15,7 +15,7 @@ const claim = (label: string, value: Claim | null) =>
   (value?.origin ?? "unknown") +
   "\n\n" +
   fence(value?.text || "Unknown: no value recorded.") +
-  "\n\nEvidence IDs: " +
+  "\n\nEvidence IDs:\n\n" +
   fence(
     value?.evidence
       .map((ref) => ref.sessionId + "/" + ref.eventId)
