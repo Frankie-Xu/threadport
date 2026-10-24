@@ -24,8 +24,17 @@ function snippet(field:SearchMatch['field'],eventId:string|null,text:string,term
  let offset=Math.max(0,Math.min(...offsets)-60);if(offset>0&&/[\uDC00-\uDFFF]/.test(text[offset]))offset--;
  let end=Math.min(text.length,offset+240);if(end<text.length&&/[\uDC00-\uDFFF]/.test(text[end]))end--;
  const excerpt=text.slice(offset,end);const folded=fold(excerpt);const highlights:{start:number;end:number}[]=[];
- for(const term of terms){let from=0;while(from<excerpt.length){const start=folded.indexOf(term,from);if(start<0)break;highlights.push({start,end:start+term.length});from=start+term.length;}}
- return {field,eventId,text:excerpt,offset,highlights};
+ for(const term of terms){let from=0;while(from<excerpt.length){const start=folded.indexOf(term,from);if(start<0)break;highlights.push({start,end:start+term.length});from=start+1;}}
+ // Renderers consume ranges left to right. Merge overlaps, including repeated
+ // occurrences within one term (for example, both "ana" matches in "banana").
+ highlights.sort((a,b)=>a.start-b.start||a.end-b.end);
+ const merged:SearchMatch['highlights']=[];
+ for(const range of highlights){
+  const previous=merged.at(-1);
+  if(previous&&range.start<=previous.end)previous.end=Math.max(previous.end,range.end);
+  else merged.push({...range});
+ }
+ return {field,eventId,text:excerpt,offset,highlights:merged};
 }
 /** Reads only the event search projection and approved task fields, never event bodies. */
 export function searchHistory(db:Database.Database,input:SearchInput):SearchPage{
