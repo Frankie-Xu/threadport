@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ZodError } from 'zod';
 import { createContextManifest } from '../../src/control-plane/manifest.js';
 import { advanceReceipt, createReceipt, validateReceipt } from '../../src/control-plane/receipts.js';
 
@@ -22,6 +23,14 @@ const input = {
 };
 
 describe('receipt verification integrity', () => {
+  it('rejects unknown transition stages and sources even for terminal receipts',()=>{
+    const now='2026-09-20T01:00:00.000Z',pending=createReceipt(input,{manifest,targetSessionId:'session-target',targetRunId:'run-target',now});
+    for(const receipt of [pending,{...pending,status:'expired' as const}]){
+      expect(()=>advanceReceipt(receipt,'imaginary' as never,'runtime',now)).toThrowError(ZodError);
+      expect(()=>advanceReceipt(receipt,'accepted','untrusted-source' as never,now)).toThrowError(ZodError);
+    }
+    expect(advanceReceipt(pending,'accepted','agent-report',now).status).toBe('unknown');
+  });
   it('does not advance receipts at or beyond their deadline and preserves the original record',()=>{
     const pending=createReceipt(input,{manifest,targetSessionId:'session-target',targetRunId:'run-target',now:'2026-09-20T01:00:00.000Z'});
     for(const now of [input.expiresAt,'2026-09-22T00:00:00.000Z'])expect(advanceReceipt(pending,'accepted','runtime',now)).toMatchObject({status:'expired',stage:'received',confirmedAt:null});

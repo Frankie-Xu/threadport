@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
-import { receiptInputSchema, receiptSummarySchema, type ReceiptInput, type ReceiptSummary, type ContextManifestV1, canonicalDigest } from './contracts.js';
+import { z } from 'zod';
+import { receiptInputSchema, receiptSummarySchema, receiptStageSchema, type ReceiptInput, type ReceiptSummary, type ContextManifestV1, canonicalDigest } from './contracts.js';
 import { assertManifestDigest } from './manifest.js';
 import { DomainError } from '../domain/errors.js';
 import { isoTimestampSchema } from '../contracts/timestamp.js';
 export interface ReceiptContext { manifest: ContextManifestV1; targetSessionId: string; targetRunId: string; now?: string }
 const order = ['prepared','authorized','transported','received','accepted','observed-start','reported-complete','verified-complete'] as const;
+const transitionSourceSchema=z.enum(['runtime','threadport','user','agent-report']);
 export function receiptDigest(input: ReceiptInput): string { return canonicalDigest(input); }
 export function assertReceiptInputAllowed(input: ReceiptInput): void {
   if (input.stage === 'verified-complete') throw new DomainError('RECEIPT_VERIFICATION_REQUIRED','A verified-complete receipt requires trusted evidence.');
@@ -22,6 +24,7 @@ export function createReceipt(input: ReceiptInput, context: ReceiptContext): Rec
   return receiptSummarySchema.parse({ ...receipt, receiptId:`receipt-${randomUUID()}`, status:'pending', createdAt, confirmedAt:null, evidenceIds:[] });
 }
 export function advanceReceipt(current: ReceiptSummary, nextStage: ReceiptInput['stage'], source: 'runtime'|'threadport'|'user'|'agent-report' = 'threadport', now=new Date().toISOString()): ReceiptSummary {
+  receiptStageSchema.parse(nextStage);transitionSourceSchema.parse(source);
   const receipt = receiptSummarySchema.parse(current),clock=isoTimestampSchema.parse(now); if (receipt.status === 'expired' || receipt.status === 'rejected') return receipt;
   if(Date.parse(receipt.expiresAt)<=Date.parse(clock))return {...receipt,status:'expired'};
   const currentIndex = order.indexOf(receipt.stage), nextIndex = order.indexOf(nextStage); if (nextIndex < currentIndex) throw new DomainError('REVISION_CONFLICT','Receipt stages cannot move backwards.');
