@@ -8,6 +8,16 @@ const event = (patch: Partial<ControlEvent>): ControlEvent => ({
  type: 'run.started', payload: {}, idempotencyKey: null, evidenceIds: ['e-1'], ...patch
 });
 describe('control plane reducer', () => {
+ it('preserves the first valid immutable manifest when later events try to replace it',()=>{
+  const base={handoffId:'immutable',taskId:'task',taskRevision:1,createdAt:'2026-09-20T00:00:00.000Z'};
+  const first=createContextManifest({...base,items:[{key:'objective',text:'reviewed'}]});
+  const replacement=createContextManifest({...base,taskRevision:2,items:[{key:'objective',text:'different'}]});
+  const events=[event({eventId:'manifest-first',ordinal:0,type:'manifest.saved',payload:{handoffId:'immutable',manifest:first}}),event({eventId:'manifest-replacement',ordinal:1,type:'manifest.saved',payload:{handoffId:'immutable',manifest:replacement}})];
+  const state=rebuildControlState(events);expect(state.manifests.immutable).toEqual(first);
+  expect(state.attention.some(item=>item.kind==='manifest-conflict')).toBe(true);
+  const replay=rebuildControlState([events[0],event({...events[0],eventId:'same-content',ordinal:2})]);
+  expect(replay.manifests.immutable).toEqual(first);expect(replay.attention).toEqual([]);
+ });
  it('does not register a valid manifest under another handoff ID',()=>{
   const manifest=createContextManifest({handoffId:'actual',taskId:'task',taskRevision:1});
   const state=rebuildControlState([event({type:'manifest.saved',payload:{handoffId:'alias',manifest}})]);

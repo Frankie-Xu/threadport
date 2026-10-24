@@ -107,7 +107,12 @@ function project(events: readonly ControlEvent[]): ControlState {
       const parsed = contextManifestSchema.safeParse(p.manifest);
       if (!parsed.success||parsed.data.handoffId!==p.handoffId) receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest is invalid or belongs to another handoff.');
       else {
-        try { assertManifestDigest(parsed.data); state.manifests[p.handoffId] = parsed.data; }
+        try {
+          assertManifestDigest(parsed.data);
+          const current=state.manifests[p.handoffId];
+          if(current&&canonicalDigest(current)!==canonicalDigest(parsed.data))receiptAttention(state,event,'manifest-conflict','A prepared manifest cannot be replaced by different replayed content.');
+          else state.manifests[p.handoffId] = parsed.data;
+        }
         catch { receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest digest does not match its contents.'); }
       }
     }
