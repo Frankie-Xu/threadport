@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createContextManifest } from '../../src/control-plane/manifest.js';
-import { advanceReceipt, createReceipt } from '../../src/control-plane/receipts.js';
+import { advanceReceipt, createReceipt, validateReceipt } from '../../src/control-plane/receipts.js';
 
 const manifest = createContextManifest({
   handoffId: 'handoff-receipt',
@@ -22,6 +22,9 @@ const input = {
 };
 
 describe('receipt verification integrity', () => {
+  it('rejects invalid injected clocks instead of bypassing expiry with NaN',()=>{
+    for(const now of ['tomorrow','2026-09-20T01:00:00+99:99'])expect(()=>validateReceipt(input,{manifest,targetSessionId:'session-target',targetRunId:'run-target',now})).toThrow();
+  });
   it('binds receipts to the manifest handoff and target even if caller context agrees with a different identity',()=>{
     const context={manifest,targetSessionId:'session-target',targetRunId:'run-target',now:'2026-09-20T01:00:00.000Z'};
     expect(()=>createReceipt({...input,handoffId:'other-handoff'},context)).toThrowError(expect.objectContaining({code:'RECEIPT_TARGET_MISMATCH'}));

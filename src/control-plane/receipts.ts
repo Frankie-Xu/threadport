@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { receiptInputSchema, receiptSummarySchema, type ReceiptInput, type ReceiptSummary, type ContextManifestV1, canonicalDigest } from './contracts.js';
 import { assertManifestDigest } from './manifest.js';
 import { DomainError } from '../domain/errors.js';
+import { isoTimestampSchema } from '../contracts/timestamp.js';
 export interface ReceiptContext { manifest: ContextManifestV1; targetSessionId: string; targetRunId: string; now?: string }
 const order = ['prepared','authorized','transported','received','accepted','observed-start','reported-complete','verified-complete'] as const;
 export function receiptDigest(input: ReceiptInput): string { return canonicalDigest(input); }
@@ -13,7 +14,7 @@ export function validateReceipt(input: ReceiptInput, context: ReceiptContext): R
   assertReceiptInputAllowed(receipt);
   if (receipt.manifestDigest !== context.manifest.digest) throw new DomainError('RECEIPT_DIGEST_MISMATCH','Receipt manifest digest does not match the prepared manifest.');
   if (receipt.handoffId!==context.manifest.handoffId||receipt.targetSessionId!==context.manifest.targetSessionId||receipt.targetRunId!==context.manifest.targetRunId||receipt.targetSessionId !== context.targetSessionId || receipt.targetRunId !== context.targetRunId) throw new DomainError('RECEIPT_TARGET_MISMATCH','Receipt handoff or target does not match the prepared manifest.');
-  const now = Date.parse(context.now ?? new Date().toISOString()); if (Date.parse(receipt.expiresAt) <= now) throw new DomainError('REVISION_CONFLICT','Receipt has expired.');
+  const now = Date.parse(isoTimestampSchema.parse(context.now ?? new Date().toISOString())); if (Date.parse(receipt.expiresAt) <= now) throw new DomainError('REVISION_CONFLICT','Receipt has expired.');
   return receipt;
 }
 export function createReceipt(input: ReceiptInput, context: ReceiptContext): ReceiptSummary {

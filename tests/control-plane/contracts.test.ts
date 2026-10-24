@@ -3,6 +3,12 @@ import { createContextManifest } from '../../src/control-plane/manifest.js';
 import { controlEventSchema, canonicalDigest, redactControlPayload, contextManifestSchema, receiptInputSchema, safePayloadSchema } from '../../src/control-plane/contracts.js';
 
 describe('control plane contracts', () => {
+  it('rejects impossible timezone offsets in control events and receipt expiry',()=>{
+    for(const value of ['2026-10-25T00:00:00+99:99','2026-10-25T00:00:00+02:60']){
+      expect(controlEventSchema.safeParse({...base,recordedAt:value}).success).toBe(false);
+      expect(receiptInputSchema.safeParse({handoffId:'h',targetSessionId:'s',targetRunId:'r',manifestDigest:'a'.repeat(64),stage:'received',nonce:'timestamp-nonce-1234',expiresAt:value}).success).toBe(false);
+    }
+  });
   it('requires a complete prepared target and rejects supplied empty identities',()=>{
     const base={handoffId:'binding',taskId:'task',taskRevision:1};
     for(const target of [{targetSessionId:'s'},{targetRunId:'r'},{targetSessionId:'',targetRunId:''},{targetSessionId:'s',targetRunId:''}])expect(()=>createContextManifest({...base,...target})).toThrow();

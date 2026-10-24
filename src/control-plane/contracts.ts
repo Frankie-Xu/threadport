@@ -1,9 +1,10 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { isoTimestampSchema } from '../contracts/timestamp.js';
 
 export const controlIdSchema = z.string().min(1).max(512).regex(/^[A-Za-z0-9][A-Za-z0-9:._-]*$/);
 export const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
-const isoDate = z.string().datetime({ offset: true });
+const isoDate = isoTimestampSchema;
 
 const forbiddenKey = /(?:token|secret|password|api[-_]?key|authorization|cookie|reasoning|system[-_ ]?prompt|raw[-_ ]?log|source[-_ ]?path|absolute[-_ ]?path|private[-_ ]?key)/i;
 const absolutePath = /^(?:[A-Za-z]:[\\/]|[\\]{2}|\/)/;

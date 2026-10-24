@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { DomainError } from '../domain/errors.js';
+import { isoTimestampSchema } from '../contracts/timestamp.js';
 const id=z.string().min(1).max(512);
-const date=z.string().max(40).datetime({offset:true}).refine(value=>
- /(?:Z|[+-](?:[01]\d|2[0-3]):?[0-5]\d)$/.test(value)&&Number.isFinite(Date.parse(value)));
+const date=isoTimestampSchema;
 const inputSchema=z.object({q:z.string().max(1024).default(''),projectId:id.optional(),agent:z.enum(['claude','codex']).optional(),from:date.optional(),to:date.optional(),cursor:z.string().min(1).max(2048).optional(),limit:z.number().int().min(1).max(100).default(50)}).strict();
 export interface SearchInput {q?:string;projectId?:string;agent?:'claude'|'codex';from?:string;to?:string;cursor?:string;limit?:number}
 export function searchTime(value:unknown):string|null{const parsed=date.safeParse(value);return parsed.success?new Date(parsed.data).toISOString():null;}
