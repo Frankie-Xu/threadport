@@ -6,6 +6,17 @@ import { openStore } from '../../src/storage/sqlite-store.js';
 import { temporary,project } from '../helpers.js';
 const servers:{close():Promise<void>}[]=[];afterEach(async()=>{for(const server of servers.splice(0))await server.close();});
 async function setup(){const dataDir=await temporary();const server=await startLocalServer({dataDir});servers.push(server);return{dataDir,server,async api(path:string,method='GET',body?:unknown){const response=await fetch(server.origin+'/api/v1'+path,{method,headers:{authorization:`Bearer ${server.token}`,...(method!=='GET'?{'content-type':'application/json'}:{})},body:body===undefined?undefined:JSON.stringify(body)});return{status:response.status,body:await response.json()};}};}
+it('classifies malformed pagination envelopes as input errors before checking freshness',async()=>{
+ const {api,dataDir}=await setup();const store=await openStore({dataDir});store.saveSession('cursor-session');store.close();
+ for(const endpoint of ['/tasks','/sessions/unassigned','/sessions/cursor-session/events']){
+  for(const value of [null,[],{},true,{generation:'0',offset:0},{generation:0,offset:-1}]){
+   const cursor=Buffer.from(JSON.stringify(value)).toString('base64url');
+   const response=await api(endpoint+'?cursor='+cursor);
+   expect(response.status).toBe(400);expect(response.body.error.code).toBe('INVALID_INPUT');
+  }
+  expect((await api(endpoint+'?cursor=')).status).toBe(400);
+ }
+},30000);
 it('creates explicit bindings and tasks with conflict-safe editing, filtering and strict inputs',async()=>{
  const {api}=await setup();const root=await project();
  const invalid=await api('/workspaces','POST',{root,confirmBinding:false});expect(invalid.status).toBe(400);expect(invalid.body.error).toMatchObject({code:'INVALID_INPUT',retryable:false,recovery:'none'});
