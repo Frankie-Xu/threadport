@@ -1,5 +1,5 @@
 import { mkdir, writeFile, symlink, lstat, readlink, unlink, readFile, realpath } from 'node:fs/promises';
-import { delimiter, join, relative, resolve } from 'node:path';
+import { delimiter, isAbsolute, join, relative, resolve } from 'node:path';
 import { describe, it, expect, vi } from 'vitest';
 import { readGitState, gitStateMatches, createClaudeAdapter } from '../src/index.js';
 import { runCli } from '../src/cli.js';
@@ -97,19 +97,30 @@ it.skipIf(process.platform === 'win32')('does not run repository programs throug
 it('recognizes linked worktrees and fails explicitly for a gitlink without entering it', async () => {
   const root = await project(), parent = await temporary();
   const linked = join(parent, 'linked');
-  git(root, 'worktree', 'add', '--detach', linked, 'HEAD');
+  // The fingerprint reads raw bytes. Keep the clean checkout independent of
+  // Git for Windows' line-ending settings, then exercise an actual byte change.
+  git(root, '-c', 'core.autocrlf=false', '-c', 'core.eol=lf', 'worktree', 'add', '--detach', linked, 'HEAD');
   expect(await readGitState(linked)).toMatchObject({ detached: true, dirty: false });
+  await writeFile(join(linked, 'README.md'), 'initial\r\n');
+  expect(await readGitState(linked)).toMatchObject({ dirty: true, changed_files: ['README.md'] });
   const head = git(root, 'rev-parse', 'HEAD').trim();
   git(root, 'update-index', '--add', '--cacheinfo', `160000,${head},nested`);
   await expect(readGitState(root)).rejects.toThrow('SUBMODULE_UNSUPPORTED');
 }, 30000);
 
 it('does not select Git through a relative PATH entry', async () => {
-  const root=await project(), fake=await temporary();
+  const root=await project();
+  // On Windows the checkout and the OS temp folder can be on different drives.
+  // Keep the decoy on the checkout drive so relative() cannot return an absolute path.
+  const fixtureParent=join(process.cwd(),'output');
+  await mkdir(fixtureParent,{recursive:true});
+  const fake=await temporary(fixtureParent);
+  const entry=relative(process.cwd(),fake);
+  expect(isAbsolute(entry)).toBe(false);
   const program=join(fake,process.platform==='win32'?'git.exe':'git');
   await writeFile(program,'#!/bin/sh\nexit 93\n',{mode:0o700});
   const key=Object.keys(process.env).find(name=>name.toUpperCase()==='PATH')??'PATH';
-  vi.stubEnv(key,relative(process.cwd(),fake)+delimiter+process.env[key]);
+  vi.stubEnv(key,entry+delimiter+process.env[key]);
   try {
     expect(await readGitState(root)).toMatchObject({dirty:false});
   } finally {vi.unstubAllEnvs();}
