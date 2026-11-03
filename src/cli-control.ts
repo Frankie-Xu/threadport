@@ -3,7 +3,7 @@ import { openStore } from './storage/sqlite-store.js';
 import { controlIdSchema, receiptInputSchema } from './control-plane/contracts.js';
 import { parseControlOptions, controlExitCode } from './cli-control-options.js';
 import { readControlEventImport } from './control-plane/import.js';
-import { rebuildControlState } from './control-plane/reducer.js';
+import { ControlPlaneService } from './control-plane/service.js';
 import { TakeoverManager } from './control-plane/takeover.js';
 import type { CliIo } from './cli.js';
 import { DomainError } from './domain/errors.js';
@@ -17,7 +17,7 @@ export async function runControlCommand(args:string[],io:CliIo):Promise<number>{
   const task=sub==='status'?controlIdSchema.parse(options['--task']):null;
   const events=sub==='ingest'?await readControlEventImport(resolve(io.cwd(),options['--file'])):null;
   store=await openStore({dataDir:options['--data-dir']?resolve(io.cwd(),options['--data-dir']):undefined});const cp=store.controlPlane();
-  const result=task!==null?rebuildControlState(cp.readTaskEvents(task)):cp.appendEvents(events!);
+  const result=task!==null?new ControlPlaneService(cp).state(task):cp.appendImportedEvents(events!);
   io.stdout.write(JSON.stringify(result)+'\n');return 0;
  }catch(error){io.stderr.write('Control plane operation failed.\n');return controlExitCode(error);}finally{store?.close();}
 }

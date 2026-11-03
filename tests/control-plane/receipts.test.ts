@@ -56,6 +56,6 @@ describe('receipt verification integrity', () => {
     expect(() => advanceReceipt(pending, 'verified-complete', 'agent-report','2026-09-20T01:00:00.000Z')).toThrowError(expect.objectContaining({ code: 'RECEIPT_VERIFICATION_REQUIRED' }));
     expect(() => advanceReceipt(pending, 'verified-complete', 'threadport','2026-09-20T01:00:00.000Z')).toThrowError(expect.objectContaining({ code: 'RECEIPT_VERIFICATION_REQUIRED' }));
     const withEvidence = { ...pending, evidenceIds: ['evidence-1'] };
-    expect(advanceReceipt(withEvidence, 'verified-complete', 'threadport','2026-09-20T01:00:00.000Z')).toMatchObject({ stage: 'verified-complete', status: 'confirmed', evidenceIds: ['evidence-1'] });
+    expect(() => advanceReceipt(withEvidence, 'verified-complete', 'threadport','2026-09-20T01:00:00.000Z')).toThrowError(expect.objectContaining({ code: 'RECEIPT_VERIFICATION_REQUIRED' }));
   });
 });

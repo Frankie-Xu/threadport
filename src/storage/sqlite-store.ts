@@ -1,3 +1,5 @@
+import { createHmac } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import { ObservationStore } from './observation-store.js';
 import { AssertionStore } from './assertion-store.js';
 import {deleteOwnedData} from './delete-data.js';
@@ -6,6 +8,7 @@ import { z } from 'zod';
 import type { Task, NormalizedEvent } from '../domain/models.js';
 import { DomainError } from '../domain/errors.js';
 import { openDatabase, type DatabaseOptions } from './database.js';
+import { eventSearchText } from './search-projection.js';
 import { registerSearchFunctions, searchHistory } from './search-store.js';
 import type { SearchInput, SearchPage } from '../search/contracts.js';
 import { bindingSchema, snapshotSchema, type WorkspaceBinding, type WorkspaceSnapshot } from '../workspace/contracts.js';
@@ -35,6 +38,19 @@ export class SqliteStore extends IndexStore {
   handoffStore():HandoffStore{return new HandoffStore(this.db);}
   apiStore():BusinessStore{return new BusinessStore(this.db);}
   controlPlane():ControlPlaneStore{return new ControlPlaneStore(this.db);}
+  /** Local workbench only. Never included in status, exports or diagnostics. */
+  draftRecoveryKey(): string {
+    return this.run(()=>{
+      const query=this.db.prepare('SELECT secret FROM local_draft_identity WHERE id=1').pluck();
+      let secret=query.get() as string|undefined;
+      if (!secret) {
+        this.db.exec('INSERT OR IGNORE INTO local_draft_identity VALUES(1,lower(hex(randomblob(32))))');
+        secret=query.get() as string;
+      }
+      // Restoring a copy in another directory must not give it the old tab's key.
+      return createHmac('sha256',Buffer.from(secret,'hex')).update('threadport.draft.v1\0').update(realpathSync(this.db.name)).digest('hex');
+    });
+  }
   searchHistory(input:SearchInput={}):SearchPage{return this.run(()=>searchHistory(this.db,input));}
   getWorkspace(workspaceId:string):WorkspaceBinding|null {
     return this.run(()=>{const row=this.db.prepare('SELECT id,project_id AS projectId,canonical_root AS canonicalRoot FROM workspaces WHERE id=?').get(validate(id,workspaceId));return row?validate(bindingSchema,row):null;});
@@ -114,7 +130,7 @@ export class SqliteStore extends IndexStore {
       }
       const ordinal=this.db.prepare('SELECT coalesce(max(ordinal),-1)+1 FROM events WHERE session_id=?').pluck().get(sessionId) as number;
       const event:NormalizedEvent={id,sessionId,ordinal,occurredAt:stored.completedAt??stored.startedAt,kind:kind,text:'Imported structured inner observation.',commandRun:null,relativePaths:[],omitted:false,innerObservation:stored};
-      this.db.prepare('INSERT INTO events(id,session_id,ordinal,body_json,search_text) VALUES(?,?,?,?,?)').run(event.id,event.sessionId,event.ordinal,JSON.stringify(event),event.text);
+      this.db.prepare('INSERT INTO events(id,session_id,ordinal,body_json,search_text) VALUES(?,?,?,?,?)').run(event.id,event.sessionId,event.ordinal,JSON.stringify(event),eventSearchText(event));
       return event;
     }).immediate());
   }

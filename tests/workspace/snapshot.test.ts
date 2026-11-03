@@ -21,7 +21,7 @@ it('captures immutable current snapshots, distinguishes index/worktree/HEAD and 
  expect(git(root,'status','--porcelain')).toBe(before);expect(await readFile(join(root,'a.txt'),'utf8')).toBe('same');
 },30000);
 it('returns incomplete reasons for no repository, missing root, no commit, symlinks and limits',async()=>{
- const root=await temp();const binding={id:'w',projectId:'p',canonicalRoot:root};expect((await captureWorkspace(binding)).incompleteReasons).toContain('NO_GIT');
+ const parent=await temp();git(parent,'init','--bare');const root=join(parent,'no-worktree');await mkdir(root);const binding={id:'w',projectId:'p',canonicalRoot:root};expect((await captureWorkspace(binding)).incompleteReasons).toContain('NO_GIT');
  expect((await captureWorkspace({...binding,canonicalRoot:join(root,'missing')})).incompleteReasons).toContain('SOURCE_MISSING');git(root,'init','-b','main');expect((await captureWorkspace(binding)).incompleteReasons).toContain('NO_COMMIT');
  const repoState=await repo();await writeFile(join(repoState.root,'extra'),'123456');const limited=await captureWorkspace(repoState.binding,{limits:{maxBytes:2}});expect(limited).toMatchObject({digest:null,incompleteReasons:['LIMIT_EXCEEDED']});
  await symlink(join(repoState.root,'a.txt'),join(repoState.root,'link'),'file');expect((await captureWorkspace(repoState.binding)).incompleteReasons).toEqual([]);

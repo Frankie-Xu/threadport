@@ -8,8 +8,8 @@ const directories: string[] = [];
 afterEach(async () => {
   await Promise.all(directories.splice(0).map(path => rm(path, { recursive: true, force: true })));
 });
-export async function temporary(): Promise<string> {
-  const path = await mkdtemp(join(tmpdir(), 'threadport-test-'));
+export async function temporary(parent = tmpdir()): Promise<string> {
+  const path = await mkdtemp(join(parent, 'threadport-test-'));
   directories.push(path);
   return path;
 }

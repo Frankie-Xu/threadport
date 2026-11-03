@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type ApiClient,
   type Envelope,
@@ -15,7 +15,8 @@ import { CreateTask } from "./features/inbox/create-task.js";
 import { Inbox } from "./features/inbox/inbox.js";
 import { History } from "./features/history/history.js";
 import { Detail } from "./features/task/detail.js";
-export function App({ initialApi }: { initialApi: ApiClient | null }) {
+import { loadDraftKey, restoreDraft, sealDraft, type DraftIdentity, type TaskDraft } from "./draft-recovery.js";
+export function App({ initialApi, recovery }: { initialApi: ApiClient | null; recovery: string | null }) {
   const [api, setApi] = useState(initialApi),
     [locationSearch, setSearch] = useState(location.search),
     [revision, setRevision] = useState(0),
@@ -26,6 +27,35 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
   const [link, setLink] = useState("");
   const [expired, setExpired] = useState(false);
   const reconnect = useAction();
+  const draftRef = useRef<TaskDraft | null>(null);
+  const identity = useRef<DraftIdentity | null>(null);
+  const pendingRecovery = useRef(recovery);
+  const [recovered, setRecovered] = useState<TaskDraft>();
+  const [recoveryError, setRecoveryError] = useState(false);
+  const onDraft = useCallback((draft:TaskDraft|null) => { draftRef.current=draft; },[]);
+  useEffect(() => {
+    if (!api) return;
+    const controller=new AbortController();
+    void loadDraftKey(api,controller.signal).then(async key=>{
+      if (controller.signal.aborted) return;
+      identity.current=key;
+      const envelope=pendingRecovery.current;
+      if (!envelope) return;
+      const draft=await restoreDraft(envelope,key.key,new URL(location.href));
+      if (controller.signal.aborted) return;
+      pendingRecovery.current=null;
+      const next=new URLSearchParams({v:"inbox",t:draft.taskId});
+      history.replaceState(null,"","/?"+next);
+      setSearch(location.search);
+      setRecovered(draft);
+    }).catch(()=>{
+      if (!controller.signal.aborted && pendingRecovery.current) {
+        pendingRecovery.current=null;
+        setRecoveryError(true);
+      }
+    });
+    return ()=>controller.abort();
+  },[api]);
   useEffect(() => {
     const pop = () => setSearch(location.search);
     addEventListener("popstate", pop);
@@ -46,11 +76,9 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
     return () => removeEventListener("keydown", key);
   }, []);
   useEffect(() => {
-    if (api)
-      api.onExpired = () =>
-        setExpired(true);
+    if (api) api.onExpired = api.onUnavailable = () => setExpired(true);
     return () => {
-      if (api) api.onExpired = undefined;
+      if (api) api.onExpired = api.onUnavailable = undefined;
     };
   }, [api]);
   const navigate = (values: Record<string, string | null>) => {
@@ -66,16 +94,39 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
         <p className="eyebrow">THREADPORT · LOCAL</p>
         <h1>Reconnect to your terminal</h1>
         <p>
-          Paste the link printed by your running ThreadPort service. Your tasks
-          and search filters are preserved. Unsaved edits stay open while you reconnect.
+          Paste the link printed by your running ThreadPort service. If the port changed,
+          an unsaved task edit can be restored in a new tab for the same workspace data.
         </p>
         <form
           onSubmit={(e) => {
             e.preventDefault();
             void reconnect.run(async () => {
-              const client = reconnectClient(link);
+              const { url, client } = reconnectClient(link);
+              const draft = draftRef.current, currentIdentity = identity.current;
+              if (client) {
+                if (draft) {
+                  const fresh = await loadDraftKey(client,AbortSignal.timeout(5000));
+                  if (!currentIdentity || fresh.fingerprint!==currentIdentity.fingerprint)
+                    throw new Error("This link does not match the workspace data for your draft.");
+                }
+                setApi(client); setExpired(false);
+              } else if (draft) {
+                if (!currentIdentity) throw new Error("The draft cannot be moved. It remains open in this tab.");
+                // Preserve the original if the new terminal link is invalid or
+                // belongs to a different database. Detach before navigating.
+                const target = window.open("about:blank","_blank");
+                if (!target) throw new Error("Allow a new tab to restore the draft. It remains open in this tab.");
+                target.opener=null;
+                try {
+                  const hash = new URLSearchParams(url.hash.slice(1));
+                  hash.set("draft",await sealDraft(draft,currentIdentity.key,url));
+                  url.hash=hash.toString();
+                  target.location.replace(url.href);
+                } catch(error) { target.close(); throw error; }
+              } else {
+                location.assign(url.href);
+              }
               setLink("");
-              if (client) { setApi(client); setExpired(false); }
             });
           }}
         >
@@ -98,7 +149,12 @@ export function App({ initialApi }: { initialApi: ApiClient | null }) {
   return (
     <>
     {expired && <Modal title="Reconnect to your terminal" onClose={() => { setExpired(false); return true; }}>{reconnectForm}</Modal>}
+    {recoveryError && <p role="alert">This tab could not restore the draft. Check the terminal link; the draft remains in the original tab.</p>}
     <Shell
+      disconnected={expired}
+      recovered={recovered?.taskId===params.get("t")?recovered:undefined}
+      clearRecovered={()=>setRecovered(undefined)}
+      onDraft={onDraft}
       api={api}
       params={params}
       revision={revision}
@@ -124,6 +180,10 @@ function Shell({
   search,
   setSearchInput,
   searchRef,
+  disconnected,
+  recovered,
+  clearRecovered,
+  onDraft,
 }: {
   api: ApiClient;
   params: URLSearchParams;
@@ -135,6 +195,10 @@ function Shell({
   search: string;
   setSearchInput: (v: string) => void;
   searchRef: React.RefObject<HTMLInputElement | null>;
+  disconnected: boolean;
+  recovered?: TaskDraft;
+  clearRecovered: () => void;
+  onDraft: (draft:TaskDraft|null)=>void;
 }) {
   const projects = useLoad<Envelope<Project[]>>(api, "/projects", revision);
   const view = params.get("v") ?? "inbox";
@@ -172,7 +236,7 @@ function Shell({
         <div className="local-note">
           <span className="dot" />
           Stored on this device
-          <ServiceStatus api={api} />
+          <ServiceStatus api={api} disconnected={disconnected} />
           {document.documentElement.dataset.demo === "true" && (
             <p>DEMO · Synthetic data</p>
           )}
@@ -237,6 +301,9 @@ function Shell({
               api={api}
               id={params.get("t")!}
               navigate={navigate}
+              recovered={recovered}
+              clearRecovered={clearRecovered}
+              onDraft={onDraft}
             />
           ) : (
             <Inbox
@@ -266,7 +333,7 @@ function Shell({
   );
 }
 
-function ServiceStatus({ api }: { api: ApiClient }) {
+function ServiceStatus({ api, disconnected }: { api: ApiClient; disconnected: boolean }) {
   const [revision, setRevision] = useState(0);
   const status = useLoad<
     Envelope<{
@@ -275,9 +342,10 @@ function ServiceStatus({ api }: { api: ApiClient }) {
     }>
   >(api, "/status", revision);
   useEffect(() => {
+    if (disconnected) return;
     const timer = setInterval(() => setRevision((n) => n + 1), 15000);
     return () => clearInterval(timer);
-  }, []);
+  }, [disconnected]);
   return (
     <div className="service-status">
       {status.data && (

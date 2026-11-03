@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { DraftFields, TaskDraft } from "../../draft-recovery.js";
 import { type ApiClient, type Task, ApiError } from "../../api.js";
 import { ErrorNotice, Modal, useAction } from "../../components.js";
 import {
@@ -10,25 +11,33 @@ export function Editor({
   task,
   onClose,
   onSaved,
+  recovered,
+  onDraft,
 }: {
   api: ApiClient;
   task: Task;
   onClose: () => void;
   onSaved: () => void;
+  recovered?: TaskDraft;
+  onDraft: (draft: TaskDraft | null) => void;
 }) {
-  const baseline = {
+  const [baseline] = useState<DraftFields>(() => ({
     title: task.title,
     objective: task.objective.text,
     nextAction: task.nextAction.text,
     constraints: task.constraints.map((c) => c.text).join("\n"),
-  };
-  const [draft, setDraft] = useState(baseline);
+  }));
+  const [expectedRevision] = useState(recovered?.revision ?? task.revision);
+  const [draft, setDraft] = useState<DraftFields>(() => ({...baseline,...recovered?.changes}));
   const action = useAction();
-  const dirty = Object.keys(baseline).some(
-    (key) =>
-      draft[key as keyof typeof draft] !==
-      baseline[key as keyof typeof baseline],
-  );
+  const changes: Partial<DraftFields> = {};
+  for (const key of Object.keys(baseline) as (keyof DraftFields)[])
+    if (draft[key] !== baseline[key]) changes[key]=draft[key];
+  const dirty = Object.keys(changes).length>0;
+  useEffect(()=>{
+    onDraft(dirty?{taskId:task.id,revision:expectedRevision,changes}:null);
+    return ()=>onDraft(null);
+  },[baseline,draft,expectedRevision,onDraft,task.id]);
   useEffect(() => {
     if (!dirty) return;
     const prevent = (event: BeforeUnloadEvent) => {
@@ -73,7 +82,7 @@ export function Editor({
               );
             }
             await api.request("/tasks/" + task.id, "PATCH", {
-              expectedRevision: task.revision,
+              expectedRevision,
               patch,
             });
             onSaved();

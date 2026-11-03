@@ -12,14 +12,15 @@ describe('control plane storage',()=>{
    const cp=store.controlPlane(),manifest=createContextManifest({handoffId:'deadline',taskId:'task',taskRevision:1,targetSessionId:'s',targetRunId:'r'});cp.saveManifest(manifest);
    const expiry=Date.now()+3600000,input={handoffId:'deadline',targetSessionId:'s',targetRunId:'r',manifestDigest:manifest.digest,stage:'received' as const,nonce:'expiry-nonce-123456',expiresAt:new Date(expiry).toISOString()};
    expect(cp.saveReceipt(input).status).toBe('pending');
+   const confirmed=cp.saveReceipt({...input,nonce:'confirmed-nonce-123456'});
+   const evidence=cp.recordReceiptAttestation({receiptId:confirmed.receiptId,taskId:'task',handoffId:input.handoffId,targetSessionId:'s',targetRunId:'r',manifestDigest:manifest.digest,stage:'received'});
+   cp.confirmReceipt({receiptId:confirmed.receiptId,stage:'received',evidenceIds:[evidence]});
    const clock=vi.spyOn(Date,'now').mockReturnValue(expiry);
    try{
-    expect(cp.listReceipts('deadline')[0].status).toBe('expired');expect(cp.listAllReceipts()[0].status).toBe('expired');expect(cp.listReceiptsForTask('task')[0].status).toBe('expired');expect(cp.saveReceipt(input).status).toBe('expired');
+    for(const receipts of [cp.listReceipts('deadline'),cp.listAllReceipts(),cp.listReceiptsForTask('task')])expect(receipts.map(r=>r.status).sort()).toEqual(['confirmed','expired']);expect(cp.saveReceipt(input).status).toBe('expired');
     const db=new Database(join(d,'threadport.sqlite'));
     try{
-     expect(db.prepare('SELECT status FROM handoff_receipts').pluck().get()).toBe('pending');
-     db.prepare('UPDATE handoff_receipts SET status=?,confirmed_at=?').run('confirmed',new Date(expiry-500).toISOString());
-     expect(cp.listReceipts('deadline')[0].status).toBe('confirmed');
+     expect(db.prepare('SELECT status FROM handoff_receipts WHERE nonce=?').pluck().get(input.nonce)).toBe('pending');
     }finally{db.close();}
    }finally{clock.mockRestore();}
   }finally{store.close();}

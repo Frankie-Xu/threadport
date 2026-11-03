@@ -1,8 +1,10 @@
-import { controlEventSchema, contextManifestSchema, receiptInputSchema, receiptSummarySchema, type ControlEvent, type ContextManifestV1, type ObservationHealth, type ReceiptSummary, type ReceiptInput, type RunFact, canonicalDigest } from './contracts.js';
+import { controlEventSchema, contextManifestSchema, receiptInputSchema, receiptSummarySchema, controlIdSchema, type ControlEvent, type ContextManifestV1, type ObservationHealth, type ReceiptSummary, type ReceiptInput, type RunFact, type SafePayload, canonicalDigest, lineagePayloadSchema, lineageRelations, lineageEvidenceLevels, responsibilityPayloadSchema, attentionPayloadSchema } from './contracts.js';
+import { protectControlEvent } from './privacy.js';
 import { assertManifestDigest } from './manifest.js';
+import { receiptStageOrder, sameReceiptIdentity } from './receipts.js';
 
-export type EvidenceLevel = 'runtime-explicit' | 'trusted-integration' | 'user-confirmed' | 'inferred';
-export type LineageRelation = 'fork' | 'delegate' | 'handoff' | 'resume' | 'compact' | 'host-move' | 'manual-takeover';
+export type EvidenceLevel = typeof lineageEvidenceLevels[number];
+export type LineageRelation = typeof lineageRelations[number];
 export interface SessionProjection { runState: RunFact; health: ObservationHealth; lastEvidenceId: string | null; lastOccurredAt: string | null }
 export interface LineageRecord { id: string; parentSessionId: string; childSessionId: string; relation: LineageRelation; evidenceLevel: EvidenceLevel; status: 'candidate' | 'confirmed' | 'rejected'; evidenceIds: string[]; occurredAt: string | null }
 export interface ResponsibilityRecord { id: string; taskId: string; scope: string; roles: Partial<Record<'initiator' | 'authorizer' | 'dispatcher' | 'executor' | 'reviewer' | 'next-owner', string>>; status: 'proposed' | 'confirmed' | 'ended'; evidenceIds: string[]; confirmedAt: string | null }
@@ -26,9 +28,11 @@ function eventOrder(a: ControlEvent, b: ControlEvent): number {
   const ordinalB = b.ordinal === null ? Number.MAX_SAFE_INTEGER : b.ordinal;
   return ordinalA - ordinalB || (a.occurredAt ?? '\uffff').localeCompare(b.occurredAt ?? '\uffff') || a.eventId.localeCompare(b.eventId) || a.recordedAt.localeCompare(b.recordedAt);
 }
-function payload(event: ControlEvent): Record<string, any> { return (event.payload && typeof event.payload === 'object' && !Array.isArray(event.payload)) ? event.payload as Record<string, any> : {}; }
+function payload(event: ControlEvent): Record<string, SafePayload> {
+  const value=event.payload;
+  return value && typeof value==='object' && !Array.isArray(value) ? value : {};
+}
 function observedHealth(event: ControlEvent): ObservationHealth { return event.source.kind === 'agent-report' ? 'unverified' : event.source.coverage !== 'full' ? 'coverage-gap' : 'current'; }
-function severity(value: unknown): AttentionItem['severity'] { return value === 'error' || value === 'warning' ? value : 'info'; }
 function addAttention(state: ControlState, item: AttentionItem): void {
   const existing = state.attention.find(value => value.id === item.id);
   if (existing) return;
@@ -52,14 +56,30 @@ function receiptSummary(event: ControlEvent, input: ReceiptInput, receiptId: str
     status,
     createdAt: event.recordedAt,
     confirmedAt: status === 'confirmed' ? event.occurredAt ?? event.recordedAt : null,
-    evidenceIds: [...new Set([...event.evidenceIds, event.eventId])],
+    evidenceIds: [...new Set([event.eventId, ...event.evidenceIds])].slice(0, 128),
   });
 }
 function receiptAttention(state: ControlState, event: ControlEvent, kind: string, message: string): void {
   addAttention(state, { id: `receipt:${kind}:${event.eventId}`, kind, severity: 'warning', message, status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
 }
-function project(events: readonly ControlEvent[]): ControlState {
+interface PreparedState {
+  manifests: readonly ContextManifestV1[];
+  receipts: readonly ReceiptSummary[];
+  authorizedEvents?: ReadonlyMap<string,string>;
+}
+function authorized(event: ControlEvent, prepared?: PreparedState): boolean {
+  const digest=prepared?.authorizedEvents?.get(event.eventId);
+  return digest!==undefined && canonicalDigest(event)===digest;
+}
+function project(events: readonly ControlEvent[], prepared?: PreparedState): ControlState {
   const state=newControlState();
+  for (const manifest of prepared?.manifests ?? []) state.manifests[manifest.handoffId]=manifest;
+  const persisted=new Set<string>(), nonces=new Map<string,string>();
+  const nonceKey=(receipt:ReceiptInput)=>`${receipt.handoffId}\0${receipt.nonce}`;
+  for (const receipt of prepared?.receipts ?? []) {
+    state.receipts[receipt.receiptId]=receipt;
+    persisted.add(receipt.receiptId); nonces.set(nonceKey(receipt),receipt.receiptId);
+  }
   for (const event of [...events].sort(eventOrder)) {
     const p = payload(event);
     const runId = event.sessionId ?? event.runId;
@@ -70,49 +90,64 @@ function project(events: readonly ControlEvent[]): ControlState {
       else if (!current) state.sessions[runId] = { runState, health: observedHealth(event), lastEvidenceId: event.evidenceIds.at(-1) ?? event.eventId, lastOccurredAt: event.occurredAt };
     }
     if (event.type === 'lineage.relation') {
-      const parentSessionId = typeof p.parentSessionId === 'string' ? p.parentSessionId : event.sessionId;
-      const childSessionId = typeof p.childSessionId === 'string' ? p.childSessionId : null;
-      const relation = p.relation as LineageRelation;
-      if (!parentSessionId || !childSessionId || !['fork','delegate','handoff','resume','compact','host-move','manual-takeover'].includes(relation)) continue;
-      // Compaction preserves one vendor session. It is a lifecycle fact, not a
-      // parent/child edge; accepting a different child here would invent a
-      // session that the source never created.
-      if (relation === 'compact' && parentSessionId !== childSessionId) continue;
-      const evidenceLevel = (p.evidenceLevel as EvidenceLevel) ?? 'inferred';
-      const userConfirmed = event.source.kind === 'user' || evidenceLevel === 'user-confirmed';
-      const runtimeConfirmed = event.source.kind === 'runtime' || event.source.kind === 'threadport';
-      const confirmed = (userConfirmed || (runtimeConfirmed && evidenceLevel === 'runtime-explicit')) && event.source.kind !== 'agent-report';
-      const id = String(p.id ?? `${parentSessionId}:${childSessionId}:${relation}`);
-      const current = state.lineage.find(item => item.id === id);
-      const status: LineageRecord['status'] = p.status === 'rejected' ? 'rejected' : confirmed ? 'confirmed' : 'candidate';
-      if (!current || current.status !== 'confirmed' || status === 'confirmed') {
-        if (current) Object.assign(current, { status, evidenceLevel: confirmed ? evidenceLevel : current.evidenceLevel, evidenceIds: [...new Set([...current.evidenceIds, ...event.evidenceIds, event.eventId])] });
-        else state.lineage.push({ id, parentSessionId, childSessionId, relation, evidenceLevel, status, evidenceIds: [...new Set([...event.evidenceIds, event.eventId])], occurredAt: event.occurredAt });
+      const result=lineagePayloadSchema.safeParse(p);
+      if (!result.success) continue;
+      const claim=result.data;
+      const {childSessionId,relation}=claim;
+      const parentSessionId=claim.parentSessionId??event.sessionId;
+      // Compaction preserves a single vendor session.
+      if (!parentSessionId || relation==='compact' && parentSessionId!==childSessionId) continue;
+      const trusted=authorized(event,prepared);
+      const evidenceLevel=trusted ? claim.evidenceLevel??'inferred' : 'inferred';
+      const id=claim.id??`${parentSessionId}:${childSessionId}:${relation}`;
+      const current=state.lineage.find(item=>item.id===id);
+      if (current && current.status!=='candidate' && !trusted) continue;
+      const status=trusted && claim.status==='rejected'?'rejected':evidenceLevel!=='inferred'?'confirmed':'candidate';
+      if (current && current.status!=='candidate' && status==='candidate') continue;
+      const record:LineageRecord={
+        id,parentSessionId,childSessionId,relation,status,evidenceLevel,occurredAt:event.occurredAt,
+        evidenceIds:[...new Set([...event.evidenceIds,event.eventId])],
+      };
+      if (!current) state.lineage.push(record);
+      else if (trusted) Object.assign(current,record);
+      else if (current.parentSessionId===parentSessionId && current.childSessionId===childSessionId && current.relation===relation) {
+        current.evidenceIds=[...new Set([...current.evidenceIds,...record.evidenceIds])];
       }
     }
     if (event.type === 'responsibility.proposed' || event.type === 'responsibility.confirmed' || event.type === 'responsibility.ended') {
-      const id = String(p.id ?? p.responsibilityId ?? `${event.taskId ?? 'task'}:${p.scope ?? 'task'}`);
-      const existing = state.responsibilities.find(item => item.id === id);
-      const nextStatus: ResponsibilityRecord['status'] = event.type === 'responsibility.confirmed' && (event.source.kind === 'user' || event.source.kind === 'runtime' || event.source.kind === 'threadport') ? 'confirmed' : event.type === 'responsibility.ended' ? 'ended' : 'proposed';
-      const roles = (p.roles && typeof p.roles === 'object' ? p.roles : {}) as ResponsibilityRecord['roles'];
-      const record: ResponsibilityRecord = existing ?? { id, taskId: event.taskId ?? String(p.taskId ?? 'unknown'), scope: String(p.scope ?? 'task'), roles: {}, status: 'proposed', evidenceIds: [], confirmedAt: null };
-      // Agent reports are pending input. Once a responsibility is confirmed,
-      // an untrusted proposal must not replace its executor or role bindings.
-      const trustedSource = event.source.kind !== 'agent-report';
-      if (!existing || existing.status !== 'confirmed' || (trustedSource && event.type === 'responsibility.confirmed')) {
-        record.roles = { ...record.roles, ...roles };
-        if (typeof p.ownerSessionId === 'string' && !record.roles.executor) record.roles.executor = p.ownerSessionId;
+      const result=responsibilityPayloadSchema.safeParse(p);
+      if (!result.success) continue;
+      const claim=result.data;
+      const taskId=event.taskId??claim.taskId??'unknown';
+      const scope=claim.scope??'task';
+      const id=claim.id??claim.responsibilityId??`${taskId}:${scope}`;
+      const current=state.responsibilities.find(item=>item.id===id&&item.taskId===taskId);
+      const trusted=authorized(event,prepared);
+      if (current?.status==='ended' || current?.status==='confirmed' && !trusted) continue;
+      const evidenceIds=[...new Set([...event.evidenceIds,event.eventId])];
+      if (event.type==='responsibility.ended') {
+        if (trusted && current?.status==='confirmed') {
+          current.status='ended';
+          current.evidenceIds=[...new Set([...current.evidenceIds,...evidenceIds])];
+        }
+        continue;
       }
-      record.evidenceIds = [...new Set([...record.evidenceIds, ...event.evidenceIds, event.eventId])];
-      if (nextStatus === 'ended' && trustedSource) record.status = 'ended';
-      else if (nextStatus === 'confirmed' && record.status !== 'ended') record.status = 'confirmed';
-      else if (nextStatus === 'proposed' && record.status === 'proposed') record.status = 'proposed';
-      if (record.status === 'confirmed') record.confirmedAt = event.occurredAt ?? event.recordedAt;
-      if (!existing) state.responsibilities.push(record);
+      const status=trusted && event.type==='responsibility.confirmed'?'confirmed':'proposed';
+      // A confirmed action replaces the untrusted candidate. It cannot
+      // inherit roles, evidence, or a scope supplied by an earlier import.
+      const previous=current?.status===status?current:undefined;
+      const roles={...previous?.roles,...claim.roles};
+      if(claim.ownerSessionId&&!roles.executor)roles.executor=claim.ownerSessionId;
+      const record:ResponsibilityRecord={
+        id,taskId,scope,roles,status,evidenceIds:[...new Set([...(previous?.evidenceIds??[]),...evidenceIds])],
+        confirmedAt:status==='confirmed'?event.occurredAt??event.recordedAt:null,
+      };
+      if(current)Object.assign(current,record);
+      else state.responsibilities.push(record);
     }
-    if (event.type === 'manifest.saved' && typeof p.handoffId === 'string' && p.manifest) {
+    if (event.type === 'manifest.saved' && typeof p.handoffId === 'string') {
       const parsed = contextManifestSchema.safeParse(p.manifest);
-      if (!parsed.success||parsed.data.handoffId!==p.handoffId) receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest is invalid or belongs to another handoff.');
+      if (!parsed.success||parsed.data.handoffId!==p.handoffId||parsed.data.taskId!==event.taskId) receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest is invalid or belongs to another handoff.');
       else {
         try {
           assertManifestDigest(parsed.data);
@@ -123,45 +158,72 @@ function project(events: readonly ControlEvent[]): ControlState {
         catch { receiptAttention(state, event, 'manifest-integrity', 'Prepared manifest digest does not match its contents.'); }
       }
     }
-    if (event.type.startsWith('receipt.')) {
-      const raw = receiptPayload(event);
-      const receiptId = typeof raw.receiptId === 'string' ? raw.receiptId : null;
-      const { receiptId: _receiptId, status: _status, createdAt: _createdAt, confirmedAt: _confirmedAt, evidenceIds: _evidenceIds, ...inputRaw } = raw;
-      const parsed = receiptInputSchema.safeParse(inputRaw);
-      if (!receiptId || !parsed.success) { receiptAttention(state, event, 'receipt-integrity', 'Receipt input is incomplete or invalid.'); continue; }
-      const input = parsed.data;
-      const manifest = state.manifests[input.handoffId];
-      let integrity = true;
-      if (!manifest) { integrity = false; receiptAttention(state, event, 'coverage-gap', 'Receipt has no prepared manifest to verify against.'); }
-      else {
-        try { assertManifestDigest(manifest); }
-        catch { integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Prepared manifest digest is invalid.'); }
-        if (!manifest.targetSessionId || !manifest.targetRunId || manifest.targetSessionId !== input.targetSessionId || manifest.targetRunId !== input.targetRunId) { integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Receipt target does not match the prepared target.'); }
-        if (manifest.digest !== input.manifestDigest) { integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Receipt manifest digest does not match the prepared manifest.'); }
+    if (event.type === 'attention.opened' || event.type === 'attention.resolved') {
+      const result=attentionPayloadSchema.safeParse(p);
+      if (!result.success) continue;
+      const claim=result.data;
+      if (event.type==='attention.opened') {
+        addAttention(state,{
+          id:claim.id??event.eventId,kind:claim.kind??'unknown',severity:claim.severity??'info',
+          message:claim.message??'Control plane attention required.',status:'open',
+          evidenceIds:[...new Set([...event.evidenceIds,event.eventId])],
+        });
+      } else {
+        const item=state.attention.find(value=>value.id===claim.id);
+        if(item)item.status='resolved';
       }
-      const evidence = event.evidenceIds.length > 0;
-      const agentReported = event.source.kind === 'agent-report';
-      const requestedVerified = input.stage === 'verified-complete';
-      const effectiveStage = requestedVerified && (agentReported || !evidence || !integrity) ? 'reported-complete' : input.stage;
-      if (requestedVerified && (agentReported || !evidence || !integrity)) receiptAttention(state, event, 'unverified-completion', 'Receipt claims verified completion without trusted verification evidence.');
-      const expired = Date.parse(input.expiresAt) <= Date.parse(event.occurredAt ?? event.recordedAt);
-      const nextStatus: ReceiptSummary['status'] = expired ? 'expired' : agentReported || !integrity || (event.type.endsWith('.confirmed') && !evidence) ? 'unknown' : event.type.endsWith('.confirmed') ? 'confirmed' : event.type.endsWith('.rejected') ? 'rejected' : 'pending';
-      const current = state.receipts[receiptId];
-      const nonceConflict = Object.values(state.receipts).some(item => item.receiptId !== receiptId && item.handoffId === input.handoffId && item.nonce === input.nonce);
-      if (nonceConflict) { receiptAttention(state, event, 'receipt-integrity', 'Receipt nonce was already used for a different request.'); }
-      const projected = receiptSummary(event, input, receiptId, nonceConflict ? 'unknown' : nextStatus, effectiveStage);
-      if (!current || current.status !== 'confirmed' || projected.status === 'confirmed') state.receipts[receiptId] = projected;
     }
-    if (event.type === 'attention.opened') addAttention(state, { id: String(p.id ?? event.eventId), kind: String(p.kind ?? 'unknown'), severity: severity(p.severity), message: String(p.message ?? 'Control plane attention required.'), status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
-    if (event.type === 'attention.resolved') { const item = state.attention.find(value => value.id === p.id); if (item) item.status = 'resolved'; }
     if (event.source.coverage !== 'full') addAttention(state, { id: `coverage:${event.source.sourceId}:${event.type}`, kind: 'coverage-gap', severity: 'warning', message: 'Evidence source coverage is incomplete.', status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
     if (event.type === 'handoff.reported-complete' || event.type === 'run.ended' && event.source.kind === 'agent-report') addAttention(state, { id: `unverified:${event.eventId}`, kind: 'unverified-completion', severity: 'warning', message: 'Agent-reported completion requires verification evidence.', status: 'open', evidenceIds: [...new Set([...event.evidenceIds, event.eventId])] });
+  }
+  // Receipt identity follows ledger arrival order. A later import can claim
+  // an earlier ordinal, but cannot use it to replace the first identity.
+  for (const event of events) {
+    if (!['receipt.requested','receipt.confirmed','receipt.rejected'].includes(event.type)) continue;
+    const raw = receiptPayload(event);
+    const id = controlIdSchema.safeParse(raw.receiptId);
+    const { receiptId: _receiptId, status: _status, createdAt: _createdAt, confirmedAt: _confirmedAt, evidenceIds: _evidenceIds, ...inputRaw } = raw;
+    const parsed = receiptInputSchema.safeParse(inputRaw);
+    if (!id.success || !parsed.success) { receiptAttention(state, event, 'receipt-integrity', 'Receipt input is incomplete or invalid.'); continue; }
+    const receiptId = id.data, input = parsed.data;
+    const manifest = state.manifests[input.handoffId];
+    let integrity = true;
+    if (!manifest) { integrity = false; receiptAttention(state, event, 'coverage-gap', 'Receipt has no prepared manifest to verify against.'); }
+    else {
+      try { assertManifestDigest(manifest); }
+      catch { integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Prepared manifest digest is invalid.'); }
+      if (!manifest.targetSessionId || !manifest.targetRunId || manifest.targetSessionId !== input.targetSessionId || manifest.targetRunId !== input.targetRunId) { integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Receipt target does not match the prepared target.'); }
+      if (manifest.digest !== input.manifestDigest) { integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Receipt manifest digest does not match the prepared manifest.'); }
+    }
+    // Replayed events, including old rows claiming to be from the runtime,
+    // are observations. Only the dedicated persisted receipt writer can attest.
+    if (event.taskId !== manifest?.taskId || event.sessionId !== input.targetSessionId || event.runId !== input.targetRunId) {
+      integrity = false; receiptAttention(state, event, 'receipt-integrity', 'Receipt event does not match the task and target.');
+    }
+    const requestedVerified = input.stage === 'verified-complete';
+    const effectiveStage = requestedVerified ? 'reported-complete' : input.stage;
+    if (requestedVerified) receiptAttention(state, event, 'unverified-completion', 'Receipt claims verified completion without trusted verification evidence.');
+    const expired = Date.parse(input.expiresAt) <= Date.parse(event.occurredAt ?? event.recordedAt);
+    const nextStatus: ReceiptSummary['status'] = !integrity || requestedVerified || event.type !== 'receipt.requested' ? 'unknown' : expired ? 'expired' : 'pending';
+    const current = state.receipts[receiptId];
+    const claimedNonce=nonces.get(nonceKey(input));
+    if ((claimedNonce && claimedNonce !== receiptId) || (current && (!sameReceiptIdentity(current,input)
+      || receiptStageOrder(effectiveStage)<receiptStageOrder(current.stage)))) {
+      receiptAttention(state,event,'receipt-conflict','Receipt identity, nonce or stage conflicts with the existing receipt.');
+      continue;
+    }
+    // A log cannot replace a persisted receipt, including its expiry or
+    // confirmation. An invalid later observation cannot modify an existing row.
+    if (persisted.has(receiptId) || current && (!integrity || current.status==='expired' || current.status==='rejected')) continue;
+    const projected = receiptSummary(event,input,receiptId,nextStatus,effectiveStage);
+    state.receipts[receiptId] = current ? {...projected,createdAt:current.createdAt} : projected;
+    if (integrity) nonces.set(nonceKey(input),receiptId);
   }
   state.lineage.sort((a,b) => a.id.localeCompare(b.id)); state.responsibilities.sort((a,b) => a.id.localeCompare(b.id)); state.attention.sort((a,b) => a.id.localeCompare(b.id));
   return state;
 }
 export function applyControlEvent(state: ControlState, input: ControlEvent): ControlState {
-  const event = controlEventSchema.parse(input);
+  const event = protectControlEvent(controlEventSchema.parse(input));
   const previous = eventLogs.get(state) ?? [];
   const same = previous.find(item => item.eventId === event.eventId);
   const events = same ? previous : [...previous, event];
@@ -169,16 +231,19 @@ export function applyControlEvent(state: ControlState, input: ControlEvent): Con
   if(same&&canonicalDigest(same)!==canonicalDigest(event))conflicts.add(event.eventId);
   const next = project(events);retainConflicts(next,conflicts);eventLogs.set(next, events); return next;
 }
-export function rebuildControlState(events: Iterable<ControlEvent>): ControlState {
+export function rebuildControlState(events: Iterable<ControlEvent>, prepared?: PreparedState): ControlState {
   const unique = new Map<string, ControlEvent>();
   const conflicts: string[] = [];
   for (const input of events) {
-    const event = controlEventSchema.parse(input);
+    const event = protectControlEvent(controlEventSchema.parse(input));
     const previous = unique.get(event.eventId);
     if (!previous) unique.set(event.eventId, event);
-    else if (canonicalDigest(previous) !== canonicalDigest(event)) conflicts.push(event.eventId);
+    else if (canonicalDigest(previous) !== canonicalDigest(event)) {
+      conflicts.push(event.eventId);
+      if (authorized(event,prepared)) unique.set(event.eventId,event);
+    }
   }
-  const state = project([...unique.values()]);
+  const state = project([...unique.values()], prepared);
   retainConflicts(state,conflicts);
   eventLogs.set(state, [...unique.values()]); return state;
 }

@@ -16,3 +16,4 @@ export * from './control-plane/manifest.js';
 export * from './control-plane/receipts.js';
 export * from './control-plane/coverage.js';
 export * from './control-plane/takeover.js';
+export { ControlPlaneService } from './control-plane/service.js';

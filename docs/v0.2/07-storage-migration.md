@@ -45,3 +45,17 @@ restoreBackup 检查备份完整性，只创建不存在的 threadport.sqlite；
 迁移 011 添加由触发器维护的 FTS5 trigram 候选索引，并将 session_search.search_text 按 SQLite lower() 的 ASCII 规则预处理，后续仅在事件变化、重置、缓存缺失或 dirty 时重建。原始 events.search_text 保留大小写用于高亮；dirty 缓存继续回退到原始事件查询。完整未变化批次在检查租约、游标与元数据后跳过 WAL 写入；心跳与变更批次仍负责续租。升级仍先备份，在事务内更新 user_version；schema 10 及历史分支都按既有谱系检查后升级。回退到 schema 10 程序需要恢复升级前备份，不能修改 user_version 冒充兼容。
 
 三个及以上 Unicode 字符且不含 NUL 的查询词用 trigram 求候选交集，最终仍以字面子串匹配校验，避免将不连续的 trigram 当作命中；较短词及 NUL 词沿用直接扫描。FTS 索引只存检索缓存的派生信息，不读取私有 event body。
+
+## Schema 12–14: Receipts, search and draft recovery
+
+- Schema 12 adds `receipt_attestations`. Replayed events, including legacy events, cannot attest. A trusted local verifier or reviewer calls `store.controlPlane().recordReceiptAttestation({receiptId, taskId, handoffId, targetSessionId, targetRunId, manifestDigest, stage})` after independently checking the result. The supported attestation stages are `received` and `verified-complete`. `confirmReceipt({receiptId, stage, evidenceIds})` resolves the stored IDs against that exact receipt, stage and prepared target. This is a trusted, in-process SDK boundary; neither the receipt submission API nor imported JSON has access to it. A successful Agent process exit alone does not certify task completion.
+- Schema 13 backfills searchable command text from the event's public fields and rebuilds affected session caches. Working directories, source locators and private fields do not enter the cache. The upgrade scrubs recognized credentials from valid legacy control observations in the active database without changing their retry digests. Unsafe manifest bodies are withheld rather than served with a digest that would no longer match. Historical backups and quarantined originals are retained; the upgrade is not a forensic erasure.
+- Schema 14 adds a local database identity for task draft recovery. When a service restarts on a new port, paste its current terminal link in the old tab. The draft stays open there and is carried to a new tab as a short-lived encrypted fragment. Only an authenticated connection to the same local database can restore it. The restored editor saves against the original revision. Draft plaintext is not saved in browser storage or sent to the server during recovery.
+
+As with other schema upgrades, older packages refuse the newer database. To downgrade, restore the pre-upgrade backup into a new directory and verify it before switching.
+
+## Schema 15: Control event authority
+
+Schema 15 records which lineage and responsibility decisions came from an authorized local writer. Imported records and older events whose writer cannot be proven remain observations. Old lineage and responsibility claims can still be inspected as candidates or proposals. Confirmed responsibility can be recorded again through the authenticated API. Receipt confirmations still require their own stored attestations.
+
+Projected payloads are validated before ingest. A malformed historical record remains in the database and produces an attention item while other records replay. The migration also removes recognized credentials from stored event types and retains the original retry digests. The schema 14 receipt attestations and draft identity remain compatible with the upgrade.
