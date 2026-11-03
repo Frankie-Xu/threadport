@@ -1,10 +1,11 @@
 import { afterEach, expect, it } from 'vitest';
 import Database from 'better-sqlite3';
-import { mkdtemp, readdir, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDatabase, restoreBackup } from '../../src/storage/database.js';
 import { migrate, SCHEMA_VERSION } from '../../src/storage/migrations.js';
+import { eventSearchText } from '../../src/storage/search-projection.js';
 const dirs: string[] = [];
 afterEach(async () => { for (const dir of dirs.splice(0)) await rm(dir, { recursive: true, force: true }); });
 async function dir() { const d = await mkdtemp(join(tmpdir(), 'tp-migrate-')); dirs.push(d); return d; }
@@ -123,6 +124,7 @@ const canonicalHistory = [...mainHistory, '007-launch-coordination.sql', '008-as
 async function historicalDatabase(files: string[], version: number, crlf = false) {
  const dataDir = await dir();
  const db = new Database(join(dataDir, 'threadport.sqlite'));
+ db.function('tp_search_event_v13',{deterministic:true},(body:string,existing:string)=>eventSearchText(JSON.parse(body),existing));
  const { readFile } = await import('node:fs/promises');
  for (const name of files.slice(0, version)) {
   const sql = await readFile(new URL('../../migrations/' + name, import.meta.url), 'utf8');
@@ -223,4 +225,101 @@ it('folds schema 10 cached text without changing original evidence or dirty stat
   expect(db.prepare('SELECT search_text FROM events WHERE id=?').pluck().get('e')).toBe(text);
   expect(db.prepare('SELECT search_text,dirty FROM session_search WHERE session_id=?').get('s')).toEqual({search_text:'before\0afternul Ä 支付',dirty:0});
  }finally{db.close();}
+});
+
+it('backfills legacy command caches and scrubs control observations without changing retry or manifest digests',async()=>{
+ const {dataDir,db}=await historicalDatabase([...canonicalHistory,'010-unify-search-projection.sql','011-fold-session-search.sql'],11);
+ const {canonicalDigest,controlEventSchema}=await import('../../src/control-plane/contracts.js');
+ const {manifestDigest,createContextManifest,assertManifestDigest}=await import('../../src/control-plane/manifest.js');
+ const {openStore}=await import('../../src/storage/sqlite-store.js');
+ const credential='Bearer '+'M'.repeat(24);
+ const event=controlEventSchema.parse({
+  eventId:'historical-control',protocol:'threadport.control-event.v1',taskId:'t',sessionId:null,runId:null,ordinal:null,occurredAt:null,recordedAt:'2026-11-03T00:00:00.000Z',
+  source:{kind:'runtime',sourceId:'historical',coverage:'full',parserVersion:null},type:'attention.opened',payload:{message:'Old '+credential},idempotencyKey:credential,evidenceIds:[],
+ });
+ const manifest=createContextManifest({handoffId:'old-manifest',taskId:'t',taskRevision:1,constraints:[{key:'scope',text:'Synthetic safe'}]});
+ const unsafe={...manifest,handoffId:'unsafe-manifest',constraints:[{...manifest.constraints[0],text:'Old '+credential}]};
+ unsafe.digest=manifestDigest(unsafe);
+ try{
+  db.prepare('UPDATE events SET body_json=?,search_text=? WHERE id=?').run(JSON.stringify({
+   text:'historical stdout',relativePaths:[],commandRun:{command:'npm run migrated-command-needle '+credential,cwd:'/private-cwd-needle'},reasoning:'private-reasoning-needle',
+  }),'historical stdout','e');
+  db.prepare("UPDATE session_search SET search_text='historical stdout',dirty=0 WHERE session_id='s'").run();
+  db.prepare('INSERT INTO control_events(event_id,payload_digest,event_json,recorded_at,idempotency_key) VALUES(?,?,?,?,?)')
+   .run(event.eventId,canonicalDigest(event),JSON.stringify(event),event.recordedAt,event.idempotencyKey);
+  const save=db.prepare('INSERT INTO context_manifests VALUES(?,?,?,?,?,?)');
+  for (const value of [manifest,unsafe]) save.run(value.handoffId,value.taskId,value.taskRevision,value.digest,JSON.stringify(value),value.createdAt);
+  await migrate(db,dataDir);
+  expect(db.prepare("SELECT search_text,dirty FROM session_search WHERE session_id='s'").get()).toMatchObject({dirty:0,search_text:expect.stringContaining('migrated-command-needle')});
+  const row=db.prepare('SELECT event_json,payload_digest,idempotency_key FROM control_events').get();
+  expect(row).toMatchObject({payload_digest:canonicalDigest(event)});
+  expect(JSON.stringify(row)).not.toContain(credential);
+ }finally{db.close();}
+ const store=await openStore({dataDir});
+ try{
+  const matches=store.searchHistory({q:'migrated-command-needle'}).items;
+  expect(matches).toHaveLength(1);
+  expect(JSON.stringify(matches)).not.toMatch(/private-cwd-needle|private-reasoning-needle|Bearer MMM/);
+  for(const q of ['private-cwd-needle','private-reasoning-needle','M'.repeat(24)])expect(store.searchHistory({q}).items).toEqual([]);
+  const cp=store.controlPlane();
+  expect(cp.appendImportedEvents([event])).toEqual({inserted:[],duplicate:[event.eventId]});
+  expect(cp.projectState('t').attention[0].message).toContain('[REDACTED:bearer-token]');
+  expect(cp.getManifest(unsafe.handoffId)).toBeNull();
+  expect(cp.projectState('t').manifests[unsafe.handoffId]).toBeUndefined();
+  expect(cp.getManifest(manifest.handoffId)).toEqual(manifest);
+  expect(()=>assertManifestDigest(cp.getManifest(manifest.handoffId)!)).not.toThrow();
+  expect(()=>cp.saveManifest({...unsafe,handoffId:'new-unsafe',digest:manifestDigest({...unsafe,handoffId:'new-unsafe'})})).toThrow(expect.objectContaining({code:'REDACTION_REQUIRED'}));
+ }finally{store.close();}
+});
+
+it.each([11,14])('isolates malformed observations and old trust claims during the v%s WAL upgrade',async version=>{
+ const files=[...canonicalHistory,'010-unify-search-projection.sql','011-fold-session-search.sql','012-receipt-attestations.sql','013-public-search-projection.sql','014-local-draft-identity.sql'];
+ const {dataDir,db}=await historicalDatabase(files,version);
+ const {canonicalDigest,controlEventSchema}=await import('../../src/control-plane/contracts.js');
+ const {openStore}=await import('../../src/storage/sqlite-store.js');
+ const credential='sk-'+'z'.repeat(27);
+ const base={
+  protocol:'threadport.control-event.v1',taskId:'t',sessionId:'s',runId:'r',ordinal:1,occurredAt:null,recordedAt:'2026-11-04T00:00:00.000Z',
+  source:{kind:'runtime',sourceId:'self-reported',coverage:'full',parserVersion:null},idempotencyKey:null,evidenceIds:[],
+ };
+ const bad={...base,eventId:'bad-observation',type:'attention.opened',payload:{message:{toString:null}}};
+ const good={...base,eventId:'good-observation',type:'run.started',payload:{}};
+ const secret={...base,eventId:'secret-type',type:'review.'+credential,source:{...base.source,coverage:'partial'},payload:{}};
+ const lineage={...base,eventId:'old-lineage',type:'lineage.relation',payload:{
+  id:'old-edge',parentSessionId:'s',childSessionId:'child',relation:'handoff',evidenceLevel:'user-confirmed',status:'confirmed',
+ }};
+ const responsibility={...base,eventId:'old-responsibility',type:'responsibility.confirmed',payload:{id:'old-role',ownerSessionId:'s'}};
+ const end={...base,eventId:'old-ending',ordinal:2,type:'responsibility.ended',payload:{id:'old-role'}};
+ try{
+  db.pragma('journal_mode=WAL');
+  db.pragma('wal_autocheckpoint=0');
+  db.exec("UPDATE task_revisions SET body_json='{\"latestWalRevision\":true}' WHERE task_id='t'");
+  const insert=db.prepare('INSERT INTO control_events(event_id,payload_digest,event_json,recorded_at) VALUES(?,?,?,?)');
+  for(const event of [bad,good,secret,lineage,responsibility,end])insert.run(event.eventId,canonicalDigest(event),JSON.stringify(event),event.recordedAt);
+  expect((await stat(join(dataDir,'threadport.sqlite-wal'))).size).toBeGreaterThan(0);
+  await migrate(db,dataDir);
+  expect(db.pragma('user_version',{simple:true})).toBe(SCHEMA_VERSION);
+  expect(db.prepare('SELECT count(*) FROM control_events').pluck().get()).toBe(6);
+  const body=db.prepare('SELECT event_json FROM control_events WHERE event_id=?').pluck();
+  expect(body.get(bad.eventId)).toBe(JSON.stringify(bad));
+  expect(body.get(secret.eventId)).not.toContain(credential);
+  expect(db.prepare('SELECT payload_digest FROM control_events WHERE event_id=?').pluck().get(secret.eventId)).toBe(canonicalDigest(secret));
+  const [backupFolder]=await readdir(join(dataDir,'backups'));
+  const backup=new Database(join(dataDir,'backups',backupFolder,'backup.sqlite'),{readonly:true});
+  try{
+   expect(backup.prepare("SELECT body_json FROM task_revisions WHERE task_id='t'").pluck().get()).toBe('{"latestWalRevision":true}');
+   expect(backup.prepare('SELECT count(*) FROM control_events').pluck().get()).toBe(6);
+  }finally{backup.close();}
+ }finally{db.close();}
+ const store=await openStore({dataDir});
+ try{
+  const cp=store.controlPlane();
+  const state=cp.projectState('t');
+  expect(state.sessions.s.runState).toBe('running');
+  expect(state.attention).toEqual(expect.arrayContaining([expect.objectContaining({kind:'invalid-stored-event'})]));
+  expect(JSON.stringify(state)).not.toContain(credential);
+  expect(state.lineage).toEqual([expect.objectContaining({status:'candidate',evidenceLevel:'inferred'})]);
+  expect(state.responsibilities).toEqual([expect.objectContaining({status:'proposed',confirmedAt:null})]);
+  expect(cp.appendImportedEvents([controlEventSchema.parse(secret)]).duplicate).toEqual([secret.eventId]);
+ }finally{store.close();}
 });

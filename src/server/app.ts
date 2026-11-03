@@ -51,6 +51,7 @@ export async function startLocalServer(options:{dataDir?:string;demo?:boolean;au
  registerBusinessRoutes(app,store,indexer);
  registerHandoffRoutes(app,store);
  registerControlPlaneRoutes(app,store);
+ app.get('/api/v1/draft-recovery',async()=>({data:{key:store.draftRecoveryKey()}}));
  registerDataRoutes(app,store,applicationDataDir(options),indexer,close);
  try{
   store.maintenance().prune();

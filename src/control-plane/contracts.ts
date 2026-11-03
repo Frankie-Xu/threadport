@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
+import { publicText } from '../privacy.js';
 import { isoTimestampSchema } from '../contracts/timestamp.js';
 
 export const controlIdSchema = z.string().min(1).max(512).regex(/^[A-Za-z0-9][A-Za-z0-9:._-]*$/);
@@ -50,7 +51,7 @@ export const sourceSchema = z.object({
   coverage: z.enum(['full', 'partial', 'none', 'unknown'])
 }).strict();
 
-export const controlEventSchema = z.object({
+export const controlEventEnvelopeSchema = z.object({
   eventId: controlIdSchema,
   protocol: z.literal('threadport.control-event.v1'),
   occurredAt: isoDate.nullable(),
@@ -77,6 +78,37 @@ export const controlEventSchema = z.object({
   if (known && payload !== null && typeof payload === 'object' && !Array.isArray(payload)) {
     for (const key of Object.keys(payload as Record<string, unknown>)) if (!known.includes(key)) ctx.addIssue({ code: z.ZodIssueCode.unrecognized_keys, keys: [key], path: ['payload'] });
   }
+});
+export const runPayloadSchema = z.object({
+  reason:z.string().max(2000).nullable().optional(),exitCode:z.number().int().safe().nullable().optional(),
+}).strict();
+export const lineageRelations = ['fork','delegate','handoff','resume','compact','host-move','manual-takeover'] as const;
+export const lineageEvidenceLevels = ['runtime-explicit','trusted-integration','user-confirmed','inferred'] as const;
+export const lineagePayloadSchema = z.object({
+  id:controlIdSchema.optional(),parentSessionId:controlIdSchema.optional(),childSessionId:controlIdSchema,
+  relation:z.enum(lineageRelations),evidenceLevel:z.enum(lineageEvidenceLevels).optional(),
+  status:z.enum(['candidate','confirmed','rejected']).optional(),
+}).strict();
+export const controlRolesSchema = z.record(controlIdSchema.max(128),controlIdSchema)
+  .refine(value=>Object.keys(value).length<=16,'Too many roles.');
+export const responsibilityPayloadSchema = z.object({
+  id:controlIdSchema.optional(),responsibilityId:controlIdSchema.optional(),taskId:controlIdSchema.optional(),
+  ownerSessionId:controlIdSchema.optional(),scope:z.string().max(160).optional(),roles:controlRolesSchema.optional(),
+}).strict();
+export const attentionPayloadSchema = z.object({
+  id:controlIdSchema.optional(),kind:z.string().max(160).optional(),severity:z.enum(['info','warning','error']).optional(),
+  message:z.string().max(2000).optional(),
+}).strict();
+
+export const controlEventSchema = controlEventEnvelopeSchema.superRefine((event,ctx)=>{
+  const schema=event.type==='lineage.relation'?lineagePayloadSchema
+    :event.type.startsWith('run.')?runPayloadSchema
+    :event.type.startsWith('responsibility.')?responsibilityPayloadSchema
+    :event.type.startsWith('attention.')?attentionPayloadSchema
+    :null;
+  if(!schema)return;
+  const result=schema.safeParse(event.payload);
+  if(!result.success)for(const issue of result.error.issues)ctx.addIssue({...issue,path:['payload',...issue.path]});
 });
 export type ControlEvent = z.infer<typeof controlEventSchema>;
 
@@ -133,13 +165,9 @@ export function canonicalDigest(value: unknown): string { return createHash('sha
 export function redactControlPayload(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redactControlPayload);
   if (value !== null && typeof value === 'object') {
-    const output: Record<string, unknown> = {};
-    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
-      output[key] = forbiddenKey.test(key) || (key.toLowerCase().includes('path') && typeof item === 'string' && absolutePath.test(item)) ? '[REDACTED]' : redactControlPayload(item);
-    }
-    return output;
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key,item])=>[key,forbiddenKey.test(key) || (key.toLowerCase().includes('path') && typeof item === 'string' && absolutePath.test(item)) ? '[REDACTED]' : redactControlPayload(item)]));
   }
-  return value;
+  return typeof value==='string'?publicText(value):value;
 }
 
 export const controlEvent = (input: unknown): ControlEvent => controlEventSchema.parse(input);

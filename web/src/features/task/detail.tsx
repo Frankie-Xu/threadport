@@ -1,3 +1,4 @@
+import type { TaskDraft } from '../../draft-recovery.js';
 import { Assertions,type AssertionSeed } from "./assertions.js";
 import {ExportReview} from "../settings/export.js";
 import { useState } from "react";
@@ -24,10 +25,16 @@ export function Detail({
   api,
   id,
   navigate,
+  recovered,
+  clearRecovered,
+  onDraft,
 }: {
   api: ApiClient;
   id: string;
   navigate: (values: Record<string, string | null>) => void;
+  recovered?: TaskDraft;
+  clearRecovered: () => void;
+  onDraft: (draft: TaskDraft | null) => void;
 }) {
   const detail = useLoad<Envelope<TaskDetail>>(
     api,
@@ -49,8 +56,9 @@ export function Detail({
   const [assertionSeed,setAssertionSeed]=useState<AssertionSeed|null>(null);
   const action = useAction();
   const [exporting,setExporting]=useState(false);
+  const stopEditing = () => { setEditing(false); clearRecovered(); };
   const refresh = () => {
-    setEditing(false);
+    stopEditing();
     setAttaching(false);
     setRemoving(null);
     detail.reload();
@@ -362,12 +370,14 @@ export function Detail({
               <p>No command evidence available.</p>
             )}
           </section>
-          {editing && (
+          {(editing || recovered) && (
             <Editor
               api={api}
               task={value.task}
-              onClose={() => setEditing(false)}
+              onClose={stopEditing}
               onSaved={refresh}
+              recovered={recovered}
+              onDraft={onDraft}
             />
           )}{" "}
           {attaching && (

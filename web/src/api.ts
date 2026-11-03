@@ -116,6 +116,7 @@ function retryableFor(code: string, value?: unknown): boolean {
 }
 export interface ApiClient {
   onExpired?: () => void;
+  onUnavailable?: () => void;
   exportText(id: string, format: "json" | "markdown"): Promise<string>;
   request<T>(
     path: string,
@@ -180,10 +181,12 @@ function createApi(token: string): ApiClient {
           },
           body: body === undefined ? undefined : JSON.stringify(body),
           signal,
+          redirect: "error",
           cache: "no-store",
         });
       } catch (error) {
         if (signal?.aborted) throw error;
+        if (path === "/status" || (method === "PATCH" && /^\/tasks\/[^/]+$/.test(path))) api.onUnavailable?.();
         throw new ApiError("NETWORK_ERROR");
       }
       if (!response.ok) {
@@ -201,7 +204,7 @@ export function initialClient(): ApiClient | null {
     ? createApi(tokens[0])
     : null;
 }
-export function reconnectClient(link: string): ApiClient | null {
+export function reconnectClient(link: string): { url: URL; client: ApiClient | null } {
   let url: URL;
   try {
     url = new URL(link);
@@ -214,6 +217,7 @@ export function reconnectClient(link: string): ApiClient | null {
   if (
     url.protocol !== "http:" ||
     url.hostname !== "127.0.0.1" ||
+    !url.port ||
     url.username ||
     url.password ||
     url.pathname !== "/" ||
@@ -221,12 +225,10 @@ export function reconnectClient(link: string): ApiClient | null {
     !/^[a-f0-9]{64}$/.test(tokens[0])
   )
     throw new Error("Use a valid local ThreadPort terminal link.");
-  if (url.origin !== location.origin) {
-    url.search = location.search;
-    location.assign(url.href);
-    return null;
-  }
-  return createApi(tokens[0]);
+  // Do not disclose the old route or search query to a different listener.
+  url.search = url.origin===location.origin ? location.search : '';
+  url.hash = new URLSearchParams({ token: tokens[0] }).toString();
+  return { url, client: url.origin===location.origin ? createApi(tokens[0]) : null };
 }
 export function query(
   values: Record<string, string | number | boolean | undefined | null>,

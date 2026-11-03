@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyControlEvent, rebuildControlState, emptyControlState } from '../../src/control-plane/reducer.js';
-import type { ControlEvent } from '../../src/control-plane/contracts.js';
+import { canonicalDigest, type ControlEvent } from '../../src/control-plane/contracts.js';
 import { createContextManifest } from '../../src/control-plane/manifest.js';
 const event = (patch: Partial<ControlEvent>): ControlEvent => ({
  eventId: 'e-1', protocol: 'threadport.control-event.v1', occurredAt: '2026-09-20T00:00:00.000Z', recordedAt: '2026-09-20T00:00:00.000Z',
@@ -99,19 +99,19 @@ describe('control plane reducer', () => {
    expect(state.receipts['receipt-agent']).toMatchObject({ stage: 'reported-complete', status: 'unknown' });
    expect(state.attention).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'unverified-completion', status: 'open' })]));
   });
-  it('requires a valid manifest, target and evidence before confirming a receipt', () => {
+  it('treats even well-formed replayed claims and self-references as observations', () => {
    const prepared = createContextManifest({ handoffId: 'h-valid', taskId: 'task', taskRevision: 1, targetSessionId: 's1', targetRunId: 'r1', createdAt: '2026-09-20T00:00:00.000Z' });
    const base = { receiptId: 'receipt-valid', handoffId: 'h-valid', targetSessionId: 's1', targetRunId: 'r1', manifestDigest: prepared.digest, stage: 'received' as const, nonce: 'valid-nonce-123456', expiresAt: '2026-09-21T00:00:00.000Z' };
    const valid = rebuildControlState([
     event({ eventId: 'manifest-valid', type: 'manifest.saved', evidenceIds: ['manifest-valid'], payload: { handoffId: 'h-valid', manifest: prepared } }),
     event({ eventId: 'receipt-valid-event', type: 'receipt.confirmed', evidenceIds: ['receipt-valid-event'], payload: { receipt: base } }),
    ]);
-   expect(valid.receipts['receipt-valid']).toMatchObject({ status: 'confirmed', stage: 'received' });
+   expect(valid.receipts['receipt-valid']).toMatchObject({ status: 'unknown', stage: 'received' });
    const verified = rebuildControlState([
     event({ eventId: 'manifest-verified', ordinal: 0, type: 'manifest.saved', evidenceIds: ['manifest-verified'], payload: { handoffId: 'h-valid', manifest: prepared } }),
     event({ eventId: 'receipt-verified-event', ordinal: 1, type: 'receipt.confirmed', evidenceIds: ['receipt-verified-event'], payload: { receipt: { ...base, stage: 'verified-complete', nonce: 'verified-nonce-123456' } } }),
    ]);
-   expect(verified.receipts['receipt-valid']).toMatchObject({ status: 'confirmed', stage: 'verified-complete' });
+   expect(verified.receipts['receipt-valid']).toMatchObject({ status: 'unknown', stage: 'reported-complete' });
    const forged = rebuildControlState([
     event({ eventId: 'manifest-valid', type: 'manifest.saved', evidenceIds: ['manifest-valid'], payload: { handoffId: 'h-valid', manifest: prepared } }),
     event({ eventId: 'receipt-forged-event', type: 'receipt.confirmed', evidenceIds: [], payload: { receipt: { ...base, manifestDigest: 'b'.repeat(64), targetSessionId: 'wrong' } } }),
@@ -122,11 +122,16 @@ describe('control plane reducer', () => {
  it('ends a confirmed responsibility only on an explicit ended event', () => {
   const base = event({ eventId: 'responsibility-1', type: 'responsibility.confirmed', taskId: 'task', payload: { id: 'resp-1', ownerSessionId: 's1', scope: 'task', roles: { executor: 's1' } } });
   const ended = event({ eventId: 'responsibility-2', type: 'responsibility.ended', taskId: 'task', ordinal: 2, payload: { id: 'resp-1', ownerSessionId: 's1', scope: 'task' } });
-  expect(rebuildControlState([base, ended]).responsibilities[0]).toMatchObject({ id: 'resp-1', status: 'ended', roles: { executor: 's1' } });
+  expect(rebuildControlState([base,ended]).responsibilities[0]).toMatchObject({status:'proposed'});
+  const prepared={manifests:[],receipts:[],authorizedEvents:new Map([[base.eventId,canonicalDigest(base)]])};
+  expect(rebuildControlState([base,ended],prepared).responsibilities[0]).toMatchObject({status:'confirmed'});
+  prepared.authorizedEvents.set(ended.eventId,canonicalDigest(ended));
+  expect(rebuildControlState([base,ended],prepared).responsibilities[0]).toMatchObject({id:'resp-1',status:'ended',roles:{executor:'s1'}});
  });
  it('does not let an agent report overwrite a confirmed executor', () => {
   const confirmed = event({ eventId: 'responsibility-3', type: 'responsibility.confirmed', taskId: 'task', payload: { id: 'resp-2', ownerSessionId: 's1', scope: 'task', roles: { executor: 's1' } } });
   const report = event({ eventId: 'responsibility-4', type: 'responsibility.proposed', taskId: 'task', ordinal: 2, source: { kind: 'agent-report', sourceId: 'src', parserVersion: '1', coverage: 'partial' }, payload: { id: 'resp-2', ownerSessionId: 's2', scope: 'task', roles: { executor: 's2' } } });
-  expect(rebuildControlState([confirmed, report]).responsibilities[0]).toMatchObject({ status: 'confirmed', roles: { executor: 's1' } });
+  const prepared={manifests:[],receipts:[],authorizedEvents:new Map([[confirmed.eventId,canonicalDigest(confirmed)]])};
+  expect(rebuildControlState([confirmed, report],prepared).responsibilities[0]).toMatchObject({ status: 'confirmed', roles: { executor: 's1' } });
  });
 });

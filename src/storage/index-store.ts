@@ -5,6 +5,7 @@ import { deriveTask } from '../domain/derive-task.js';
 import type { NormalizedEvent } from '../domain/models.js';
 import type { ReadCursor, SourceReadResult, SourceSession } from '../sources/contracts.js';
 import { validateCursor } from '../sources/jsonl-reader.js';
+import { eventSearchText } from './search-projection.js';
 import { storageError } from './migrations.js';
 const id=z.string().min(1).max(512);
 const configSchema=z.object({id,agent:z.enum(['claude','codex']),roots:z.array(z.string().min(1).max(32768)).min(1).max(100),enabled:z.boolean(),parserVersion:z.string().min(1).max(128)}).strict();
@@ -61,7 +62,7 @@ export class IndexStore {
    this.renewIndexLease(sourceId,owner);
    this.db.prepare('INSERT INTO sessions(id,source_id,vendor_id,source_path,project_id,workspace_id,last_event_at,metadata_json) VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET source_id=excluded.source_id,vendor_id=excluded.vendor_id,source_path=excluded.source_path,last_event_at=excluded.last_event_at,metadata_json=excluded.metadata_json').run(session.id,sourceId,session.vendorSessionId,session.sourcePath,saved.projectId,saved.workspaceId,session.lastEventAt,JSON.stringify({session:saved,warnings}));
    if(reset)this.db.prepare('DELETE FROM events WHERE session_id=?').run(session.id);
-   for(const event of input.events){const ownerSession=this.db.prepare('SELECT session_id FROM events WHERE id=?').pluck().get(event.id);if(ownerSession!==undefined&&ownerSession!==session.id)throw new DomainError('INVALID_INPUT','Event belongs to another session.');this.db.prepare('INSERT INTO events(id,session_id,ordinal,body_json,search_text) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET ordinal=excluded.ordinal,body_json=excluded.body_json,search_text=excluded.search_text').run(event.id,session.id,event.ordinal,JSON.stringify(event),[event.text,...event.relativePaths].join('\n'));}
+   for(const event of input.events){const ownerSession=this.db.prepare('SELECT session_id FROM events WHERE id=?').pluck().get(event.id);if(ownerSession!==undefined&&ownerSession!==session.id)throw new DomainError('INVALID_INPUT','Event belongs to another session.');this.db.prepare('INSERT INTO events(id,session_id,ordinal,body_json,search_text) VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET ordinal=excluded.ordinal,body_json=excluded.body_json,search_text=excluded.search_text').run(event.id,session.id,event.ordinal,JSON.stringify(event),eventSearchText(event));}
    if(!projectionClean)this.db.prepare(`INSERT INTO session_search(session_id,search_text,dirty)
      SELECT ?,lower(COALESCE((SELECT group_concat(search_text,char(10)) FROM (SELECT search_text FROM events WHERE session_id=? ORDER BY ordinal)),'')),0
      ON CONFLICT(session_id) DO UPDATE SET search_text=excluded.search_text,dirty=0`).run(session.id,session.id);
