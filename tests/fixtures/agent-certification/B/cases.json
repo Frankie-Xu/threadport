@@ -1,0 +1,10 @@
+[
+  { "id": "sum-positive", "operation": "sum", "args": [2, 3], "expected": 5 },
+  { "id": "sum-negative", "operation": "sum", "args": [-4, -2], "expected": -6 },
+  { "id": "sum-zero", "operation": "sum", "args": [0, 0], "expected": 0 },
+  { "id": "sum-fraction", "operation": "sum", "args": [1.5, 2.5], "expected": 4 },
+  { "id": "multiply-positive", "operation": "multiply", "args": [2, 3], "expected": 6 },
+  { "id": "multiply-negative", "operation": "multiply", "args": [-4, 2], "expected": -8 },
+  { "id": "multiply-zero", "operation": "multiply", "args": [5, 0], "expected": 0 },
+  { "id": "multiply-fraction", "operation": "multiply", "args": [1.5, 2], "expected": 3 }
+]
