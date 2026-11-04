@@ -1,12 +1,12 @@
 import { expect,it } from 'vitest';
-import { chmod,writeFile,mkdir,rename,realpath } from 'node:fs/promises';
+import { chmod,writeFile,mkdir,rename,realpath,readFile,access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { temporary } from '../helpers.js';
 import { fixture } from '../handoff/helpers.js';
 import { HandoffService } from '../../src/handoff/prepare.js';
 import { ClaudeRunner } from '../../src/targets/claude.js';
 import { CodexRunner } from '../../src/targets/codex.js';
-const help={claude:'Usage: claude [options] [command] [prompt]\n  -r, --resume [value] Resume a conversation',codex:'Usage: codex [OPTIONS] [PROMPT]\n -C, --cd <DIR>',resume:'Usage: codex resume [OPTIONS] [SESSION_ID] [PROMPT]\n -C, --cd <DIR>'};
+const help={claude:'Usage: claude [options] [command] [prompt]\nOptions:\n  -r, --resume [value]  Resume a conversation',codex:'Usage: codex [OPTIONS] [PROMPT]\nOptions:\n -C, --cd <DIR>',resume:'Usage: codex resume [OPTIONS] [SESSION_ID] [PROMPT]\nOptions:\n -C, --cd <DIR>'};
 async function options(agent:'claude'|'codex',version?:string){const root=join(await temporary(),'CLI tools');await mkdir(root);const executable=join(root,agent+(process.platform==='win32'?'.exe':''));await writeFile(executable,'synthetic probe only');await chmod(executable,0o700);const calls:string[][]=[];return{calls,executable,options:{path:root,probe:async(file:string,args:string[])=>{expect(file).toBe(executable);calls.push(args);return args[0]==='--version'?(version??(agent==='claude'?'2.1.270 (Claude Code)':'codex-cli 0.154.0-alpha.6.2')):args[0]==='resume'?help.resume:help[agent];}}};}
 it('detects independent exact-version capabilities without claiming authentication',async()=>{
  const claude=await options('claude');const codex=await options('codex');
@@ -45,5 +45,38 @@ it('also constructs Codex native resume and Claude new-session with complete cur
  const f=await fixture('codex');try{const service=new HandoffService(f.store);const native=await service.prepareHandoff({...f.input,mode:'native-resume'});const c=await options('codex');const sessionId=f.store.handoffStore().source(f.input.sourceSessionId)!.vendorSessionId;
  const spec=await new CodexRunner(c.options).prepare({handoff:native,workspaceRoot:f.root,vendorSessionId:sessionId});expect(spec.args).toEqual(['resume','--cd',f.root,'--',sessionId,native.prompt]);
  const fresh=await service.prepareHandoff({...f.input,target:'claude'});const a=await options('claude');expect((await new ClaudeRunner(a.options).prepare({handoff:fresh,workspaceRoot:f.root,vendorSessionId:null})).args).toEqual(['--',fresh.prompt]);
+ }finally{f.store.close();}
+},30000);
+
+it.each([
+ ['claude','new-session'],['claude','native-resume'],['codex','new-session'],['codex','native-resume'],
+] as const)('preserves literal bilingual context, cwd and session identity with current %s %s',async(agent,mode)=>{
+ const source=mode==='native-resume'?agent:agent==='claude'?'codex':'claude';
+ const f=await fixture(source);
+ try{
+  const context='保留中文与 English constraints。\nQuotes: "double" and \'single\'. $(touch injected) `touch injected` ; & --help\n'+('完整上下文 / complete context. '.repeat(80));
+  await f.tasks.update(f.taskId,2,{objective:context,constraints:['仅修改已允许文件 / edit allowed files only'],nextAction:'Review the failing synthetic test'});
+  const handoff=await new HandoffService(f.store).prepareHandoff({...f.input,target:agent,mode});
+  expect(handoff.claims.some(claim=>claim.text===context)).toBe(true);
+  expect(handoff.prompt).toContain(JSON.stringify(context));
+  const version=agent==='claude'?'2.1.312':'0.166.0-alpha.5.1';
+  const fixtures=new URL(`../fixtures/targets/interfaces/${agent}-${version}/`,import.meta.url);
+  const versionOutput=await readFile(new URL('version.txt',fixtures),'utf8');
+  const helpOutput=await readFile(new URL('help.txt',fixtures),'utf8');
+  const resumeOutput=agent==='codex'?await readFile(new URL('resume-help.txt',fixtures),'utf8'):'';
+  const c=await options(agent);const probe={...c.options,probe:async(_file:string,args:string[])=>args[0]==='--version'?versionOutput:args[0]==='resume'?resumeOutput:helpOutput};
+  const runner=agent==='claude'?new ClaudeRunner(probe):new CodexRunner(probe);
+  const session=mode==='native-resume'?'11111111-1111-4111-8111-111111111111':null;
+  const spec=await runner.prepare({handoff,workspaceRoot:f.root,vendorSessionId:session});
+  const expected=agent==='claude'?(session?['--resume',session,'--',handoff.prompt]:['--',handoff.prompt])
+   :session?['resume','--cd',f.root,'--',session,handoff.prompt]:['--cd',f.root,'--',handoff.prompt];
+  expect(spec.args).toEqual(expected);expect(spec.cwd).toBe(f.root);
+  expect(spec.args.filter(arg=>arg===handoff.prompt)).toHaveLength(1);
+  expect(spec.input).toEqual({kind:'argv',value:handoff.prompt});
+  const {execFile}=await import('node:child_process');const {promisify}=await import('node:util');
+  // A real Node child echoes argv; no Agent binary receives this prompt.
+  const echoed=await promisify(execFile)(process.execPath,['-e','process.stdout.write(JSON.stringify({cwd:process.cwd(),args:process.argv.slice(1)}))','--',...spec.args],{cwd:spec.cwd,shell:false});
+  expect(JSON.parse(echoed.stdout)).toEqual({cwd:f.root,args:expected});
+  await expect(access(join(f.root,'injected'))).rejects.toThrow();
  }finally{f.store.close();}
 },30000);

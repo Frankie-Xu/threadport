@@ -1,0 +1,4 @@
+Usage: codex [OPTIONS] [PROMPT]
+
+Options:
+  -C, --cd <DIR>

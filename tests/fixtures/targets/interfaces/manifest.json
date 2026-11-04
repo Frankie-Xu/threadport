@@ -1,0 +1,169 @@
+{
+  "schema": "threadport.target-interface-evidence.v1",
+  "capturedOn": "2026-11-04",
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "24.18.1",
+  "evidenceClass": "read-only-interface-probe",
+  "auth": "unknown",
+  "realContinuation": "not_run",
+  "matrix": "HOLD: all 24 current cells not_run",
+  "records": [
+    {
+      "agent": "claude",
+      "version": "2.1.312",
+      "probeCalls": [
+        {
+          "args": [
+            "--version"
+          ],
+          "exitCode": 0,
+          "stdoutBytes": 22,
+          "stdoutSha256": "791556e3bfd94f4112f9f6d25ee445c37338f0bcb8b3d362d3e40d8446a88a85",
+          "stderrBytes": 0,
+          "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "args": [
+            "--help"
+          ],
+          "exitCode": 0,
+          "stdoutBytes": 22395,
+          "stdoutSha256": "fc9af56f65f8a84a9e7e98cd538ccac13f57d1cc0e22099666508198ba88d64d",
+          "stderrBytes": 0,
+          "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "binary": {
+        "sha256": "6b5ec691195e551b02c41df9f7d723f4ea61eaa03c2df90acefe3736f1aeb620",
+        "bytes": 275988512,
+        "codeSignatureVerified": true,
+        "vendorTeam": "Q6L2SF6YDW"
+      },
+      "fixtures": [
+        {
+          "file": "claude-2.1.312/help.txt",
+          "sha256": "5e8359e72fd7194c5a466bf7944eee62c050c4f097f2642eccd466c2b617f9bd",
+          "scope": "Minimal declaration excerpt from captured stdout; not a full help transcript."
+        },
+        {
+          "file": "claude-2.1.312/version.txt",
+          "sha256": "791556e3bfd94f4112f9f6d25ee445c37338f0bcb8b3d362d3e40d8446a88a85",
+          "scope": "Minimal declaration excerpt from captured stdout; not a full help transcript."
+        }
+      ],
+      "distribution": {
+        "package": "@anthropic-ai/claude-code",
+        "version": "2.1.312",
+        "metadataUrl": "https://registry.npmjs.org/@anthropic-ai%2Fclaude-code/2.1.312",
+        "manifestUrl": "https://downloads.claude.ai/claude-code-releases/2.1.312/manifest.json",
+        "manifestSignatureUrl": "https://downloads.claude.ai/claude-code-releases/2.1.312/manifest.json.sig",
+        "releaseKeyUrl": "https://downloads.claude.ai/keys/claude-code.asc",
+        "releaseKeyFingerprint": "31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE",
+        "manifestSignatureVerified": true,
+        "manifestChecksumMatchesBinary": true
+      }
+    },
+    {
+      "agent": "codex",
+      "version": "0.166.0-alpha.5.1",
+      "probeCalls": [
+        {
+          "args": [
+            "--version"
+          ],
+          "exitCode": 0,
+          "stdoutBytes": 28,
+          "stdoutSha256": "be0e6ff319c54a10bf765d5095e195f8600fc242efac27050d7aec00a00ddfa5",
+          "stderrBytes": 0,
+          "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "args": [
+            "--help"
+          ],
+          "exitCode": 0,
+          "stdoutBytes": 5944,
+          "stdoutSha256": "c45272069305746def807625680ee74891c9b367bff346ff776206b98c79331a",
+          "stderrBytes": 0,
+          "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "args": [
+            "resume",
+            "--help"
+          ],
+          "exitCode": 0,
+          "stdoutBytes": 4289,
+          "stdoutSha256": "a69d53b274c25b7ca50fad2c5ed62bd538097033fa4092dc0b2587e8f0a50edb",
+          "stderrBytes": 0,
+          "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "binary": {
+        "sha256": "58a91f6ea19bea477ae3a2ec48d619f0039afe75d3476260747e11d201fa7cea",
+        "bytes": 267754128,
+        "codeSignatureVerified": true,
+        "vendorTeam": "2DC432GLL2"
+      },
+      "fixtures": [
+        {
+          "file": "codex-0.166.0-alpha.5.1/help.txt",
+          "sha256": "2a19c912ce8d4496c1ed2ed9b9947f7e4d7cb7de4c24f3a926dc2bd80e8e0c2d",
+          "scope": "Minimal declaration excerpt from captured stdout; not a full help transcript."
+        },
+        {
+          "file": "codex-0.166.0-alpha.5.1/resume-help.txt",
+          "sha256": "b33de820ef8592080bb560d5c402c52beb641feaec940546b70f9e2707c077e8",
+          "scope": "Minimal declaration excerpt from captured stdout; not a full help transcript."
+        },
+        {
+          "file": "codex-0.166.0-alpha.5.1/version.txt",
+          "sha256": "be0e6ff319c54a10bf765d5095e195f8600fc242efac27050d7aec00a00ddfa5",
+          "scope": "Minimal declaration excerpt from captured stdout; not a full help transcript."
+        }
+      ],
+      "distribution": {
+        "package": "@openai/codex",
+        "version": "0.166.0-alpha.5.1-darwin-arm64",
+        "metadataUrl": "https://registry.npmjs.org/@openai%2Fcodex/0.166.0-alpha.5.1-darwin-arm64",
+        "tarballUrl": "https://registry.npmjs.org/@openai/codex/-/codex-0.166.0-alpha.5.1-darwin-arm64.tgz",
+        "integrity": "sha512-j5FXx3pJ5301+Q8sL6hGUNoHLvPBXvViKboFnFFWE2asaoEBxU1v2j+G1P7H42PvaqHfKWd331J4zYSidLQPnw==",
+        "archiveSha256": "00e5180f324cf8be4ecdcd5f140e97b704f736e2c3053b9201bd04827790c1c2",
+        "archiveBytes": 146394769,
+        "integrityVerified": true,
+        "binary": {
+          "member": "package/vendor/aarch64-apple-darwin/bin/codex",
+          "bytes": 267753104,
+          "sha256": "218cf90a96f1319662d28094b54ded71e2bcbc1c7279fada0755843cea31a5f4"
+        },
+        "bundledAndNpmBinaryBytesIdentical": false,
+        "npmReadOnlyStdoutMatchesBundled": true,
+        "note": "Both vendor signatures verify; packaging bytes differ. The npm native binary was only probed with the same three fixed version/help argument lists."
+      }
+    }
+  ],
+  "documents": [
+    {
+      "url": "https://learn.chatgpt.com/docs/developer-commands#codex-resume",
+      "retrievedOn": "2026-11-04",
+      "scope": "Interactive resume; explicit --cd overrides saved/current cwd selection. ConfigTable options were not expanded; actual help supplies token evidence."
+    },
+    {
+      "url": "https://developers.openai.com/cookbook/examples/codex/using_goals_in_codex",
+      "retrievedOn": "2026-11-04",
+      "scope": "Official @openai/codex npm distribution channel; no Goals or real session was started."
+    },
+    {
+      "url": "https://code.claude.com/docs/en/cli-reference",
+      "retrievedOn": "2026-11-04",
+      "scope": "Interactive positional prompt and explicit session resume interface."
+    },
+    {
+      "url": "https://code.claude.com/docs/en/setup",
+      "retrievedOn": "2026-11-04",
+      "scope": "Official npm channel, release manifest checksums, signing fingerprint and platform code signatures."
+    }
+  ],
+  "nodeScope": "ThreadPort verification and synthetic regression runtime. Direct native version/help output was captured by Python; no Agent-internal Node environment is certified."
+}

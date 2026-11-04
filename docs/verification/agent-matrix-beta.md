@@ -1,6 +1,6 @@
 # 真实 Agent 当前候选矩阵：HOLD
 
-**当前状态（2026-11-04，CERT-01）：** 本包从 BASE-01 实际 main `93429de02dd8d43c73cc168709adff13d2817e14` 开发，尚未冻结真实认证候选或安装该候选进行 Agent 实验。下面 24 格全部 `not_run`；macOS/Ubuntu 功能认证、适用异常矩阵及独立抽验均待后续 CERT 包。Windows 真实认证单列待办。准备工具和校验格式见 [CERT-01 使用说明](agent-certification-harness.md)。
+**当前状态（2026-11-04，CERT-02）：** 从 CERT-01 实际 main `69bb7f8e37743b146dfe953a36805ba019ad0e5d` 核对 Claude 2.1.312 / Codex 0.166.0-alpha.5.1 的官方分发与只读 version/help，见 [接口证据](target-interfaces-2026-11-04.md)。这只更新精确版本接口白名单，没有运行真实接续或确认登录，auth 仍 unknown。下面 24 格全部 `not_run`；macOS/Ubuntu 功能认证、适用异常矩阵及独立抽验均待后续 CERT 包。Windows 真实认证单列待办。准备工具和校验格式见 [CERT-01 使用说明](agent-certification-harness.md)。
 
 **历史证据时效：** 后面的旧 CLI 接口与真实接续记录仅适用于各自源码/安装包/版本，不认证当前运行时。历史整改边界见 [整改状态](remediation-progress-2026-09-16.md)。
 
