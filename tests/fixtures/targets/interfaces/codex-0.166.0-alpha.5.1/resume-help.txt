@@ -1,0 +1,4 @@
+Usage: codex resume [OPTIONS] [SESSION_ID] [PROMPT]
+
+Options:
+  -C, --cd <DIR>

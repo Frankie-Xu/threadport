@@ -8,6 +8,9 @@ import { DomainError } from '../domain/errors.js';
 import type { LaunchSpec, TargetCapability } from './contracts.js';
 
 const hash=z.string().regex(/^[a-f0-9]{64}$/);
+// Claude Code 2.1.312 macOS arm64 is 263.20 MiB. Keep a finite identity
+// budget (the next 64 MiB step); hashing still uses one 1 MiB buffer.
+const MAX_LAUNCHER_BYTES=320n*1024n*1024n;
 export const launchPlanSchema=z.object({
  protocol:z.literal('threadport.launch-plan.v1'),nonce:z.string().uuid(),handoffId:z.string().uuid(),handoffDigest:hash,
  target:z.enum(['claude','codex']),version:z.string().nullable(),expiresAt:z.string().datetime(),
@@ -23,10 +26,10 @@ export const launchPlanDigest=(plan:LaunchPlan)=>sha256(canonical(launchPlanSche
 async function executableIdentity(path:string):Promise<LaunchPlan['executable']>{
  try{
   if(!isAbsolute(path))throw new Error();
-  const resolved=await realpath(path);const file=await open(resolved,constants.O_RDONLY|(constants.O_NOFOLLOW??0));
+  const resolved=await realpath(path);const file=await open(resolved,constants.O_RDONLY|(constants.O_NOFOLLOW??0)|(constants.O_NONBLOCK??0));
   try{
    const before=await file.stat({bigint:true});
-   if(!before.isFile()||before.size>256n*1024n*1024n)throw new Error();
+   if(!before.isFile()||before.size>MAX_LAUNCHER_BYTES)throw new Error();
    const signature=(info:typeof before)=>[info.dev,info.ino,info.mode,info.size,info.mtimeNs,info.ctimeNs].join(':');
    const digest=createHash('sha256');const buffer=Buffer.alloc(1024*1024);let offset=0;
    while(offset<Number(before.size)){const {bytesRead}=await file.read(buffer,0,Math.min(buffer.length,Number(before.size)-offset),offset);if(!bytesRead)throw new Error();digest.update(buffer.subarray(0,bytesRead));offset+=bytesRead;}
