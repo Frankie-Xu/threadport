@@ -1,0 +1,13 @@
+{
+  "scenario": "C",
+  "objectiveZh": "先预览，再加入固定人工漂移；旧批准必须拒绝。重新准备和审阅后修复 sum，保留新增 NOTES。",
+  "objectiveEn": "Preview first, then apply the fixed human drift; reject the stale approval. Prepare and review again, repair sum, and retain the added NOTES bytes.",
+  "constraints": [
+    "目标只修改 sum.mjs 中的减号为加号，保留 LF。 The target may only replace minus with plus in sum.mjs, preserving LF bytes.",
+    "NOTES.md 只能由人工漂移步骤改变；目标必须逐字节保留漂移后的内容。 Only the human drift step changes NOTES.md; the target must preserve the resulting bytes.",
+    "旧批准启动次数为零；重新准备后同一 handoff 只启动一次。 Zero starts for the stale approval; one start for the freshly prepared handoff.",
+    "不得修改测试、保护文件或依赖。 Do not change tests, protected files or dependencies."
+  ],
+  "allowedChanges": ["sum.mjs"],
+  "reviewableTestArgv": ["node", "--test", "sum.test.mjs"]
+}

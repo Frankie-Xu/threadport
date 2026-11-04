@@ -1,0 +1,13 @@
+{
+  "scenario": "B",
+  "objectiveZh": "保留正确的 sum 行为，在 sum.mjs 后追加 multiply 导出。",
+  "objectiveEn": "Preserve the existing sum behavior and append an exported multiply function in sum.mjs.",
+  "constraints": [
+    "只允许修改 sum.mjs。 Only sum.mjs may change.",
+    "在一个空行后使用固定三行函数：export function multiply(a, b) {\\n  return a * b;\\n}\\n，保留 LF。 Append that exact three-line function with LF bytes after one blank line.",
+    "保护文件、测试和两个依赖清单必须逐字节不变；不添加依赖或文件。 Preserve protected files, tests and both dependency manifests byte for byte; add no dependencies or files.",
+    "保留中英文目标与约束；只复述约束不算完成。 Retain the Chinese and English objective and constraints; repeating them does not complete this task."
+  ],
+  "allowedChanges": ["sum.mjs"],
+  "reviewableTestArgv": ["node", "--test", "sum.test.mjs"]
+}

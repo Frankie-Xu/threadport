@@ -1,0 +1,6 @@
+[
+  { "id": "sum-positive", "operation": "sum", "args": [2, 3], "expected": 5 },
+  { "id": "sum-negative", "operation": "sum", "args": [-4, -2], "expected": -6 },
+  { "id": "sum-zero", "operation": "sum", "args": [0, 0], "expected": 0 },
+  { "id": "sum-fraction", "operation": "sum", "args": [1.5, 2.5], "expected": 4 }
+]

@@ -1,6 +1,8 @@
 # 目标端兼容性与认证边界
 
-**证据时效：** 下方 CLI 接口与真实接续记录属于各自记录的旧安装包/版本，不认证后续运行时修复。当前提交、自动回归和待验收边界见 [整改状态](verification/remediation-progress-2026-09-16.md)。
+**当前状态（2026-11-04，CERT-01）：** 开发基线为 BASE-01 实际 main `93429de02dd8d43c73cc168709adff13d2817e14`；本包尚未冻结新的真实认证候选。当前候选的 24 格全部 `not_run`，认证保持 HOLD。新增 [隔离任务与证据校验工具](verification/agent-certification-harness.md) 只准备/校验，不启动 Agent；工具回归不算真实功能认证。
+
+**历史证据时效：** 下方 CLI 接口与真实接续记录属于各自记录的旧安装包/版本，不认证后续运行时修复。历史整改边界见 [整改状态](verification/remediation-progress-2026-09-16.md)。精确版本白名单与当日 help/version 核验属于后续 CERT-02，本包没有运行实际 CLI 探测或扩大兼容声明。
 
 T13 核对 CLI 版本和参数接口，不把命令存在、help 匹配或进程退出 0 当作真实任务接续成功。所有探测返回 `auth: unknown`；登录由用户已有 Agent 安装处理，不修改认证或权限。
 
@@ -25,6 +27,8 @@ T13 核对 CLI 版本和参数接口，不把命令存在、help 匹配或进程
 `threadport targets` 保持旧的纯 PATH 发现输出；`threadport targets --capabilities` 和认证 API `GET /api/v1/targets` 返回 Claude/Codex 新能力 DTO，不含 executable 路径。T14-A 已接入 continue 执行器，仍必须完整预览、有效审批、终端再次确认和工作区复验；真实跨 Agent 认证仍待 T14-B/T18。
 
 T18 的 [24 格真实验证矩阵](verification/agent-matrix-beta.md) 单独记录未完成项；参数核对与 CI 合成流程不计入该矩阵。
+
+CERT-01 的 A/B/C 固定任务分别覆盖失败修复、双语人工约束和漂移后重新准备。证据绑定源码 SHA、tarball SHA-256、平台/架构/Node、Agent 精确版本、模式、场景及预览/launch plan 摘要；校验器拒绝旧候选、缺字段、错绑定和不满足的产物。`complete-unverified` 仅表示格式/关联及固定任务产物满足，用户可填 JSON 不提供真实性证明，也不能创建 receipt attestation、authority、有效责任或 `verified-complete`。独立复核与真实矩阵结论另行保存。
 
 ## 控制平面覆盖度
 
